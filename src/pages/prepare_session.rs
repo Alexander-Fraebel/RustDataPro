@@ -5,7 +5,7 @@ use crate::{
 };
 use egui::{Color32, TextStyle};
 use egui_file_dialog::FileDialog;
-use itertools::Itertools;
+use indexmap::IndexSet;
 use std::path::Path;
 
 pub struct PrepareSession {
@@ -156,7 +156,7 @@ impl PrepareSession {
                         app.data
                             .assessments
                             .entry(app.data.session.chosen_assessment.clone())
-                            .or_insert(vec![]);
+                            .or_insert(IndexSet::new());
                     }
                     egui::ComboBox::from_id_salt("assessment")
                         .selected_text(assessment_text)
@@ -195,8 +195,8 @@ impl PrepareSession {
                                     app.data
                                         .assessments
                                         .entry(app.data.session.chosen_assessment.clone())
-                                        .and_modify(|v| {
-                                            v.push(app.data.session.chosen_condition.clone())
+                                        .and_modify(|conds| {
+                                            conds.insert(app.data.session.chosen_condition.clone());
                                         });
                                 }
                             }

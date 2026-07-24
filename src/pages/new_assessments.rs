@@ -3,7 +3,7 @@ use crate::data::Data;
 use crate::utils::DataProUiElements;
 use crate::{app::DataPro, data::AssessmentsData};
 use anyhow::Result;
-use itertools::Itertools;
+use indexmap::IndexSet;
 use std::path::Path;
 use std::{
     fs::File,
@@ -42,11 +42,11 @@ impl NewAssessments {
     fn convert_inputs(&mut self) {
         for (assessment, conditions) in self.user_inputs.iter() {
             if !assessment.trim().is_empty() {
-                let conditions_vec = conditions
+                let conditions_vec: IndexSet<String> = conditions
                     .split(",")
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty())
-                    .collect_vec();
+                    .collect();
                 self.assessments.insert(assessment.clone(), conditions_vec);
             }
         }

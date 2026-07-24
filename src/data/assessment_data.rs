@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -10,10 +10,10 @@ use std::{
 
 /// A list of assessments names paired with a list of their conditions.
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
-pub struct AssessmentsData(IndexMap<String, Vec<String>>);
+pub struct AssessmentsData(IndexMap<String, IndexSet<String>>);
 
 impl Deref for AssessmentsData {
-    type Target = IndexMap<String, Vec<String>>;
+    type Target = IndexMap<String, IndexSet<String>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -39,17 +39,18 @@ impl AssessmentsData {
     }
 
     pub fn fa_conditions() -> Self {
-        let mut map = IndexMap::new();
-        map.insert(
-            "FA".into(),
-            vec![
+        let set = IndexSet::from_iter(
+            [
                 "Ignore".into(),
                 "Tangible".into(),
                 "Demand".into(),
                 "Attention".into(),
                 "ToyPlay".into(),
-            ],
+            ]
+            .into_iter(),
         );
+        let mut map = IndexMap::new();
+        map.insert("FA".into(), set);
         Self(map)
     }
 }

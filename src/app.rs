@@ -228,7 +228,7 @@ impl DataPro {
                 match self.data.assessments.first() {
                     Some((assessment, conds)) => {
                         self.data.session.chosen_assessment = assessment.clone();
-                        match conds.get(0) {
+                        match conds.first() {
                             Some(cond) => self.data.session.chosen_condition = cond.clone(),
                             None => self.data.session.chosen_condition.clear(),
                         }
