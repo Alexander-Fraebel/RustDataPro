@@ -1,0 +1,45 @@
+---Session---
+Client: Bruce Wayne
+ID: 7811224253
+Location: Wayne Manor
+Case Manager: Alfred Pennyworth
+Primary Therapist: Richard Grayson
+Session Number: 5
+Date of Admission: 1939-02-19 (31931 days ago)
+
+Start Thu 7/23/2026 21:47
+Duration 10.9
+
+Assessment: FA
+Condition: Ignore
+Therapist: 
+Data Collector: 
+Data Type: Primary
+
+--Duration--
+ToyEngage 4.6 (1 bouts)
+Sr+ 5.5 (2 bouts)
+Sdelta 0.0 (0 bouts)
+
+--Frequency--
+NegVoc 3
+Aggression 2
+Mand 1
+SIB 0
+Instruction 0
+Compliance 0
+
+--Raw Inputs--
+Tab 0.0
+1 0.5
+1 4.9
+4 5.0
+V 7.5
+A 7.6
+V 7.8
+A 7.9
+V 7.9
+M 8.7
+4 9.6
+1 9.7
+Escape 10.9

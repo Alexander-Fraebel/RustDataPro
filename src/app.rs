@@ -113,16 +113,16 @@ impl DataPro {
     }
 
     pub fn ready_to_start_session(&mut self) -> bool {
-        if !self.client_loaded() {
+        if !self.data.client_loaded() {
             self.prep_session.session_start_error = NO_CLIENT;
             false
-        } else if !self.ksf_loaded() {
+        } else if !self.data.ksf_loaded() {
             self.prep_session.session_start_error = NO_KSF;
             false
-        } else if !self.assessment_chosen() {
+        } else if !self.data.assessment_chosen() {
             self.prep_session.session_start_error = NO_ASSESSMENT;
             false
-        } else if !self.condition_chosen() {
+        } else if !self.data.condition_chosen() {
             self.prep_session.session_start_error = NO_CONDITION;
             false
         } else if !self.time_limit_set() {
@@ -134,22 +134,6 @@ impl DataPro {
         }
     }
 
-    pub fn client_loaded(&self) -> bool {
-        !self.data.client.id.is_empty()
-    }
-
-    pub fn ksf_loaded(&self) -> bool {
-        !self.data.ksf.name.is_empty()
-    }
-
-    pub fn assessment_chosen(&self) -> bool {
-        !self.data.session.chosen_assessment.is_empty()
-    }
-
-    pub fn condition_chosen(&self) -> bool {
-        !self.data.session.chosen_condition.is_empty()
-    }
-
     pub fn time_limit_set(&self) -> bool {
         // It is false that: session length is limited and the maximum session length is zero
         !(self.session_page.limit_session_length && self.session_page.maximum_session_length == 0.0)
@@ -157,7 +141,7 @@ impl DataPro {
 
     /// Path to the client data file, if one is available.
     pub fn client_data_file_path(&self) -> Result<PathBuf> {
-        if !self.client_loaded() {
+        if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
                 "cannot find client data file because no client is selected"
             ));
@@ -177,13 +161,13 @@ impl DataPro {
                 .to_json()
                 .with_context(|| "failed to create json version of client data file")?,
         )
-        .with_context(|| "while attempting to overwrite client data file")?;
+        .with_context(|| "while attempting to overwrite client_data.txt")?;
 
         Ok(())
     }
 
     pub fn client_session_data_path(&self) -> Result<PathBuf> {
-        if !self.client_loaded() {
+        if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
                 "cannot find {} folder because {}",
                 SESSION_DATA_FOLDER_NAME,
@@ -197,7 +181,7 @@ impl DataPro {
     }
 
     pub fn client_ioa_data_path(&self) -> Result<PathBuf> {
-        if !self.client_loaded() {
+        if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
                 "cannot find {} folder because {}",
                 IOA_DATA_FOLDER_NAME,
@@ -241,7 +225,7 @@ impl DataPro {
                 };
                 self.data.ksf = KsfData::default();
                 // Attempt to load the first assessment and its first condition
-                match self.data.assessments.get(0) {
+                match self.data.assessments.first() {
                     Some((assessment, conds)) => {
                         self.data.session.chosen_assessment = assessment.clone();
                         match conds.get(0) {

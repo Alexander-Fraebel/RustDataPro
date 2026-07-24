@@ -47,7 +47,7 @@ impl NewAssessments {
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty())
                     .collect_vec();
-                self.assessments.push((assessment.clone(), conditions_vec));
+                self.assessments.insert(assessment.clone(), conditions_vec);
             }
         }
     }

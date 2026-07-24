@@ -1,16 +1,12 @@
-[
-  [
-    "FA",
-    [
-      "Ignore",
-      "Tangible",
-      "Demand",
-      "Attention",
-      "Toy Play"
-    ]
+{
+  "FA": [
+    "Ignore",
+    "Tangible",
+    "Demand",
+    "Attention",
+    "ToyPlay"
   ],
-  [
-    "Single Choice",
+      "Single Choice":
     [
       "Bongo",
       "Teddy Bear",
@@ -19,5 +15,4 @@
       "Ball",
       "Book"
     ]
-  ]
-]
+}

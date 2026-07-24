@@ -207,7 +207,7 @@ impl IoaPage {
             });
             ui.add_space(20.0);
 
-            ui.add_enabled_ui(app.client_loaded(), |ui| {
+            ui.add_enabled_ui(app.data.client_loaded(), |ui| {
                 if ui
                     .large_green_button("Calculate IOA")
                     .on_disabled_hover_text("no client selected")

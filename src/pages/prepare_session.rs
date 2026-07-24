@@ -5,6 +5,7 @@ use crate::{
 };
 use egui::{Color32, TextStyle};
 use egui_file_dialog::FileDialog;
+use itertools::Itertools;
 use std::path::Path;
 
 pub struct PrepareSession {
@@ -23,7 +24,7 @@ impl Default for PrepareSession {
 
 impl PrepareSession {
     fn client_and_session_information(app: &mut DataPro, ui: &mut egui::Ui) {
-        ui.add_enabled_ui(app.client_loaded(), |ui| {
+        ui.add_enabled_ui(app.data.client_loaded(), |ui| {
             egui::Grid::new("client_and_session_info_grid")
                 .min_col_width(150.0)
                 .min_row_height(22.0)
@@ -142,10 +143,21 @@ impl PrepareSession {
                     ui.end_row();
 
                     ui.monospace("Assessment");
-                    let assessment_text = match app.assessment_chosen() {
+                    let assessment_text = match app.data.assessment_chosen() {
                         true => egui::RichText::new(&app.data.session.chosen_assessment),
                         false => egui::RichText::new("NONE").color(Color32::RED),
                     };
+                    let assessment_box =
+                        ui.text_edit_singleline(&mut app.data.session.chosen_assessment);
+                    if assessment_box.changed() {
+                        app.data.session.chosen_condition.clear();
+                    };
+                    if assessment_box.lost_focus() {
+                        app.data
+                            .assessments
+                            .entry(app.data.session.chosen_assessment.clone())
+                            .or_insert(vec![]);
+                    }
                     egui::ComboBox::from_id_salt("assessment")
                         .selected_text(assessment_text)
                         .show_ui(ui, |ui| {
@@ -166,10 +178,31 @@ impl PrepareSession {
                     ui.end_row();
 
                     ui.monospace("Condition");
-                    let condition_text = match app.condition_chosen() {
+                    let condition_text = match app.data.condition_chosen() {
                         true => egui::RichText::new(&app.data.session.chosen_condition),
                         false => egui::RichText::new("NONE").color(Color32::RED),
                     };
+                    let condition_box =
+                        ui.text_edit_singleline(&mut app.data.session.chosen_condition);
+                    if condition_box.lost_focus() {
+                        match app
+                            .data
+                            .assessments
+                            .get(&app.data.session.chosen_assessment)
+                        {
+                            Some(conds) => {
+                                if conds.contains(&app.data.session.chosen_condition) {
+                                    app.data
+                                        .assessments
+                                        .entry(app.data.session.chosen_assessment.clone())
+                                        .and_modify(|v| {
+                                            v.push(app.data.session.chosen_condition.clone())
+                                        });
+                                }
+                            }
+                            None => (), // do nothing,
+                        }
+                    }
                     egui::ComboBox::from_id_salt("condition")
                         .selected_text(condition_text)
                         .show_ui(ui, |ui| {
@@ -185,6 +218,7 @@ impl PrepareSession {
                                 }
                             }
                         });
+
                     ui.end_row();
                 });
             ui.add_space(10.0);
@@ -192,7 +226,7 @@ impl PrepareSession {
     }
 
     fn ksf_display(app: &mut DataPro, ui: &mut egui::Ui) {
-        if app.ksf_loaded() {
+        if app.data.ksf_loaded() {
             ui.group(|ui| {
                 ui.label(&app.data.ksf.name);
                 ui.add_space(10.0);
@@ -238,7 +272,7 @@ impl PrepareSession {
                 ui.add_space(50.0);
                 ui.vertical(|ui| {
                     ui.add_space(25.0);
-                    ui.add_enabled_ui(app.client_loaded(), |ui| {
+                    ui.add_enabled_ui(app.data.client_loaded(), |ui| {
                         if ui
                             .large_blue_button("Select KSF")
                             .on_disabled_hover_text(NO_CLIENT)

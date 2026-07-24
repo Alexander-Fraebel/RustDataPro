@@ -85,7 +85,7 @@ impl Sidebar {
                 ui.separator();
                 ui.add_space(10.0);
 
-                ui.add_enabled_ui(app.client_loaded(), |ui| {
+                ui.add_enabled_ui(app.data.client_loaded(), |ui| {
                     if ui
                         .large_button("Calculate IOA")
                         .on_disabled_hover_text(NO_CLIENT)
