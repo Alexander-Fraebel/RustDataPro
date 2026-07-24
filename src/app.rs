@@ -247,7 +247,7 @@ impl DataPro {
 impl eframe::App for DataPro {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // ### Windows ###
-        self.timers.view(ui, &mut self.display_info.timers_open);
+        Timers::view(self, ui);
         RandomServices::view(self, ui);
 
         // ### Top Bar ###
