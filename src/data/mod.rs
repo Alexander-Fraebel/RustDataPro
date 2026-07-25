@@ -2,6 +2,7 @@ pub mod assessment_data;
 pub mod client_data;
 pub mod ioa_data;
 pub mod ksf_data;
+pub mod ksf_data_alt;
 pub mod output_data;
 pub mod session_data;
 pub mod timeline;
@@ -10,7 +11,7 @@ pub mod timer;
 pub use assessment_data::*;
 pub use client_data::*;
 pub use ioa_data::*;
-pub use ksf_data::*;
+pub use ksf_data_alt::*;
 pub use output_data::*;
 pub use session_data::*;
 pub use timeline::*;
@@ -21,7 +22,7 @@ pub struct Data {
     pub client: ClientData,
     pub session: SessionData,
     pub assessments: AssessmentsData,
-    pub ksf: KsfData,
+    pub ksfs: KsfData,
 }
 
 impl Data {
@@ -34,7 +35,7 @@ impl Data {
     }
 
     pub fn ksf_loaded(&self) -> bool {
-        !self.ksf.name.is_empty()
+        !self.session.chosen_ksf.is_empty()
     }
 
     pub fn assessment_chosen(&self) -> bool {

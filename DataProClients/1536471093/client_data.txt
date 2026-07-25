@@ -1,9 +1,0 @@
-{
-  "name": "",
-  "id": "1536471093",
-  "case_manager": "",
-  "primary_therapist": "",
-  "current_session": 0,
-  "date_of_admission": "2026-07-23",
-  "location": ""
-}

@@ -1,6 +1,6 @@
 use crate::data::{
     DataType::{self},
-    KsfData, SessionData,
+    Ksf, SessionData,
     timeline::Timeline,
 };
 use anyhow::{Context, Result};
@@ -26,7 +26,7 @@ pub struct OutputData {
     pub frequency: IndexMap<Key, u32>,
     pub duration: IndexMap<Key, (u32, f32)>,
     pub timeline: Timeline,
-    pub ksf: KsfData,
+    pub ksf: Ksf,
 }
 
 impl OutputData {
@@ -72,17 +72,18 @@ fn create_test_data() {
         let mut session_data = SessionData::default();
         session_data.data_type = DataType::Primary;
 
-        let ksf = KsfData::_test_ksf();
+        let ksf = Ksf::template_ksf();
         let mut fkeys = Vec::new();
 
         let mut frequency: IndexMap<Key, u32> = IndexMap::new();
-        for (k, _desc) in ksf.frequency.iter() {
+        let (freq, dura) = ksf.keys();
+        for k in freq {
             frequency.insert(*k, 0);
             fkeys.push(*k);
         }
         let mut duration: IndexMap<Key, (u32, f32)> = IndexMap::new();
         let mut dkeys = Vec::new();
-        for (k, _desc) in ksf.duration.iter() {
+        for k in dura {
             let n: u32 = rng.random_range(..50);
             let f: f32 = rng.random::<f32>() * 50.0;
             duration.insert(*k, (n, rounded_f32(f)));
@@ -130,30 +131,30 @@ fn create_test_data() {
         for (_k, t) in timeline.iter_mut() {
             *t += (rng.random::<f32>() - 0.5) * 0.7;
         }
-        // Jitter the durations
-        for (k, _desc) in ksf.duration.iter() {
+        let (freq, dura) = ksf.keys();
+        // Jitter the duration lengths and counts
+        for k in dura {
             let f: f32 = (rng.random::<f32>() - 0.5) * 5.0;
             let d = duration.get_mut(k).unwrap();
             d.1 += f;
             if d.1.is_sign_negative() {
                 d.1 = 0.0;
             }
-        }
-        // Jitter the jitter the counts
-        for (k, _desc) in ksf.frequency.iter() {
-            let f: u32 = rng.random_range(..5);
-            if rng.random_bool(0.5) {
-                *frequency.get_mut(k).unwrap() += f;
-            } else {
-                *frequency.get_mut(k).unwrap() = frequency.get_mut(k).unwrap().saturating_sub(f);
-            }
-        }
-        for (k, _desc) in ksf.duration.iter() {
+
             let f: u32 = rng.random_range(..5);
             if rng.random_bool(0.5) {
                 duration.get_mut(k).unwrap().0 += f;
             } else {
                 duration.get_mut(k).unwrap().0 = duration.get_mut(k).unwrap().0.saturating_sub(f);
+            }
+        }
+        // Jitter the jitter the frequency counts
+        for k in freq {
+            let f: u32 = rng.random_range(..5);
+            if rng.random_bool(0.5) {
+                *frequency.get_mut(k).unwrap() += f;
+            } else {
+                *frequency.get_mut(k).unwrap() = frequency.get_mut(k).unwrap().saturating_sub(f);
             }
         }
 

@@ -65,7 +65,8 @@ impl IoaPage {
             } else {
                 r.session_duration
             };
-            for key in p.ksf.keys() {
+            let (freq, dura) = p.ksf.keys();
+            for key in freq.chain(dura) {
                 // 10 Second Interval-by-Interval IOA
                 let r10 = single_pair_interval_ioa(
                     max_time,
@@ -95,7 +96,7 @@ impl IoaPage {
 
     fn frequency_ioa(&self, ioa_data: &mut IoaData) -> Result<()> {
         for ((p, _), (r, _)) in self.prim_data.iter().zip(self.reli_data.iter()) {
-            for (key, _desc) in p.ksf.frequency.iter() {
+            for (key, _desc) in p.ksf.freq.iter() {
                 // Total Count IOA
                 let primary_count =
                     *p.frequency.get(key).context("missing primary duration")? as f32; // conversion of u32 to f32 is valid so long as count is below about 16 million, so it is not checked
@@ -109,7 +110,7 @@ impl IoaPage {
 
     fn duration_ioa(&self, ioa_data: &mut IoaData) -> Result<()> {
         for ((p, _), (r, _)) in self.prim_data.iter().zip(self.reli_data.iter()) {
-            for (key, _desc) in p.ksf.duration.iter() {
+            for (key, _desc) in p.ksf.dura.iter() {
                 // Total Duration IOA
                 let primary_dur = p.duration.get(key).context("missing primary duration")?.1;
                 let reli_dur = r.duration.get(key).context("missing reli duration")?.1;

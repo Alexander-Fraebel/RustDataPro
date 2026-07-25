@@ -1,9 +1,0 @@
-{
-  "name": "",
-  "id": "MissingAssessments",
-  "case_manager": "na",
-  "primary_therapist": "na",
-  "current_session": 0,
-  "date_of_admission": "2026-07-19",
-  "location": "na"
-}

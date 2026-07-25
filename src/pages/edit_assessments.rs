@@ -12,8 +12,8 @@ pub enum SaveStatus {
 
 #[derive(Debug, Default)]
 pub struct EditAssessments {
-    pub user_inputs: Vec<(String, String)>,
-    pub save_status: SaveStatus,
+    pub user_input: Vec<(String, String)>,
+    pub save_finished: bool,
 }
 
 impl EditAssessments {
@@ -21,14 +21,14 @@ impl EditAssessments {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
-                ui.heading("Update Assessments File for Client ");
+                ui.heading("Edit Assessments File for Client ");
                 ui.add(egui::Label::new(
                     egui::RichText::new(&app.data.client.id).heading().strong(),
                 ));
             });
             ui.add_space(10.0);
 
-            for (assessment, conditions) in app.edit_assessments.user_inputs.iter_mut() {
+            for (assessment, conditions) in app.edit_assessments.user_input.iter_mut() {
                 ui.horizontal(|ui| {
                     ui.monospace("Assessment");
                     ui.text_edit_singleline(assessment);
@@ -43,7 +43,7 @@ impl EditAssessments {
 
             if ui.button("Add Line").clicked() {
                 app.edit_assessments
-                    .user_inputs
+                    .user_input
                     .push((String::new(), String::new()));
             }
             ui.add_space(10.0);
@@ -51,7 +51,7 @@ impl EditAssessments {
             if ui.large_green_button("Save").clicked() {
                 // Update AssessmentsData
                 app.data.assessments.clear();
-                for (assessment, conditions) in app.edit_assessments.user_inputs.iter() {
+                for (assessment, conditions) in app.edit_assessments.user_input.iter() {
                     if !assessment.trim().is_empty() {
                         let conditions_vec: IndexSet<String> = conditions
                             .split(",")
@@ -67,20 +67,20 @@ impl EditAssessments {
                 if let Err(e) = app.overwrite_assessments_file() {
                     windows_error_dialog(e)
                 } else {
-                    app.edit_assessments.save_status = SaveStatus::Saved;
+                    app.edit_assessments.save_finished = true;
                 }
             }
 
             if ui.large_red_button("Return").clicked() {
                 app.display_info.go_to_prep_session();
-                app.edit_assessments.save_status = SaveStatus::None;
+                app.edit_assessments.save_finished = false;
             }
 
             ui.add_space(10.0);
-            match app.edit_assessments.save_status {
-                SaveStatus::None => ui.strong(""),
-                SaveStatus::Saved => ui.strong("SAVED FILE"),
-                SaveStatus::OverWritten => ui.strong("OVER WROTE"),
+            if app.edit_assessments.save_finished {
+                ui.strong("SAVED FILE")
+            } else {
+                ui.strong("")
             }
         });
     }

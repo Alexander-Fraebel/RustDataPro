@@ -220,18 +220,34 @@ impl PrepareSession {
     }
 
     fn ksf_display(app: &mut DataPro, ui: &mut egui::Ui) {
+        let ksf_text = match app.data.ksf_loaded() {
+            true => egui::RichText::new(app.data.session.chosen_ksf.clone()),
+            false => egui::RichText::new("NONE").color(Color32::RED),
+        };
+
+        egui::ComboBox::from_id_salt("ksfs_dropdown")
+            .selected_text(ksf_text)
+            .show_ui(ui, |ui| {
+                for name in app.data.ksfs.iter().map(|(name, _ksf)| name).cloned() {
+                    ui.selectable_value(&mut app.data.session.chosen_ksf, name.clone(), name);
+                }
+            });
         if app.data.ksf_loaded() {
             ui.group(|ui| {
-                ui.label(&app.data.ksf.name);
-                ui.add_space(10.0);
-                ui.strong("Frequency Keys");
-                for (key, desc) in app.data.ksf.frequency.iter() {
-                    ui.monospace(format!("{:>2} {}", key.symbol_or_name(), desc));
-                }
-                ui.add_space(10.0);
-                ui.strong("Duration Keys");
-                for (key, desc) in app.data.ksf.duration.iter() {
-                    ui.monospace(format!("{:>2} {}", key.symbol_or_name(), desc));
+                if let Some(ksf) = app.data.ksfs.get(&app.data.session.chosen_ksf) {
+                    let (freq, dura) = ksf.pairs();
+                    ui.add_space(10.0);
+                    ui.strong("Frequency Keys");
+                    for (key, desc) in freq {
+                        ui.monospace(format!("{:>2} {}", key.symbol_or_name(), desc));
+                    }
+                    ui.add_space(10.0);
+                    ui.strong("Duration Keys");
+                    for (key, desc) in dura {
+                        ui.monospace(format!("{:>2} {}", key.symbol_or_name(), desc));
+                    }
+                } else {
+                    ui.monospace(egui::RichText::new("NO KSF").color(Color32::RED));
                 }
             });
         }

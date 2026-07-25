@@ -50,8 +50,8 @@ pub struct KsfData {
     #[serde(skip_deserializing)] // ignore when loading (the ::from_file() method will extract a name)
     #[serde(default)]
     pub name: String,
-    pub duration: Vec<(Key, String)>,
     pub frequency: Vec<(Key, String)>,
+    pub duration: Vec<(Key, String)>,
 }
 
 impl KsfData {
@@ -65,7 +65,7 @@ impl KsfData {
         self.pairs().map(|(k, _)| k)
     }
 
-    /// All description. Frequency first.
+    /// All descriptions. Frequency first.
     pub fn descriptions(&self) -> impl Iterator<Item = &String> {
         self.pairs().map(|(_, d)| d)
     }
@@ -117,7 +117,7 @@ impl KsfData {
                     ["C", "Compliance"]
                 ],
                 "duration": [
-                    ["Num4", "ToyEngage"],
+                    ["Num4", "Toy Engage"],
                     ["Num1", "Sr+"],
                     ["Num2", "Sdelta"]
                 ]

@@ -1,6 +1,6 @@
 use crate::{
     app::{
-        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, DataPro, IOA_DATA_FOLDER_NAME,
+        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, DataPro, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
     },
     data::{AssessmentsData, ClientData, KsfData},
@@ -57,8 +57,8 @@ impl NewClient {
         writer.flush()?;
 
         // Create a template KSF file
-        let mut writer = File::create_new(Path::new(&client_path.join("TEMPLATEKSF.txt")))?;
-        writer.write_all(KsfData::_test_ksf().to_json()?.as_bytes())?;
+        let mut writer = File::create_new(Path::new(&client_path.join(KSF_FILE_NAME)))?;
+        writer.write_all(KsfData::initial_file().to_json()?.as_bytes())?;
         writer.flush()?;
 
         Ok(())

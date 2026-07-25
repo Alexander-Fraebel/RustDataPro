@@ -39,18 +39,17 @@ impl AssessmentsData {
     }
 
     pub fn fa_conditions() -> Self {
-        let set = IndexSet::from_iter(
-            [
-                "Ignore".into(),
-                "Tangible".into(),
-                "Demand".into(),
-                "Attention".into(),
-                "ToyPlay".into(),
-            ]
-            .into_iter(),
-        );
-        let mut map = IndexMap::new();
-        map.insert("FA".into(), set);
-        Self(map)
+        serde_json::from_str(
+            r#"{
+                "FA": [
+                    "Ignore",
+                    "Tangible",
+                    "Demand",
+                    "Attention",
+                    "ToyPlay"
+                ]
+            }"#,
+        )
+        .unwrap()
     }
 }

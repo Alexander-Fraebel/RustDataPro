@@ -22,6 +22,7 @@ impl Display for DataType {
 pub struct SessionData {
     pub chosen_assessment: String,
     pub chosen_condition: String,
+    pub chosen_ksf: String,
     pub therapist: String,
     pub data_collector: String,
     pub data_type: DataType,

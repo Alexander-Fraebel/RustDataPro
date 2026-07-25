@@ -6,12 +6,14 @@
     "Attention",
     "ToyPlay"
   ],
-  "Single Choice": [
-    "Bongo",
+  "Preference": [
+    "Ball",
     "Teddy Bear",
+    "Drums",
+    "Book",
     "iPad",
     "Trampoline",
-    "Ball",
-    "Book"
-  ],
+    "Blocks",
+    "Puzzle"
+  ]
 }

@@ -1,0 +1,46 @@
+{
+  "ksfs": {
+    "TEMPLATE": {
+      "freq": [
+        [
+          "V",
+          "NegVoc"
+        ],
+        [
+          "A",
+          "Aggression"
+        ],
+        [
+          "M",
+          "Mand"
+        ],
+        [
+          "S",
+          "SIB"
+        ],
+        [
+          "I",
+          "Instruction"
+        ],
+        [
+          "C",
+          "Compliance"
+        ]
+      ],
+      "dura": [
+        [
+          "Num4",
+          "Toy Engage"
+        ],
+        [
+          "Num1",
+          "Sr+"
+        ],
+        [
+          "Num2",
+          "Sdelta"
+        ]
+      ]
+    }
+  }
+}

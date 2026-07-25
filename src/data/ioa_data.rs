@@ -1,4 +1,4 @@
-use crate::data::KsfData;
+use crate::data::Ksf;
 use anyhow::{Context, Result};
 use egui::Key;
 use indexmap::IndexMap;
@@ -14,16 +14,18 @@ pub struct IoaData {
 }
 
 impl IoaData {
-    pub fn from_ksf(ksf: &KsfData) -> Self {
+    pub fn from_ksf(ksf: &Ksf) -> Self {
         let mut ioa = IoaData::default();
         // Total duration is meaningless for frequency keys but we need this for alignment
-        for (k, _) in ksf.frequency.iter() {
+        let (f, d) = ksf.keys();
+        for k in f {
             ioa.total_duration.insert(*k, f32::NAN);
+            ioa.ten_sec_interval.insert(*k, 0.0);
+            ioa.sixty_sec_interval.insert(*k, 0.0);
+            ioa.total_count.insert(*k, 0.0);
         }
-        for (k, _) in ksf.duration.iter() {
+        for k in d {
             ioa.total_duration.insert(*k, 0.0);
-        }
-        for k in ksf.keys() {
             ioa.ten_sec_interval.insert(*k, 0.0);
             ioa.sixty_sec_interval.insert(*k, 0.0);
             ioa.total_count.insert(*k, 0.0);

@@ -6,7 +6,7 @@ use crate::{
         NewClient, NewKsf, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
         edit_assessments::EditAssessments,
     },
-    utils::{date_time_string, quick_file_name, windows_error_dialog},
+    utils::{date_time_string, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use chrono::Local;
@@ -24,6 +24,7 @@ pub const DEFAULT_ZOOM: f32 = 1.5;
 
 pub const CLIENT_DATA_FILE_NAME: &'static str = "client_data.txt";
 pub const ASSESSMENTS_FILE_NAME: &'static str = "assessments.txt";
+pub const KSF_FILE_NAME: &'static str = "ksf_data.txt";
 pub const SESSION_DATA_FOLDER_NAME: &'static str = "Session Records";
 pub const IOA_DATA_FOLDER_NAME: &'static str = "IOA Data";
 
@@ -79,7 +80,7 @@ impl Default for DataPro {
                 client: ClientData::default(),
                 session: SessionData::default(),
                 assessments: AssessmentsData::default(),
-                ksf: KsfData::default(),
+                ksfs: KsfData::default(),
             },
 
             display_info: DisplayInfo {
@@ -236,11 +237,10 @@ impl DataPro {
     pub fn load_ksf(&mut self, path: &PathBuf) {
         match KsfData::from_file(&path) {
             Ok(ksf) => {
-                self.data.ksf = ksf;
-                self.data.ksf.name = quick_file_name(&path).to_string();
+                self.data.ksfs = ksf;
             }
             Err(e) => {
-                self.data.ksf = KsfData::default();
+                self.data.ksfs = KsfData::default();
                 windows_error_dialog(e);
             }
         };
@@ -273,7 +273,7 @@ impl DataPro {
                 self.data.client.current_session += 1; // We are always one session ahead of the last saved value
 
                 // Reset the KSF
-                self.data.ksf = KsfData::default();
+                self.data.ksfs = KsfData::default();
 
                 // Load assessments from file
                 // If it doesen't exist then reset AssessmentsData, errors will be visible and easy to repair in the application

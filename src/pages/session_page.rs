@@ -1,7 +1,7 @@
 use crate::{
     app::{CLIENT_DATA_FILE_NAME, DataPro, SESSION_DATA_FOLDER_NAME},
     data::{
-        DATE_OF_ADMISSION_FORMAT_ERROR, Data, Timer, TimerStatus, output_data::OutputData,
+        DATE_OF_ADMISSION_FORMAT_ERROR, Data, Ksf, Timer, TimerStatus, output_data::OutputData,
         timeline::Timeline, view_simple_timer,
     },
     display_controller::DisplayInfo,
@@ -194,11 +194,15 @@ impl SessionPage {
     }
 
     pub fn load_ksf(&mut self, data: &Data) {
-        for kb in data.ksf.duration.iter() {
-            self.timers.push((Timer::default(), 0, kb.0, kb.1.clone()));
-        }
-        for kb in data.ksf.frequency.iter() {
-            self.counters.push((0, kb.0, kb.1.clone()));
+        if let Some(active_ksf) = data.ksfs.get(&data.session.chosen_ksf) {
+            let (freq, dura) = active_ksf.pairs();
+
+            for (key, desc) in freq {
+                self.counters.push((0, *key, desc.clone()));
+            }
+            for (key, desc) in dura {
+                self.timers.push((Timer::default(), 0, *key, desc.clone()));
+            }
         }
     }
 
@@ -276,7 +280,11 @@ impl SessionPage {
             duration: dur_map,
             frequency: fre_map,
             timeline: self.timeline.clone(),
-            ksf: data.ksf.clone(),
+            ksf: data
+                .ksfs
+                .get(&data.session.chosen_ksf)
+                .unwrap_or(&Ksf::default())
+                .clone(),
             client_name: data.client.name.clone(),
             client_id: data.client.id.clone(),
             case_manager: data.client.case_manager.clone(),
@@ -439,7 +447,7 @@ impl SessionPage {
                             app.data.session.chosen_assessment
                         ));
                         ui.label(format!("Condition: {}", app.data.session.chosen_condition));
-                        ui.label(format!("KSF: {}", app.data.ksf.name));
+                        ui.label(format!("KSF: {}", app.data.session.chosen_ksf));
                         ui.label("");
                     });
                 });

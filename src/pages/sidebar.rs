@@ -111,10 +111,10 @@ impl Sidebar {
                         .clicked()
                     {
                         // Reload the assessments
-                        app.edit_assessments.user_inputs.clear();
+                        app.edit_assessments.user_input.clear();
                         for (assessment, conds) in app.data.assessments.iter() {
                             app.edit_assessments
-                                .user_inputs
+                                .user_input
                                 .push((assessment.clone(), conds.iter().join(", ")));
                         }
                         app.display_info.go_to_new_assessments();
