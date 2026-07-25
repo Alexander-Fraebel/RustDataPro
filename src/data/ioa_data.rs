@@ -5,6 +5,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read, path::Path};
 
+/// Summary of IOA data.
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct IoaData {
     pub ten_sec_interval: IndexMap<Key, f32>,

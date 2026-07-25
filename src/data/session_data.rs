@@ -18,6 +18,7 @@ impl Display for DataType {
     }
 }
 
+/// Data needed for running a session
 #[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct SessionData {
     pub chosen_assessment: String,
@@ -32,9 +33,10 @@ impl Display for SessionData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Assessment: {}\nCondition: {}\nTherapist: {}\nData Collector: {}\nData Type: {}",
+            "Assessment: {}\nCondition: {}\nKSF: {}\nTherapist: {}\nData Collector: {}\nData Type: {}",
             self.chosen_assessment,
             self.chosen_condition,
+            self.chosen_ksf,
             self.therapist,
             self.data_collector,
             self.data_type,

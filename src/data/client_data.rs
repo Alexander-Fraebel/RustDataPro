@@ -1,27 +1,27 @@
 use anyhow::{Context, Result};
 use chrono::{Datelike, Local, NaiveDate};
 use itertools::Itertools;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{cell::LazyCell, fmt::Display, fs::File, io::Read, path::PathBuf};
+use std::{fmt::Display, fs::File, io::Read, path::PathBuf};
 
-// Must run before trailing comma as this will add a trailing comma
-const MISSING_COMMA_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r#"(".+")\r?\n"#).unwrap());
-const MISSING_COMMA_REPLACE: &'static str = "$1,\n";
+// // Must run before trailing comma as this will add a trailing comma
+// const MISSING_COMMA_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r#"(".+")\r?\n"#).unwrap());
+// const MISSING_COMMA_REPLACE: &'static str = "$1,\n";
 
-const TRAILING_COMMA_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r",(\r?\n *\})").unwrap());
-const TRAILING_COMMA_REPLACE: &'static str = "$1";
+// const TRAILING_COMMA_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r",(\r?\n *\})").unwrap());
+// const TRAILING_COMMA_REPLACE: &'static str = "$1";
 
-/// Add in missing commas and then remove a trailing comma if found
-fn prepare_json_for_reading(text: String) -> String {
-    let pass1 = MISSING_COMMA_FIND.replace_all(&text, MISSING_COMMA_REPLACE);
-    let pass2 = TRAILING_COMMA_FIND.replace_all(&pass1, TRAILING_COMMA_REPLACE);
-    pass2.to_string()
-}
+// /// Add in missing commas and then remove a trailing comma if found
+// fn prepare_json_for_reading(text: String) -> String {
+//     let pass1 = MISSING_COMMA_FIND.replace_all(&text, MISSING_COMMA_REPLACE);
+//     let pass2 = TRAILING_COMMA_FIND.replace_all(&pass1, TRAILING_COMMA_REPLACE);
+//     pass2.to_string()
+// }
 
 pub const DATE_OF_ADMISSION_FORMAT_ERROR: &'static str =
     "check client_data.txt\nDate of Admission must be formated as YYYY-MM-DD";
 
+/// Client information that persists between sessions.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ClientData {
     pub name: String,
@@ -96,7 +96,7 @@ impl ClientData {
         let mut file = File::open(&file_path)?;
         let mut s = String::new();
         file.read_to_string(&mut s)?;
-        Ok(serde_json::from_str(&prepare_json_for_reading(s))?)
+        Ok(serde_json::from_str(&s)?)
     }
 
     pub fn to_json(&self) -> Result<String> {

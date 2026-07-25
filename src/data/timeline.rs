@@ -8,6 +8,7 @@ use std::{
     path::Path,
 };
 
+/// Sequence of keypresses and their relative to the start of session
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Timeline(Vec<(Key, f32)>);
 

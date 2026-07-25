@@ -172,6 +172,7 @@ impl Ksf {
     }
 }
 
+/// A map of KSFs kept together.
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct KsfData {
     pub ksfs: IndexMap<String, Ksf>,
