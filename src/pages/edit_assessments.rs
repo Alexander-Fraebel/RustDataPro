@@ -28,13 +28,6 @@ impl EditAssessments {
             });
             ui.add_space(10.0);
 
-            if ui.button("Add Line").clicked() {
-                app.edit_assessments
-                    .user_inputs
-                    .push((String::new(), String::new()));
-            }
-            ui.add_space(10.0);
-
             for (assessment, conditions) in app.edit_assessments.user_inputs.iter_mut() {
                 ui.horizontal(|ui| {
                     ui.monospace("Assessment");
@@ -45,6 +38,13 @@ impl EditAssessments {
                     ui.text_edit_singleline(conditions);
                 });
                 ui.add_space(15.0);
+            }
+            ui.add_space(10.0);
+
+            if ui.button("Add Line").clicked() {
+                app.edit_assessments
+                    .user_inputs
+                    .push((String::new(), String::new()));
             }
             ui.add_space(10.0);
 

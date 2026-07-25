@@ -256,7 +256,10 @@ impl DataPro {
                     None => self.data.session.chosen_condition.clear(),
                 }
             }
-            None => self.data.session.chosen_assessment.clear(),
+            None => {
+                self.data.session.chosen_assessment.clear();
+                self.data.session.chosen_condition.clear()
+            }
         }
     }
 
@@ -273,16 +276,11 @@ impl DataPro {
                 self.data.ksf = KsfData::default();
 
                 // Load assessments from file
-                match AssessmentsData::from_file(&Path::new(path).join(ASSESSMENTS_FILE_NAME))
-                    .context("error reading assessments.txt")
-                {
+                // If it doesen't exist then reset AssessmentsData, errors will be visible and easy to repair in the application
+                match AssessmentsData::from_file(&Path::new(path).join(ASSESSMENTS_FILE_NAME)) {
                     Ok(a) => self.data.assessments = a,
-                    Err(e) => {
-                        windows_error_dialog(e);
-                        self.data.assessments = AssessmentsData::default();
-                    }
+                    Err(_) => self.data.assessments = AssessmentsData::default(),
                 };
-
                 self.choose_first_assessment_and_condition();
             }
             Err(e) => {

@@ -14,8 +14,4 @@
     "Ball",
     "Book"
   ],
-  "Test": [
-    "Condition1",
-    "Condition2"
-  ]
 }
