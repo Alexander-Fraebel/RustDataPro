@@ -29,7 +29,7 @@ impl PrepareSession {
                 .min_col_width(150.0)
                 .min_row_height(22.0)
                 .show(ui, |ui| {
-                    // For reasons of client privacy this is best not display and perhaps best not stored in the client file at all
+                    // For reasons of client privacy this is probably best not to display
                     // ui.monospace("Client Name");
                     // ui.monospace(&app.data.client.name);
                     // ui.end_row();
@@ -56,6 +56,7 @@ impl PrepareSession {
                     ui.monospace("Date of Admission");
                     match app.data.client.days_since_admission() {
                         Ok(n) => {
+                            // emphasize negative DOA with red text
                             if n.is_negative() {
                                 ui.add(
                                     egui::TextEdit::singleline(&mut format!("{n} days ago"))
@@ -66,6 +67,7 @@ impl PrepareSession {
                                 .on_hover_text(&app.data.client.date_of_admission);
                                 app.prep_session.can_start_session = false;
                             } else {
+                                // normal DOA information
                                 ui.add(
                                     egui::TextEdit::singleline(&mut format!("{n} days ago"))
                                         .font(TextStyle::Monospace)
@@ -75,6 +77,7 @@ impl PrepareSession {
                             }
                         }
                         Err(_e) => {
+                            // indicate invalid date with ERROR, red text, and hover text explanation
                             ui.add(
                                 egui::TextEdit::singleline(&mut format!("ERROR"))
                                     .font(TextStyle::Monospace)
@@ -161,7 +164,7 @@ impl PrepareSession {
                     egui::ComboBox::from_id_salt("assessment")
                         .selected_text(assessment_text)
                         .show_ui(ui, |ui| {
-                            for (assessment, _conditions) in app.data.assessments.iter() {
+                            for (assessment, conditions) in app.data.assessments.iter() {
                                 if ui
                                     .selectable_value(
                                         &mut app.data.session.chosen_assessment,
@@ -170,7 +173,8 @@ impl PrepareSession {
                                     )
                                     .clicked()
                                 {
-                                    app.data.session.chosen_condition.clear();
+                                    app.data.session.chosen_condition =
+                                        conditions.first().unwrap_or(&String::new()).clone();
                                 }
                             }
                         });
@@ -185,36 +189,26 @@ impl PrepareSession {
                     let condition_box =
                         ui.text_edit_singleline(&mut app.data.session.chosen_condition);
                     if condition_box.lost_focus() {
-                        match app
+                        if let Some(conds) = app
                             .data
                             .assessments
-                            .get(&app.data.session.chosen_assessment)
+                            .get_mut(&app.data.session.chosen_assessment)
                         {
-                            Some(conds) => {
-                                if conds.contains(&app.data.session.chosen_condition) {
-                                    app.data
-                                        .assessments
-                                        .entry(app.data.session.chosen_assessment.clone())
-                                        .and_modify(|conds| {
-                                            conds.insert(app.data.session.chosen_condition.clone());
-                                        });
-                                }
-                            }
-                            None => (), // do nothing,
+                            conds.insert(app.data.session.chosen_condition.clone());
                         }
                     }
                     egui::ComboBox::from_id_salt("condition")
                         .selected_text(condition_text)
                         .show_ui(ui, |ui| {
-                            for (assessment, conditions) in app.data.assessments.iter() {
-                                if assessment == &app.data.session.chosen_assessment {
-                                    for condition in conditions {
-                                        ui.selectable_value(
-                                            &mut app.data.session.chosen_condition,
-                                            condition.to_string(),
-                                            condition,
-                                        );
-                                    }
+                            if let Some(conds) =
+                                app.data.assessments.get(app.data.chosen_assessment())
+                            {
+                                for cond in conds {
+                                    ui.selectable_value(
+                                        &mut app.data.session.chosen_condition,
+                                        cond.to_string(),
+                                        cond,
+                                    );
                                 }
                             }
                         });

@@ -89,18 +89,10 @@ fn entry_row(
         vector.clear();
         for line in string.split("\n") {
             if !line.is_empty() {
-                match parse_line(line) {
-                    Ok(entry) => {
-                        vector.push(entry.clone());
-                        preview.push_str(&format!(
-                            "[\"{}\", \"{}\"]\n",
-                            entry.0.symbol_or_name(),
-                            entry.1
-                        ));
-                    }
-                    Err(e) => {
-                        preview.push_str(&format!("{}\n", e));
-                    }
+                if let Err(e) = parse_line(line) {
+                    preview.push_str(&format!("{}\n", e));
+                } else {
+                    preview.push('\n');
                 }
             } else {
                 preview.push('\n');
@@ -113,7 +105,6 @@ fn entry_row(
     ui.add(
         egui::TextEdit::multiline(preview)
             .background_color(ui.visuals().window_fill)
-            .hint_text("[\"M\", \"Mand\"]")
             .interactive(false),
     );
 }

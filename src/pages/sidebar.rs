@@ -105,7 +105,7 @@ impl Sidebar {
                     ui.add_space(5.0);
 
                     if ui
-                        .large_button("New Assessments")
+                        .large_button("Assessments")
                         .on_disabled_hover_text(NO_CLIENT)
                         .clicked()
                     {

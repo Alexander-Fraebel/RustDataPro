@@ -4,7 +4,7 @@ use crate::{
     ioa::IoaPage,
     pages::{
         NewClient, NewKsf, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
-        new_assessments::NewAssessments,
+        udpate_assessments::NewAssessments,
     },
     utils::{date_time_string, quick_file_name, windows_error_dialog},
 };
@@ -47,7 +47,7 @@ pub struct DataPro {
     pub ioa_page: IoaPage,
     pub new_client_page: NewClient,
     pub new_ksf_page: NewKsf,
-    pub new_assessments_page: NewAssessments,
+    pub update_assessments_page: NewAssessments,
 }
 
 impl Default for DataPro {
@@ -100,7 +100,7 @@ impl Default for DataPro {
             ioa_page: IoaPage::default(),
             new_client_page: NewClient::default(),
             new_ksf_page: NewKsf::default(),
-            new_assessments_page: NewAssessments::default(),
+            update_assessments_page: NewAssessments::default(),
         }
     }
 }
@@ -139,11 +139,13 @@ impl DataPro {
         !(self.session_page.limit_session_length && self.session_page.maximum_session_length == 0.0)
     }
 
-    /// Path to the client data file, if one is available.
-    pub fn client_data_file_path(&self) -> Result<PathBuf> {
+    /// Path to client_data.txt if a client has been chosen
+    pub fn client_data_path(&self) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
-                "cannot find client data file because no client is selected"
+                "cannot find {} because {}",
+                CLIENT_DATA_FILE_NAME,
+                NO_CLIENT
             ));
         }
         let path = Path::new(&self.root_directory)
@@ -152,9 +154,24 @@ impl DataPro {
         Ok(path.to_path_buf())
     }
 
+    // Path to assessments.txt if a client has been chosen
+    pub fn assessments_path(&self) -> Result<PathBuf> {
+        if !self.data.client_loaded() {
+            return Err(anyhow::anyhow!(
+                "cannot find {} because {}",
+                ASSESSMENTS_FILE_NAME,
+                NO_CLIENT
+            ));
+        }
+        let path = Path::new(&self.root_directory)
+            .join(&self.data.client.id.to_string())
+            .join(ASSESSMENTS_FILE_NAME);
+        Ok(path.to_path_buf())
+    }
+
     pub fn overwrite_client_data_file(&self) -> Result<()> {
         std::fs::write(
-            self.client_data_file_path()?,
+            self.client_data_path()?,
             &self
                 .data
                 .client
@@ -162,7 +179,6 @@ impl DataPro {
                 .with_context(|| "failed to create json version of client data file")?,
         )
         .with_context(|| "while attempting to overwrite client_data.txt")?;
-
         Ok(())
     }
 

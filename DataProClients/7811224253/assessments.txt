@@ -6,13 +6,16 @@
     "Attention",
     "ToyPlay"
   ],
-      "Single Choice":
-    [
-      "Bongo",
-      "Teddy Bear",
-      "iPad",
-      "Trampoline",
-      "Ball",
-      "Book"
-    ]
+  "Single Choice": [
+    "Bongo",
+    "Teddy Bear",
+    "iPad",
+    "Trampoline",
+    "Ball",
+    "Book"
+  ],
+  "Test": [
+    "Condition1",
+    "Condition2"
+  ]
 }
