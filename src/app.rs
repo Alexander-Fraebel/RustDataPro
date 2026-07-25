@@ -144,7 +144,7 @@ impl DataPro {
         !(self.session_page.limit_session_length && self.session_page.maximum_session_length == 0.0)
     }
 
-    /// Path to client_data.txt if a client has been chosen
+    /// Path to client_data.txt if a client has been chosen.
     pub fn path_to_client_data(&self) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
@@ -152,14 +152,14 @@ impl DataPro {
                 CLIENT_DATA_FILE_NAME,
                 NO_CLIENT
             ));
+        } else {
+            Ok(Path::new(&self.root_directory)
+                .join(&self.data.client.id.to_string())
+                .join(CLIENT_DATA_FILE_NAME))
         }
-        let path = Path::new(&self.root_directory)
-            .join(&self.data.client.id.to_string())
-            .join(CLIENT_DATA_FILE_NAME);
-        Ok(path.to_path_buf())
     }
 
-    // Path to assessments.txt if a client has been chosen
+    /// Path to assessments.txt if a client has been chosen.
     pub fn path_to_assessments(&self) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
@@ -167,11 +167,26 @@ impl DataPro {
                 ASSESSMENTS_FILE_NAME,
                 NO_CLIENT
             ));
+        } else {
+            Ok(Path::new(&self.root_directory)
+                .join(&self.data.client.id.to_string())
+                .join(ASSESSMENTS_FILE_NAME))
         }
-        let path = Path::new(&self.root_directory)
-            .join(&self.data.client.id.to_string())
-            .join(ASSESSMENTS_FILE_NAME);
-        Ok(path.to_path_buf())
+    }
+
+    /// Path to ksf_data.txt if a client has been chose.
+    pub fn path_to_ksf_data(&self) -> Result<PathBuf> {
+        if !self.data.client_loaded() {
+            Err(anyhow::anyhow!(
+                "cannot find {} because {}",
+                KSF_FILE_NAME,
+                NO_CLIENT
+            ))
+        } else {
+            Ok(Path::new(&self.root_directory)
+                .join(&self.data.client.id.to_string())
+                .join(KSF_FILE_NAME))
+        }
     }
 
     pub fn path_to_sessions_data(&self) -> Result<PathBuf> {
