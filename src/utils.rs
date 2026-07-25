@@ -90,6 +90,7 @@ pub trait DataProUiElements {
     fn red_button(&mut self, text: &'static str) -> Response;
     fn large_blue_button(&mut self, text: &'static str) -> Response;
     fn blue_button(&mut self, text: &'static str) -> Response;
+    fn lock_unlock_button(&mut self, condition: &mut bool);
 }
 
 macro_rules! simple_custom_button {
@@ -133,6 +134,19 @@ impl DataProUiElements for Ui {
 
     fn blue_button(&mut self, text: &'static str) -> Response {
         simple_custom_button!(self, text, Color32::LIGHT_BLUE)
+    }
+
+    /// Small button that shows an unlocked icon when condition is true and a locked icon when condition is false. Toggles condition on click.
+    fn lock_unlock_button(&mut self, condition: &mut bool) {
+        if *condition {
+            if self.small_button("🔓").clicked() {
+                *condition = false;
+            }
+        } else {
+            if self.small_button("🔒").clicked() {
+                *condition = true;
+            }
+        }
     }
 }
 

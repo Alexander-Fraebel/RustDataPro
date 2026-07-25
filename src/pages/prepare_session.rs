@@ -11,6 +11,9 @@ use std::path::Path;
 pub struct PrepareSession {
     pub can_start_session: bool,
     pub session_start_error: &'static str,
+    pub edit_primary_therapist: bool,
+    pub edit_case_manager: bool,
+    pub edit_client_id: bool,
 }
 
 impl Default for PrepareSession {
@@ -18,6 +21,9 @@ impl Default for PrepareSession {
         Self {
             can_start_session: true,
             session_start_error: NO_CLIENT,
+            edit_primary_therapist: false,
+            edit_case_manager: false,
+            edit_client_id: false,
         }
     }
 }
@@ -35,11 +41,19 @@ impl PrepareSession {
                     // ui.end_row();
 
                     ui.monospace("Client ID");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut app.data.client.id.to_string())
-                            .font(TextStyle::Monospace)
-                            .interactive(false),
-                    );
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut app.data.client.id.to_string())
+                                .font(TextStyle::Monospace)
+                                .interactive(app.prep_session.edit_client_id),
+                        )
+                        .lost_focus()
+                    {
+                        if let Err(e) = app.overwrite_client_data() {
+                            windows_error_dialog(e);
+                        }
+                    }
+                    ui.lock_unlock_button(&mut app.prep_session.edit_client_id);
                     ui.end_row();
 
                     ui.monospace("Location");
@@ -105,19 +119,35 @@ impl PrepareSession {
                     ui.end_row();
 
                     ui.monospace("Case Manager");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut app.data.client.case_manager)
-                            .font(TextStyle::Monospace)
-                            .interactive(false),
-                    );
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut app.data.client.case_manager)
+                                .font(TextStyle::Monospace)
+                                .interactive(app.prep_session.edit_case_manager),
+                        )
+                        .lost_focus()
+                    {
+                        if let Err(e) = app.overwrite_client_data() {
+                            windows_error_dialog(e);
+                        }
+                    }
+                    ui.lock_unlock_button(&mut app.prep_session.edit_case_manager);
                     ui.end_row();
 
                     ui.monospace("Primary Therapist");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut app.data.client.primary_therapist)
-                            .font(TextStyle::Monospace)
-                            .interactive(false),
-                    );
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut app.data.client.primary_therapist)
+                                .font(TextStyle::Monospace)
+                                .interactive(app.prep_session.edit_primary_therapist),
+                        )
+                        .lost_focus()
+                    {
+                        if let Err(e) = app.overwrite_client_data() {
+                            windows_error_dialog(e);
+                        }
+                    }
+                    ui.lock_unlock_button(&mut app.prep_session.edit_primary_therapist);
                     ui.end_row();
 
                     ui.monospace("Session Therapist");
