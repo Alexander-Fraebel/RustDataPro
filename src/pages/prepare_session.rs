@@ -47,7 +47,7 @@ impl PrepareSession {
                         .text_edit_singleline(&mut app.data.client.location)
                         .lost_focus()
                     {
-                        if let Err(e) = app.overwrite_client_data_file() {
+                        if let Err(e) = app.overwrite_client_data() {
                             windows_error_dialog(e)
                         }
                     }
@@ -98,7 +98,7 @@ impl PrepareSession {
                         .add(egui::DragValue::new(&mut app.data.client.current_session))
                         .lost_focus()
                     {
-                        if let Err(e) = app.overwrite_client_data_file() {
+                        if let Err(e) = app.overwrite_client_data() {
                             windows_error_dialog(e)
                         }
                     }
@@ -283,14 +283,7 @@ impl PrepareSession {
                 ui.vertical(|ui| {
                     ui.add_space(25.0);
                     ui.add_enabled_ui(app.data.client_loaded(), |ui| {
-                        if ui
-                            .large_blue_button("Select KSF")
-                            .on_disabled_hover_text(NO_CLIENT)
-                            .clicked()
-                        {
-                            app.pick_ksf.pick_file();
-                        }
-
+                        ui.heading("KSFs");
                         ui.add_space(5.0);
                         PrepareSession::ksf_display(app, ui);
                     });
@@ -320,7 +313,7 @@ impl PrepareSession {
                     // Update the client file with any changes
                     // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
                     // If they do anything else the file will update when they switch pages
-                    if let Err(e) = app.overwrite_client_data_file() {
+                    if let Err(e) = app.overwrite_client_data() {
                         windows_error_dialog(e)
                     } else {
                         // Load the data and switch pages.

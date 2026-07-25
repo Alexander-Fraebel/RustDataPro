@@ -1,14 +1,7 @@
 use crate::app::DataPro;
 use crate::utils::{DataProUiElements, windows_error_dialog};
+use egui::{Color32, RichText};
 use indexmap::IndexSet;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum SaveStatus {
-    #[default]
-    None,
-    Saved,
-    OverWritten,
-}
 
 #[derive(Debug, Default)]
 pub struct EditAssessments {
@@ -29,19 +22,26 @@ impl EditAssessments {
             ui.add_space(10.0);
 
             for (assessment, conditions) in app.edit_assessments.user_input.iter_mut() {
-                ui.horizontal(|ui| {
-                    ui.monospace("Assessment");
-                    ui.text_edit_singleline(assessment);
-                });
-                ui.horizontal(|ui| {
-                    ui.monospace("Conditions");
-                    ui.text_edit_singleline(conditions);
-                });
                 ui.add_space(15.0);
+                if ui
+                    .add(egui::TextEdit::singleline(assessment).hint_text("Assessment Name"))
+                    .changed()
+                {
+                    app.edit_assessments.save_finished = false;
+                }
+                if ui
+                    .add(
+                        egui::TextEdit::multiline(conditions)
+                            .hint_text("Condition1, Condition1, Condition3..."),
+                    )
+                    .changed()
+                {
+                    app.edit_assessments.save_finished = false;
+                }
             }
             ui.add_space(10.0);
 
-            if ui.button("Add Line").clicked() {
+            if ui.button("Add Assessment").clicked() {
                 app.edit_assessments
                     .user_input
                     .push((String::new(), String::new()));
@@ -64,7 +64,7 @@ impl EditAssessments {
                     }
                 }
                 app.choose_first_assessment_and_condition();
-                if let Err(e) = app.overwrite_assessments_file() {
+                if let Err(e) = app.overwrite_assessments() {
                     windows_error_dialog(e)
                 } else {
                     app.edit_assessments.save_finished = true;
@@ -78,9 +78,11 @@ impl EditAssessments {
 
             ui.add_space(10.0);
             if app.edit_assessments.save_finished {
-                ui.strong("SAVED FILE")
-            } else {
-                ui.strong("")
+                ui.monospace(
+                    RichText::new("Assessments Updated!")
+                        .heading()
+                        .color(Color32::GREEN),
+                );
             }
         });
     }

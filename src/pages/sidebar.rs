@@ -97,10 +97,22 @@ impl Sidebar {
                     ui.add_space(5.0);
 
                     if ui
-                        .large_button("New KSF")
+                        .large_button("KSFs")
                         .on_disabled_hover_text(NO_CLIENT)
                         .clicked()
                     {
+                        // Load the assessments for editing
+                        app.edit_ksfs.user_input.clear();
+                        for (name, ksf) in app.data.ksfs.iter() {
+                            let (freq, dura) = ksf.pairs();
+                            app.edit_ksfs.user_input.push((
+                                name.to_string(),
+                                freq.map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
+                                    .join("\n"),
+                                dura.map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
+                                    .join("\n"),
+                            ));
+                        }
                         app.display_info.go_to_new_ksf();
                     }
                     ui.add_space(5.0);
@@ -110,7 +122,7 @@ impl Sidebar {
                         .on_disabled_hover_text(NO_CLIENT)
                         .clicked()
                     {
-                        // Reload the assessments
+                        // Load the assessments for editing
                         app.edit_assessments.user_input.clear();
                         for (assessment, conds) in app.data.assessments.iter() {
                             app.edit_assessments

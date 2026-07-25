@@ -88,8 +88,6 @@ pub trait DataProUiElements {
     fn green_button(&mut self, text: &'static str) -> Response;
     fn large_red_button(&mut self, text: &'static str) -> Response;
     fn red_button(&mut self, text: &'static str) -> Response;
-    // fn large_yellow_button(&mut self, text: &'static str) -> Response;
-    // fn yellow_button(&mut self, text: &'static str) -> Response;
     fn large_blue_button(&mut self, text: &'static str) -> Response;
     fn blue_button(&mut self, text: &'static str) -> Response;
 }
@@ -128,14 +126,6 @@ impl DataProUiElements for Ui {
     fn red_button(&mut self, text: &'static str) -> Response {
         simple_custom_button!(self, text, Color32::LIGHT_RED)
     }
-
-    // fn large_yellow_button(&mut self, text: &'static str) -> Response {
-    //     simple_custom_button!(large, self, text, Color32::GOLD)
-    // }
-
-    // fn yellow_button(&mut self, text: &'static str) -> Response {
-    //     simple_custom_button!(self, text, Color32::GOLD)
-    // }
 
     fn large_blue_button(&mut self, text: &'static str) -> Response {
         simple_custom_button!(large, self, text, Color32::LIGHT_BLUE)

@@ -3,7 +3,7 @@ use crate::{
     display_controller::{DisplayInfo, Page},
     ioa::IoaPage,
     pages::{
-        NewClient, NewKsf, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
+        EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
         edit_assessments::EditAssessments,
     },
     utils::{date_time_string, windows_error_dialog},
@@ -51,7 +51,7 @@ pub struct DataPro {
 
     pub ioa_page: IoaPage,
     pub new_client_page: NewClient,
-    pub new_ksf_page: NewKsf,
+    pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
 }
 
@@ -104,7 +104,7 @@ impl Default for DataPro {
 
             ioa_page: IoaPage::default(),
             new_client_page: NewClient::default(),
-            new_ksf_page: NewKsf::default(),
+            edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
         }
     }
@@ -144,87 +144,54 @@ impl DataPro {
         !(self.session_page.limit_session_length && self.session_page.maximum_session_length == 0.0)
     }
 
-    /// Path to client_data.txt if a client has been chosen.
-    pub fn path_to_client_data(&self) -> Result<PathBuf> {
+    /// Search inside the top of the active client folder for a file or folder name
+    pub fn path_to(&self, name: &str) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
                 "cannot find {} because {}",
-                CLIENT_DATA_FILE_NAME,
+                name,
                 NO_CLIENT
             ));
         } else {
             Ok(Path::new(&self.root_directory)
                 .join(&self.data.client.id.to_string())
-                .join(CLIENT_DATA_FILE_NAME))
+                .join(name))
         }
+    }
+
+    /// Path to client_data.txt if a client has been chosen.
+    pub fn path_to_client_data(&self) -> Result<PathBuf> {
+        self.path_to(CLIENT_DATA_FILE_NAME)
     }
 
     /// Path to assessments.txt if a client has been chosen.
     pub fn path_to_assessments(&self) -> Result<PathBuf> {
-        if !self.data.client_loaded() {
-            return Err(anyhow::anyhow!(
-                "cannot find {} because {}",
-                ASSESSMENTS_FILE_NAME,
-                NO_CLIENT
-            ));
-        } else {
-            Ok(Path::new(&self.root_directory)
-                .join(&self.data.client.id.to_string())
-                .join(ASSESSMENTS_FILE_NAME))
-        }
+        self.path_to(ASSESSMENTS_FILE_NAME)
     }
 
     /// Path to ksf_data.txt if a client has been chose.
     pub fn path_to_ksf_data(&self) -> Result<PathBuf> {
-        if !self.data.client_loaded() {
-            Err(anyhow::anyhow!(
-                "cannot find {} because {}",
-                KSF_FILE_NAME,
-                NO_CLIENT
-            ))
-        } else {
-            Ok(Path::new(&self.root_directory)
-                .join(&self.data.client.id.to_string())
-                .join(KSF_FILE_NAME))
-        }
+        self.path_to(KSF_FILE_NAME)
     }
 
+    /// Path to Session Records if a client has been chose.
     pub fn path_to_sessions_data(&self) -> Result<PathBuf> {
-        if !self.data.client_loaded() {
-            return Err(anyhow::anyhow!(
-                "cannot find {} folder because {}",
-                SESSION_DATA_FOLDER_NAME,
-                NO_CLIENT
-            ));
-        }
-        let path = Path::new(&self.root_directory)
-            .join(&self.data.client.id.to_string())
-            .join(SESSION_DATA_FOLDER_NAME);
-        Ok(path.to_path_buf())
+        self.path_to(SESSION_DATA_FOLDER_NAME)
     }
 
+    /// Path to IOA Data if a client has been chose.
     pub fn path_to_ioa_data(&self) -> Result<PathBuf> {
-        if !self.data.client_loaded() {
-            return Err(anyhow::anyhow!(
-                "cannot find {} folder because {}",
-                IOA_DATA_FOLDER_NAME,
-                NO_CLIENT
-            ));
-        }
-        let path = Path::new(&self.root_directory)
-            .join(&self.data.client.id.to_string())
-            .join(IOA_DATA_FOLDER_NAME);
-        Ok(path.to_path_buf())
+        self.path_to(IOA_DATA_FOLDER_NAME)
     }
 
-    pub fn overwrite_client_data_file(&self) -> Result<()> {
-        match self.path_to_client_data() {
+    pub fn overwrite_file(&self, name: &str, data: &str) -> Result<()> {
+        match self.path_to(name) {
             Ok(pb) => {
                 if pb.exists() {
-                    std::fs::write(pb, &self.data.client.to_json()?)?
+                    std::fs::write(pb, data)?
                 } else {
                     let mut writer = BufWriter::new(File::create_new(pb)?);
-                    writer.write_all(self.data.client.to_json()?.as_bytes())?;
+                    writer.write_all(data.as_bytes())?;
                     writer.flush()?;
                 }
             }
@@ -233,20 +200,16 @@ impl DataPro {
         Ok(())
     }
 
-    pub fn overwrite_assessments_file(&self) -> Result<()> {
-        match self.path_to_assessments() {
-            Ok(pb) => {
-                if pb.exists() {
-                    std::fs::write(pb, &self.data.assessments.to_json()?)?;
-                } else {
-                    let mut writer = BufWriter::new(File::create_new(pb)?);
-                    writer.write_all(self.data.assessments.to_json()?.as_bytes())?;
-                    writer.flush()?;
-                }
-            }
-            Err(e) => return Err(e),
-        }
-        Ok(())
+    pub fn overwrite_client_data(&self) -> Result<()> {
+        self.overwrite_file(CLIENT_DATA_FILE_NAME, &self.data.client.to_json()?)
+    }
+
+    pub fn overwrite_assessments(&self) -> Result<()> {
+        self.overwrite_file(ASSESSMENTS_FILE_NAME, &self.data.assessments.to_json()?)
+    }
+
+    pub fn overwrite_ksf_data(&self) -> Result<()> {
+        self.overwrite_file(KSF_FILE_NAME, &self.data.ksfs.to_json()?)
     }
 
     pub fn load_ksf(&mut self, path: &PathBuf) {
@@ -288,7 +251,14 @@ impl DataPro {
                 self.data.client.current_session += 1; // We are always one session ahead of the last saved value
 
                 // Reset the KSF
-                self.data.ksfs = KsfData::default();
+                match KsfData::from_file(&Path::new(path).join(KSF_FILE_NAME)) {
+                    Ok(ks) => self.data.ksfs = ks,
+                    Err(_) => self.data.ksfs = KsfData::default(),
+                };
+                match self.data.ksfs.first() {
+                    Some((name, _ksf)) => self.data.session.chosen_ksf = name.clone(),
+                    None => self.data.session.chosen_ksf.clear(),
+                }
 
                 // Load assessments from file
                 // If it doesen't exist then reset AssessmentsData, errors will be visible and easy to repair in the application
@@ -335,7 +305,7 @@ impl eframe::App for DataPro {
             Page::Ioa => IoaPage::view(self, ui),
             Page::PrepareSession => PrepareSession::view(self, ui),
             Page::CreateClient => NewClient::view(self, ui),
-            Page::CreateKsf => NewKsf::view(self, ui),
+            Page::CreateKsf => EditKsfData::view(self, ui),
             Page::CreateAssessments => EditAssessments::view(self, ui),
         }
     }

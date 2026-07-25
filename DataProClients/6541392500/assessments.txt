@@ -4,6 +4,6 @@
     "Tangible",
     "Demand",
     "Attention",
-    "ToyPlay"
+    "Toy Play"
   ]
 }
