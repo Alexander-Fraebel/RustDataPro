@@ -132,6 +132,7 @@ impl PrepareSession {
                         }
                     }
                     ui.lock_unlock_button(&mut app.prep_session.edit_case_manager);
+
                     ui.end_row();
 
                     ui.monospace("Primary Therapist");
@@ -148,6 +149,7 @@ impl PrepareSession {
                         }
                     }
                     ui.lock_unlock_button(&mut app.prep_session.edit_primary_therapist);
+
                     ui.end_row();
 
                     ui.monospace("Session Therapist");
@@ -262,11 +264,11 @@ impl PrepareSession {
                     ui.selectable_value(&mut app.data.session.chosen_ksf, name.clone(), name);
                 }
             });
+        ui.add_space(10.0);
         if app.data.ksf_loaded() {
             ui.group(|ui| {
                 if let Some(ksf) = app.data.ksfs.get(&app.data.session.chosen_ksf) {
                     let (freq, dura) = ksf.pairs();
-                    ui.add_space(10.0);
                     ui.strong("Frequency Keys");
                     for (key, desc) in freq {
                         ui.monospace(format!("{:>2} {}", key.symbol_or_name(), desc));
@@ -277,8 +279,14 @@ impl PrepareSession {
                         ui.monospace(format!("{:>2} {}", key.symbol_or_name(), desc));
                     }
                 } else {
-                    ui.monospace(egui::RichText::new("NO KSF").color(Color32::RED));
+                    ui.monospace(egui::RichText::new("ERROR INVALID KSF NAME").color(Color32::RED));
                 }
+            });
+        } else {
+            ui.group(|ui| {
+                ui.strong("Frequency Keys");
+                ui.add_space(10.0);
+                ui.strong("Duration Keys");
             });
         }
     }
@@ -313,7 +321,7 @@ impl PrepareSession {
                 ui.vertical(|ui| {
                     ui.add_space(25.0);
                     ui.add_enabled_ui(app.data.client_loaded(), |ui| {
-                        ui.heading("KSFs");
+                        ui.heading("KSF");
                         ui.add_space(5.0);
                         PrepareSession::ksf_display(app, ui);
                     });

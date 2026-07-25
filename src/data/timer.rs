@@ -1,9 +1,6 @@
 use egui::{Color32, RichText, Ui};
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::Display,
-    time::{Duration, Instant},
-};
+use std::{fmt::Display, time::Instant};
 
 /// Need to use a macro to pass around a string literal
 macro_rules! timer_format {
@@ -68,8 +65,8 @@ impl TimerStatus {
 #[derive(Debug, Clone, Copy)]
 pub struct Timer {
     start_time: Instant,
-    saved_time: Duration,
-    stashed_time: Duration,
+    saved_time: f32,
+    stashed_time: f32,
     pub countdown_from: f32,
     status: TimerStatus,
 }
@@ -78,8 +75,8 @@ impl Default for Timer {
     fn default() -> Self {
         Self {
             start_time: Instant::now(),
-            saved_time: Duration::ZERO,
-            stashed_time: Duration::ZERO,
+            saved_time: 0.0,
+            stashed_time: 0.0,
             countdown_from: 30.0,
             status: TimerStatus::NotStarted,
         }
@@ -109,24 +106,27 @@ impl Timer {
     pub fn pause(&mut self) {
         if self.is_active() {
             self.status = TimerStatus::Paused;
-            self.stashed_time += self.start_time.elapsed();
+            self.stashed_time += self.elapsed_time();
         }
     }
 
     /// If Active update the saved time with the elapsed time and the stashed time. If Paused update the saved time with only the stashed time.
+    /// The start time is saved in order to inform .unstop() of how long the time was stopped
     /// Then sets the status to Stopped and clears the stashed time.
     /// Prefer .pause() for typical timer behavior. This method is used for finalization on the session page.
     pub fn stop(&mut self) {
         if self.is_active() {
-            self.stashed_time += self.start_time.elapsed();
+            self.stashed_time += self.elapsed_time();
             self.saved_time += self.stashed_time;
+            self.stashed_time = 0.0;
+            self.start_time = Instant::now();
             self.status = TimerStatus::Stopped;
-            self.stashed_time = Duration::ZERO;
         }
         if self.is_paused() {
             self.saved_time += self.stashed_time;
             self.status = TimerStatus::Stopped;
-            self.stashed_time = Duration::ZERO;
+            self.start_time = Instant::now();
+            self.stashed_time = 0.0;
         }
     }
 
@@ -134,7 +134,7 @@ impl Timer {
     pub fn unstart(&mut self) {
         if self.is_active() {
             self.status = TimerStatus::Stopped;
-            self.stashed_time = Duration::ZERO;
+            self.stashed_time = 0.0;
         }
     }
 
@@ -142,8 +142,8 @@ impl Timer {
     pub fn unstop(&mut self) {
         if self.is_stopped() {
             self.status = TimerStatus::Active;
-            // self.stashed_time += self.start_time.elapsed();
-            // self.start_time = Instant::now();
+            self.saved_time -= self.elapsed_time();
+            self.stashed_time += self.elapsed_time();
         }
     }
 
@@ -189,32 +189,32 @@ impl Timer {
         self.status.was_started()
     }
 
-    // /// Time since the timer was last started in seconds.
-    // pub fn elapsed_time(&self) -> f32 {
-    //     self.start_time.elapsed().as_secs_f32()
-    // }
+    /// Time since the timer was last started in seconds.
+    pub fn elapsed_time(&self) -> f32 {
+        self.start_time.elapsed().as_secs_f32()
+    }
 
     /// The amount of time currently saved in seconds.
     pub fn saved_time(&self) -> f32 {
-        self.saved_time.as_secs_f32()
+        self.saved_time
+    }
+
+    /// Time stashed for a short period. Used for .unstop() and for .current_time() calculations.
+    pub fn stashed_time(&self) -> f32 {
+        self.stashed_time
     }
 
     /// How long the timer has been running since it was last started, ignoring time paused.
     pub fn current_time(&self) -> f32 {
         match self.status {
-            TimerStatus::Active => (self.start_time.elapsed() + self.stashed_time).as_secs_f32(),
+            TimerStatus::Active => self.elapsed_time() + self.stashed_time(),
             TimerStatus::Stopped => self.stashed_time(),
             TimerStatus::Paused => self.stashed_time(),
             TimerStatus::NotStarted => 0.0,
         }
     }
 
-    /// Amount of time stashed during the current pause in seconds.
-    pub fn stashed_time(&self) -> f32 {
-        self.stashed_time.as_secs_f32()
-    }
-
-    /// The total time recorded in seconds. Sum of .saved_time() and .current_time().
+    /// The total time recorded in seconds, ignoring time paused. Sum of .saved_time() and .current_time().
     pub fn total_time(&self) -> f32 {
         self.saved_time() + self.current_time()
     }
@@ -254,6 +254,8 @@ pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
                 timer_display!(ui, -t, NEGATIVE_COLOR);
             }
         }
+        // Currently Stopped is not possible for a countdown timer via any interface
+        // Unsure if this is correct
         TimerStatus::Stopped => {
             let t = timer.countdown_from - timer.saved_time();
             if t.is_sign_positive() {

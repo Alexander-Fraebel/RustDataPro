@@ -183,7 +183,11 @@ impl EditKsfData {
             }
 
             if app.edit_ksfs.save_finished {
-                ui.monospace(RichText::new("KSF Update!").heading().color(Color32::GREEN));
+                ui.monospace(
+                    RichText::new("KSF Updated!")
+                        .heading()
+                        .color(Color32::GREEN),
+                );
             }
         });
     }
