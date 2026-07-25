@@ -194,7 +194,7 @@ impl SessionPage {
     }
 
     pub fn load_ksf(&mut self, data: &Data) {
-        if let Some(active_ksf) = data.ksfs.get(&data.session.chosen_ksf) {
+        if let Some(active_ksf) = data.ksfs.get(data.chosen_ksf()) {
             let (freq, dura) = active_ksf.pairs();
 
             for (key, desc) in freq {
@@ -282,7 +282,7 @@ impl SessionPage {
             timeline: self.timeline.clone(),
             ksf: data
                 .ksfs
-                .get(&data.session.chosen_ksf)
+                .get(data.chosen_ksf())
                 .unwrap_or(&Ksf::default())
                 .clone(),
             client_name: data.client.name.clone(),
@@ -447,7 +447,7 @@ impl SessionPage {
                             app.data.session.chosen_assessment
                         ));
                         ui.label(format!("Condition: {}", app.data.session.chosen_condition));
-                        ui.label(format!("KSF: {}", app.data.session.chosen_ksf));
+                        ui.label(format!("KSF: {}", app.data.chosen_ksf()));
                         ui.label("");
                     });
                 });

@@ -1,45 +1,30 @@
 {
   "ksfs": {
-    "TEMPLATE": {
-      "freq": [
-        [
-          "V",
-          "NegVoc"
-        ],
-        [
-          "A",
-          "Aggression"
-        ],
-        [
-          "M",
-          "Mand"
-        ],
-        [
-          "S",
-          "SIB"
-        ],
-        [
-          "I",
-          "Instruction"
-        ],
-        [
-          "C",
-          "Compliance"
-        ]
+    "Template": {
+      "frequency": [
+        ["V", "NegVoc"],
+        ["A", "Aggression"],
+        ["M", "Mand"],
+        ["S", "SIB"],
+        ["I", "Instruction"],
+        ["C", "Compliance"]
       ],
-      "dura": [
-        [
-          "Num4",
-          "Toy Engage"
-        ],
-        [
-          "Num1",
-          "Sr+"
-        ],
-        [
-          "Num2",
-          "Sdelta"
-        ]
+      "duration": [
+        ["4", "Toy Engage"],
+        ["1", "Sr+"],
+        ["2", "Sdelta"]
+      ]
+    },
+    "Alternative": {
+      "frequency": [
+        ["X", "Extreme"],
+        ["Y", "YOLO"],
+        ["Z", "Zipline Use"]
+      ],
+      "duration": [
+        ["A", "Air Time"],
+        ["B", "Ballooning"],
+        ["C", "Surfing"]
       ]
     }
   }

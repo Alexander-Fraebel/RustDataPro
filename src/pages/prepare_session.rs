@@ -253,7 +253,7 @@ impl PrepareSession {
 
     fn ksf_display(app: &mut DataPro, ui: &mut egui::Ui) {
         let ksf_text = match app.data.ksf_loaded() {
-            true => egui::RichText::new(app.data.session.chosen_ksf.clone()),
+            true => egui::RichText::new(app.data.chosen_ksf().clone()),
             false => egui::RichText::new("NONE").color(Color32::RED),
         };
 
@@ -267,7 +267,7 @@ impl PrepareSession {
         ui.add_space(10.0);
         if app.data.ksf_loaded() {
             ui.group(|ui| {
-                if let Some(ksf) = app.data.ksfs.get(&app.data.session.chosen_ksf) {
+                if let Some(ksf) = app.data.ksfs.get(app.data.chosen_ksf()) {
                     let (freq, dura) = ksf.pairs();
                     ui.strong("Frequency Keys");
                     for (key, desc) in freq {

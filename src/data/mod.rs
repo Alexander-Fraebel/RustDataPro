@@ -34,7 +34,7 @@ impl Data {
     }
 
     pub fn ksf_loaded(&self) -> bool {
-        !self.session.chosen_ksf.is_empty()
+        !self.chosen_ksf().is_empty()
     }
 
     pub fn assessment_chosen(&self) -> bool {
@@ -51,5 +51,9 @@ impl Data {
 
     pub fn chosen_assessment(&self) -> &String {
         &self.session.chosen_assessment
+    }
+
+    pub fn chosen_ksf(&self) -> &String {
+        &self.session.chosen_ksf
     }
 }

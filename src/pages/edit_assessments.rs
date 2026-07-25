@@ -3,6 +3,42 @@ use crate::utils::{DataProUiElements, windows_error_dialog};
 use egui::{Color32, RichText};
 use indexmap::IndexSet;
 
+fn assessment_scroller(
+    app: &mut DataPro,
+    ui: &mut egui::Ui,
+) -> egui::scroll_area::ScrollAreaOutput<()> {
+    egui::ScrollArea::vertical()
+        .min_scrolled_height(600.0)
+        .id_salt("ksf_scroller")
+        .show(ui, |ui| {
+            for (n, (assessment, conditions)) in
+                app.edit_assessments.user_input.iter_mut().enumerate()
+            {
+                ui.add_space(15.0);
+                if ui
+                    .add(
+                        egui::TextEdit::singleline(assessment)
+                            .prefix(format!("{}) ", n + 1))
+                            .hint_text("Assessment Name"),
+                    )
+                    .changed()
+                {
+                    app.edit_assessments.save_finished = false;
+                }
+                if ui
+                    .add(
+                        egui::TextEdit::multiline(conditions)
+                            .hint_text("Condition1, Condition2, Condition3..."),
+                    )
+                    .changed()
+                {
+                    app.edit_assessments.save_finished = false;
+                }
+            }
+            ui.add_space(10.0);
+        })
+}
+
 #[derive(Debug, Default)]
 pub struct EditAssessments {
     pub user_input: Vec<(String, String)>,
@@ -21,69 +57,54 @@ impl EditAssessments {
             });
             ui.add_space(10.0);
 
-            for (assessment, conditions) in app.edit_assessments.user_input.iter_mut() {
-                ui.add_space(15.0);
-                if ui
-                    .add(egui::TextEdit::singleline(assessment).hint_text("Assessment Name"))
-                    .changed()
-                {
-                    app.edit_assessments.save_finished = false;
-                }
-                if ui
-                    .add(
-                        egui::TextEdit::multiline(conditions)
-                            .hint_text("Condition1, Condition1, Condition3..."),
-                    )
-                    .changed()
-                {
-                    app.edit_assessments.save_finished = false;
-                }
-            }
-            ui.add_space(10.0);
-
-            if ui.button("Add Assessment").clicked() {
-                app.edit_assessments
-                    .user_input
-                    .push((String::new(), String::new()));
-            }
-            ui.add_space(10.0);
-
-            if ui.large_green_button("Save").clicked() {
-                // Update AssessmentsData
-                app.data.assessments.clear();
-                for (assessment, conditions) in app.edit_assessments.user_input.iter() {
-                    if !assessment.trim().is_empty() {
-                        let conditions_vec: IndexSet<String> = conditions
-                            .split(",")
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty())
-                            .collect();
-                        app.data
-                            .assessments
-                            .insert(assessment.clone(), conditions_vec);
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| assessment_scroller(app, ui));
+                ui.vertical(|ui| {
+                    if ui.button("Add Assessment").clicked() {
+                        app.edit_assessments
+                            .user_input
+                            .push((String::new(), String::new()));
                     }
-                }
-                app.choose_first_assessment_and_condition();
-                if let Err(e) = app.overwrite_assessments() {
-                    windows_error_dialog(e)
-                } else {
-                    app.edit_assessments.save_finished = true;
-                }
-            }
+                    ui.add_space(10.0);
 
-            if ui.large_red_button("Return").clicked() {
-                app.display_info.go_to_prep_session();
-                app.edit_assessments.save_finished = false;
-            }
+                    if ui.large_green_button("Save").clicked() {
+                        // Update AssessmentsData
+                        app.data.assessments.clear();
+                        for (assessment, conditions) in app.edit_assessments.user_input.iter() {
+                            if !assessment.trim().is_empty() {
+                                let conditions_vec: IndexSet<String> = conditions
+                                    .split(",")
+                                    .map(|s| s.trim().to_string())
+                                    .filter(|s| !s.is_empty())
+                                    .collect();
+                                app.data
+                                    .assessments
+                                    .insert(assessment.clone(), conditions_vec);
+                            }
+                        }
+                        app.choose_first_assessment_and_condition();
+                        if let Err(e) = app.overwrite_assessments() {
+                            windows_error_dialog(e)
+                        } else {
+                            app.edit_assessments.save_finished = true;
+                        }
+                    }
 
-            ui.add_space(10.0);
-            if app.edit_assessments.save_finished {
-                ui.monospace(
-                    RichText::new("Assessments Updated!")
-                        .heading()
-                        .color(Color32::GREEN),
-                );
-            }
+                    if ui.large_red_button("Return").clicked() {
+                        app.display_info.go_to_prep_session();
+                        app.edit_assessments.save_finished = false;
+                    }
+
+                    ui.add_space(10.0);
+                    if app.edit_assessments.save_finished {
+                        ui.monospace(
+                            RichText::new("Assessments Updated!")
+                                .heading()
+                                .color(Color32::GREEN),
+                        );
+                    }
+                });
+            });
         });
     }
 }

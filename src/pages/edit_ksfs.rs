@@ -1,49 +1,10 @@
 use crate::{
     app::DataPro,
-    data::{Ksf, KsfData},
+    data::{ALLOWED_KEYS, Ksf, KsfData},
     utils::{DataProUiElements, windows_error_dialog},
 };
 use anyhow::Result;
 use egui::{Color32, Key, RichText};
-
-const ALLOWED_KEYS: [Key; 36] = [
-    Key::Num0,
-    Key::Num1,
-    Key::Num2,
-    Key::Num3,
-    Key::Num4,
-    Key::Num5,
-    Key::Num6,
-    Key::Num7,
-    Key::Num8,
-    Key::Num9,
-    Key::A,
-    Key::B,
-    Key::C,
-    Key::D,
-    Key::E,
-    Key::F,
-    Key::G,
-    Key::H,
-    Key::I,
-    Key::J,
-    Key::K,
-    Key::L,
-    Key::M,
-    Key::N,
-    Key::O,
-    Key::P,
-    Key::Q,
-    Key::R,
-    Key::S,
-    Key::T,
-    Key::U,
-    Key::V,
-    Key::W,
-    Key::X,
-    Key::Y,
-    Key::Z,
-];
 
 fn parse_line(s: &str) -> Result<(Key, String)> {
     let (k, d) = match s.split_once(",") {
@@ -107,10 +68,47 @@ fn build_ksfs(ksfs: &mut KsfData, (name, freq, dura): &(String, String, String))
     Ok(())
 }
 
+fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::ScrollAreaOutput<()> {
+    if let Some(idx) = app.edit_ksfs.deleted_row {
+        app.edit_ksfs.user_input.remove(idx);
+        app.edit_ksfs.deleted_row = None;
+    }
+    egui::ScrollArea::vertical()
+        .min_scrolled_height(600.0)
+        .id_salt("ksf_scroller")
+        .show(ui, |ui| {
+            for (n, (name, freq, dura)) in app.edit_ksfs.user_input.iter_mut().enumerate() {
+                ui.add_space(15.0);
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(name)
+                                .prefix(format!("{}) ", n + 1))
+                                .hint_text("KSF Name"),
+                        )
+                        .changed()
+                    {
+                        app.edit_ksfs.save_finished = false;
+                    }
+                    if ui.small_button("delete").clicked() {
+                        app.edit_ksfs.deleted_row = Some(n)
+                    };
+                });
+                ui.add_space(5.0);
+
+                entry_row(ui, freq, &mut app.edit_ksfs.save_finished, "Frequency Keys");
+                ui.add_space(5.0);
+
+                entry_row(ui, dura, &mut app.edit_ksfs.save_finished, "Duration Keys");
+            }
+        })
+}
+
 #[derive(Default)]
 pub struct EditKsfData {
     pub user_input: Vec<(String, String, String)>,
     pub save_finished: bool,
+    pub deleted_row: Option<usize>,
 }
 
 impl EditKsfData {
@@ -124,71 +122,63 @@ impl EditKsfData {
                 ));
             });
 
-            for (name, freq, dura) in app.edit_ksfs.user_input.iter_mut() {
-                ui.add_space(15.0);
-                ui.horizontal(|ui| {
-                    if ui
-                        .add(egui::TextEdit::singleline(name).hint_text("KSF Name"))
-                        .changed()
-                    {
-                        app.edit_ksfs.save_finished = false;
-                    }
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ksf_scroller(app, ui);
                 });
-                ui.add_space(5.0);
 
-                entry_row(ui, freq, &mut app.edit_ksfs.save_finished, "Frequency Keys");
-                ui.add_space(5.0);
-
-                entry_row(ui, dura, &mut app.edit_ksfs.save_finished, "Duration Keys");
-            }
-
-            if ui.button("Add KSF").clicked() {
-                app.edit_ksfs
-                    .user_input
-                    .push((String::new(), String::new(), String::new()));
-            }
-            ui.add_space(10.0);
-
-            // TODO: disable if invalid KSF writtens
-            ui.add_enabled_ui(true, |ui| {
-                if ui
-                    .large_green_button("Save")
-                    .on_disabled_hover_text("no file name provided")
-                    .clicked()
-                {
-                    let mut write_succeeded = true;
-                    let mut temp_ksfs = KsfData::default();
-                    for input in app.edit_ksfs.user_input.iter() {
-                        if let Err(e) = build_ksfs(&mut temp_ksfs, input) {
-                            windows_error_dialog(e);
-                            write_succeeded = false;
-                        }
+                ui.vertical(|ui| {
+                    if ui.button("Add KSF").clicked() {
+                        app.edit_ksfs.user_input.push((
+                            String::new(),
+                            String::new(),
+                            String::new(),
+                        ));
                     }
-                    if write_succeeded {
-                        app.data.ksfs = temp_ksfs;
-                        match app.overwrite_ksf_data() {
-                            Ok(_) => app.edit_ksfs.save_finished = true,
-                            Err(e) => {
-                                windows_error_dialog(e);
-                                app.edit_ksfs.save_finished = false;
+                    ui.add_space(10.0);
+
+                    // TODO: disable if invalid KSF writtens
+                    ui.add_enabled_ui(true, |ui| {
+                        if ui
+                            .large_green_button("Save")
+                            .on_disabled_hover_text("no file name provided")
+                            .clicked()
+                        {
+                            let mut write_succeeded = true;
+                            let mut temp_ksfs = KsfData::default();
+                            for input in app.edit_ksfs.user_input.iter() {
+                                if let Err(e) = build_ksfs(&mut temp_ksfs, input) {
+                                    windows_error_dialog(e);
+                                    write_succeeded = false;
+                                }
+                            }
+                            if write_succeeded {
+                                app.data.ksfs = temp_ksfs;
+                                match app.overwrite_ksf_data() {
+                                    Ok(_) => app.edit_ksfs.save_finished = true,
+                                    Err(e) => {
+                                        windows_error_dialog(e);
+                                        app.edit_ksfs.save_finished = false;
+                                    }
+                                }
                             }
                         }
+                    });
+
+                    if ui.large_red_button("Return").clicked() {
+                        app.edit_ksfs.save_finished = false;
+                        app.display_info.go_to_prep_session();
                     }
-                }
+
+                    if app.edit_ksfs.save_finished {
+                        ui.monospace(
+                            RichText::new("KSF Updated!")
+                                .heading()
+                                .color(Color32::GREEN),
+                        );
+                    }
+                });
             });
-
-            if ui.large_red_button("Return").clicked() {
-                app.edit_ksfs.save_finished = false;
-                app.display_info.go_to_prep_session();
-            }
-
-            if app.edit_ksfs.save_finished {
-                ui.monospace(
-                    RichText::new("KSF Updated!")
-                        .heading()
-                        .color(Color32::GREEN),
-                );
-            }
         });
     }
 }
