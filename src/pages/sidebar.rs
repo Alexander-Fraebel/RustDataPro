@@ -4,6 +4,7 @@ use crate::{
 };
 use egui::{Ui, warn_if_debug_build};
 use egui_file_dialog::FileDialog;
+use itertools::Itertools;
 
 pub struct Sidebar {}
 
@@ -109,6 +110,13 @@ impl Sidebar {
                         .on_disabled_hover_text(NO_CLIENT)
                         .clicked()
                     {
+                        // Reload the assessments
+                        app.edit_assessments.user_inputs.clear();
+                        for (assessment, conds) in app.data.assessments.iter() {
+                            app.edit_assessments
+                                .user_inputs
+                                .push((assessment.clone(), conds.iter().join(", ")));
+                        }
                         app.display_info.go_to_new_assessments();
                     }
                 });

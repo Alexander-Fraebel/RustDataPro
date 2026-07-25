@@ -216,7 +216,7 @@ impl IoaPage {
                     if !app.ioa_page.ioa_finished {
                         match validate_files(&app.ioa_page.prim_data, &app.ioa_page.reli_data) {
                             Ok(_) => match app.ioa_page.calculate_ioa(
-                                &app.client_ioa_data_path().expect("ERROR REACHING IOA DATA"),
+                                &app.path_to_ioa_data().expect("ERROR REACHING IOA DATA"),
                             ) {
                                 Ok(_) => {
                                     app.ioa_page.error.clear();

@@ -142,8 +142,8 @@ impl Timer {
     pub fn unstop(&mut self) {
         if self.is_stopped() {
             self.status = TimerStatus::Active;
-            self.stashed_time += self.start_time.elapsed();
-            self.start_time = Instant::now();
+            // self.stashed_time += self.start_time.elapsed();
+            // self.start_time = Instant::now();
         }
     }
 

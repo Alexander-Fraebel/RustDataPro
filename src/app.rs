@@ -4,7 +4,7 @@ use crate::{
     ioa::IoaPage,
     pages::{
         NewClient, NewKsf, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
-        udpate_assessments::NewAssessments,
+        edit_assessments::EditAssessments,
     },
     utils::{date_time_string, quick_file_name, windows_error_dialog},
 };
@@ -12,7 +12,11 @@ use anyhow::{Context, Result};
 use chrono::Local;
 use egui::{TextBuffer, Visuals};
 use egui_file_dialog::FileDialog;
-use std::path::{Path, PathBuf};
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+    path::{Path, PathBuf},
+};
 
 pub const DEFAULT_ROOT_DIRECTORY: &'static str = "C:\\";
 pub const DEFAULT_ROOT_DIRECTORY_NAME: &'static str = "DataProClients";
@@ -47,7 +51,7 @@ pub struct DataPro {
     pub ioa_page: IoaPage,
     pub new_client_page: NewClient,
     pub new_ksf_page: NewKsf,
-    pub update_assessments_page: NewAssessments,
+    pub edit_assessments: EditAssessments,
 }
 
 impl Default for DataPro {
@@ -100,7 +104,7 @@ impl Default for DataPro {
             ioa_page: IoaPage::default(),
             new_client_page: NewClient::default(),
             new_ksf_page: NewKsf::default(),
-            update_assessments_page: NewAssessments::default(),
+            edit_assessments: EditAssessments::default(),
         }
     }
 }
@@ -140,7 +144,7 @@ impl DataPro {
     }
 
     /// Path to client_data.txt if a client has been chosen
-    pub fn client_data_path(&self) -> Result<PathBuf> {
+    pub fn path_to_client_data(&self) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
                 "cannot find {} because {}",
@@ -155,7 +159,7 @@ impl DataPro {
     }
 
     // Path to assessments.txt if a client has been chosen
-    pub fn assessments_path(&self) -> Result<PathBuf> {
+    pub fn path_to_assessments(&self) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
                 "cannot find {} because {}",
@@ -169,20 +173,7 @@ impl DataPro {
         Ok(path.to_path_buf())
     }
 
-    pub fn overwrite_client_data_file(&self) -> Result<()> {
-        std::fs::write(
-            self.client_data_path()?,
-            &self
-                .data
-                .client
-                .to_json()
-                .with_context(|| "failed to create json version of client data file")?,
-        )
-        .with_context(|| "while attempting to overwrite client_data.txt")?;
-        Ok(())
-    }
-
-    pub fn client_session_data_path(&self) -> Result<PathBuf> {
+    pub fn path_to_sessions_data(&self) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
                 "cannot find {} folder because {}",
@@ -196,7 +187,7 @@ impl DataPro {
         Ok(path.to_path_buf())
     }
 
-    pub fn client_ioa_data_path(&self) -> Result<PathBuf> {
+    pub fn path_to_ioa_data(&self) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
                 "cannot find {} folder because {}",
@@ -208,6 +199,38 @@ impl DataPro {
             .join(&self.data.client.id.to_string())
             .join(IOA_DATA_FOLDER_NAME);
         Ok(path.to_path_buf())
+    }
+
+    pub fn overwrite_client_data_file(&self) -> Result<()> {
+        match self.path_to_client_data() {
+            Ok(pb) => {
+                if pb.exists() {
+                    std::fs::write(pb, &self.data.client.to_json()?)?
+                } else {
+                    let mut writer = BufWriter::new(File::create_new(pb)?);
+                    writer.write_all(self.data.client.to_json()?.as_bytes())?;
+                    writer.flush()?;
+                }
+            }
+            Err(e) => return Err(e),
+        }
+        Ok(())
+    }
+
+    pub fn overwrite_assessments_file(&self) -> Result<()> {
+        match self.path_to_assessments() {
+            Ok(pb) => {
+                if pb.exists() {
+                    std::fs::write(pb, &self.data.assessments.to_json()?)?;
+                } else {
+                    let mut writer = BufWriter::new(File::create_new(pb)?);
+                    writer.write_all(self.data.assessments.to_json()?.as_bytes())?;
+                    writer.flush()?;
+                }
+            }
+            Err(e) => return Err(e),
+        }
+        Ok(())
     }
 
     pub fn load_ksf(&mut self, path: &PathBuf) {
@@ -223,13 +246,33 @@ impl DataPro {
         };
     }
 
+    /// Attempt to load the first assessment and its first condition
+    pub fn choose_first_assessment_and_condition(&mut self) {
+        match self.data.assessments.first() {
+            Some((assessment, conds)) => {
+                self.data.session.chosen_assessment = assessment.clone();
+                match conds.first() {
+                    Some(cond) => self.data.session.chosen_condition = cond.clone(),
+                    None => self.data.session.chosen_condition.clear(),
+                }
+            }
+            None => self.data.session.chosen_assessment.clear(),
+        }
+    }
+
     pub fn load_client_file(&mut self, path: &PathBuf) {
+        // Determine if the client file exists
         match ClientData::from_file(&Path::new(path).join(CLIENT_DATA_FILE_NAME))
             .context("error reading client_data.txt")
         {
             Ok(client) => {
                 self.data.client = client;
                 self.data.client.current_session += 1; // We are always one session ahead of the last saved value
+
+                // Reset the KSF
+                self.data.ksf = KsfData::default();
+
+                // Load assessments from file
                 match AssessmentsData::from_file(&Path::new(path).join(ASSESSMENTS_FILE_NAME))
                     .context("error reading assessments.txt")
                 {
@@ -239,21 +282,11 @@ impl DataPro {
                         self.data.assessments = AssessmentsData::default();
                     }
                 };
-                self.data.ksf = KsfData::default();
-                // Attempt to load the first assessment and its first condition
-                match self.data.assessments.first() {
-                    Some((assessment, conds)) => {
-                        self.data.session.chosen_assessment = assessment.clone();
-                        match conds.first() {
-                            Some(cond) => self.data.session.chosen_condition = cond.clone(),
-                            None => self.data.session.chosen_condition.clear(),
-                        }
-                    }
-                    None => self.data.session.chosen_assessment.clear(),
-                }
+
+                self.choose_first_assessment_and_condition();
             }
             Err(e) => {
-                self.data.client = ClientData::default();
+                self.data.clear();
                 windows_error_dialog(e);
             }
         };
@@ -290,7 +323,7 @@ impl eframe::App for DataPro {
             Page::PrepareSession => PrepareSession::view(self, ui),
             Page::CreateClient => NewClient::view(self, ui),
             Page::CreateKsf => NewKsf::view(self, ui),
-            Page::CreateAssessments => NewAssessments::view(self, ui),
+            Page::CreateAssessments => EditAssessments::view(self, ui),
         }
     }
 }
