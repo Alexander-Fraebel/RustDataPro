@@ -7,6 +7,10 @@ fn assessment_scroller(
     app: &mut DataPro,
     ui: &mut egui::Ui,
 ) -> egui::scroll_area::ScrollAreaOutput<()> {
+    if let Some(idx) = app.edit_assessments.deleted_row {
+        app.edit_assessments.user_input.remove(idx);
+        app.edit_assessments.deleted_row = None;
+    }
     egui::ScrollArea::vertical()
         .min_scrolled_height(600.0)
         .id_salt("ksf_scroller")
@@ -15,16 +19,22 @@ fn assessment_scroller(
                 app.edit_assessments.user_input.iter_mut().enumerate()
             {
                 ui.add_space(15.0);
-                if ui
-                    .add(
-                        egui::TextEdit::singleline(assessment)
-                            .prefix(format!("{}) ", n + 1))
-                            .hint_text("Assessment Name"),
-                    )
-                    .changed()
-                {
-                    app.edit_assessments.save_finished = false;
-                }
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(assessment)
+                                .prefix(format!("{}) ", n + 1))
+                                .hint_text("Assessment Name"),
+                        )
+                        .changed()
+                    {
+                        app.edit_assessments.save_finished = false;
+                    }
+                    if ui.small_button("delete").clicked() {
+                        app.edit_assessments.deleted_row = Some(n)
+                    };
+                });
+
                 if ui
                     .add(
                         egui::TextEdit::multiline(conditions)
@@ -43,6 +53,7 @@ fn assessment_scroller(
 pub struct EditAssessments {
     pub user_input: Vec<(String, String)>,
     pub save_finished: bool,
+    pub deleted_row: Option<usize>,
 }
 
 impl EditAssessments {
@@ -60,6 +71,7 @@ impl EditAssessments {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| assessment_scroller(app, ui));
                 ui.vertical(|ui| {
+                    ui.add_space(15.0);
                     if ui.button("Add Assessment").clicked() {
                         app.edit_assessments
                             .user_input

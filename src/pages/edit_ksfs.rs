@@ -116,7 +116,7 @@ impl EditKsfData {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
-                ui.heading("Edit Keyboard Setup File for Client ");
+                ui.heading("Edit Keyboard Setup Files for Client ");
                 ui.add(egui::Label::new(
                     egui::RichText::new(&app.data.client.id).heading().strong(),
                 ));
@@ -128,6 +128,7 @@ impl EditKsfData {
                 });
 
                 ui.vertical(|ui| {
+                    ui.add_space(15.0);
                     if ui.button("Add KSF").clicked() {
                         app.edit_ksfs.user_input.push((
                             String::new(),

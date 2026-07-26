@@ -1,0 +1,17 @@
+Demonstrate prepare page and how to load a client
+Demonstrate session controls
+
+Demonstrate Create Client
+
+Demonstrate KSF
+	edit a KSF
+	create new KSF
+	demonstrate error messages when saving file
+	
+Demonstrate Assessments/Conditions
+	ability to change on the fly
+	assessments button
+	
+Demonstrate Randomness
+Demonstrate Timers
+Demonstrate IOA

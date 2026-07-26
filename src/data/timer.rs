@@ -130,7 +130,7 @@ impl Timer {
         }
     }
 
-    /// For undoing a key press on a stopped timer.
+    /// For undoing a key press on a stopped timer on the session page.
     pub fn unstart(&mut self) {
         if self.is_active() {
             self.status = TimerStatus::Stopped;
@@ -138,12 +138,13 @@ impl Timer {
         }
     }
 
-    /// For undoing a key press on an active timer.
+    /// For undoing a key press on an active timer on the session page.
     pub fn unstop(&mut self) {
         if self.is_stopped() {
             self.status = TimerStatus::Active;
-            self.saved_time -= self.elapsed_time();
-            self.stashed_time += self.elapsed_time();
+            let t = self.elapsed_time();
+            self.saved_time -= t;
+            self.stashed_time += t;
         }
     }
 
