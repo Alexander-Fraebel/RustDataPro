@@ -11,17 +11,18 @@ fn assessment_scroller(
         app.edit_assessments.user_input.remove(idx);
         app.edit_assessments.deleted_row = None;
     }
+    ui.add_space(30.0);
     egui::ScrollArea::vertical()
-        .min_scrolled_height(600.0)
-        .id_salt("ksf_scroller")
+        .min_scrolled_height(400.0)
+        .id_salt("assessment_scroller")
         .show(ui, |ui| {
             for (n, (assessment, conditions)) in
                 app.edit_assessments.user_input.iter_mut().enumerate()
             {
-                ui.add_space(15.0);
                 ui.horizontal(|ui| {
                     if ui
-                        .add(
+                        .add_sized(
+                            (220.0, 18.0),
                             egui::TextEdit::singleline(assessment)
                                 .prefix(format!("{}) ", n + 1))
                                 .hint_text("Assessment Name"),
@@ -44,8 +45,8 @@ fn assessment_scroller(
                 {
                     app.edit_assessments.save_finished = false;
                 }
+                ui.add_space(30.0);
             }
-            ui.add_space(10.0);
         })
 }
 
@@ -70,8 +71,9 @@ impl EditAssessments {
 
             ui.horizontal(|ui| {
                 ui.vertical(|ui| assessment_scroller(app, ui));
+                ui.add_space(30.0);
                 ui.vertical(|ui| {
-                    ui.add_space(15.0);
+                    ui.add_space(30.0);
                     if ui.button("Add Assessment").clicked() {
                         app.edit_assessments
                             .user_input

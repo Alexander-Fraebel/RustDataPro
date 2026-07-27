@@ -39,10 +39,8 @@ fn parse_line(s: &str) -> Result<(Key, String)> {
 }
 
 fn entry_row(ui: &mut egui::Ui, string: &mut String, save_finished: &mut bool, hint: &str) {
-    if ui
-        .add(egui::TextEdit::multiline(string).hint_text(hint))
-        .changed()
-    {
+    ui.label(hint);
+    if ui.add(egui::TextEdit::multiline(string)).changed() {
         *save_finished = false;
     }
 }
@@ -73,15 +71,16 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
         app.edit_ksfs.user_input.remove(idx);
         app.edit_ksfs.deleted_row = None;
     }
+    ui.add_space(30.0);
     egui::ScrollArea::vertical()
-        .min_scrolled_height(600.0)
+        .min_scrolled_height(400.0)
         .id_salt("ksf_scroller")
         .show(ui, |ui| {
             for (n, (name, freq, dura)) in app.edit_ksfs.user_input.iter_mut().enumerate() {
-                ui.add_space(15.0);
                 ui.horizontal(|ui| {
                     if ui
-                        .add(
+                        .add_sized(
+                            (220.0, 18.0),
                             egui::TextEdit::singleline(name)
                                 .prefix(format!("{}) ", n + 1))
                                 .hint_text("KSF Name"),
@@ -100,6 +99,7 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                 ui.add_space(5.0);
 
                 entry_row(ui, dura, &mut app.edit_ksfs.save_finished, "Duration Keys");
+                ui.add_space(30.0);
             }
         })
 }
@@ -126,9 +126,9 @@ impl EditKsfData {
                 ui.vertical(|ui| {
                     ksf_scroller(app, ui);
                 });
-
+                ui.add_space(30.0);
                 ui.vertical(|ui| {
-                    ui.add_space(15.0);
+                    ui.add_space(30.0);
                     if ui.button("Add KSF").clicked() {
                         app.edit_ksfs.user_input.push((
                             String::new(),
