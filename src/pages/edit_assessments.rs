@@ -1,5 +1,5 @@
-use crate::app::DataPro;
-use crate::utils::{DataProUiElements, windows_error_dialog};
+use crate::utils::windows_error_dialog;
+use crate::{app::DataPro, ui_elements::DataProUiElements};
 use egui::{Color32, RichText};
 use indexmap::IndexSet;
 

@@ -1,7 +1,15 @@
+use anyhow::Result;
 use chrono::{DateTime, Datelike, Local, Timelike};
-use egui::{Color32, InputState, Key, Response, RichText, Ui};
+use egui::{InputState, Key};
 use itertools::Itertools;
-use std::{borrow::Cow, collections::HashSet, ffi::OsStr, path::Path};
+use std::{
+    borrow::Cow,
+    collections::HashSet,
+    ffi::OsStr,
+    fs::File,
+    io::{BufWriter, Write},
+    path::{Path, PathBuf},
+};
 use win_msgbox::Okay;
 
 /// Round an f32 to one decimal. To be used for rounding times only.
@@ -81,73 +89,20 @@ pub fn quick_file_name(pathbuf: &Path) -> Cow<'_, str> {
         .to_string_lossy()
 }
 
-const DEFAULT_LARGE_BUTTOM_DIMS: (f32, f32) = (120.0, 40.0);
-pub trait DataProUiElements {
-    fn large_button(&mut self, text: &'static str) -> Response;
-    fn large_green_button(&mut self, text: &'static str) -> Response;
-    fn green_button(&mut self, text: &'static str) -> Response;
-    fn large_red_button(&mut self, text: &'static str) -> Response;
-    fn red_button(&mut self, text: &'static str) -> Response;
-    fn large_blue_button(&mut self, text: &'static str) -> Response;
-    fn blue_button(&mut self, text: &'static str) -> Response;
-    fn lock_unlock_button(&mut self, condition: &mut bool);
-}
-
-macro_rules! simple_custom_button {
-    ($ui:expr, $text:ident, $fill:expr) => {
-        $ui.add(
-            egui::Button::new(RichText::new($text).monospace().color(Color32::BLACK)).fill($fill),
-        )
-    };
-    (large, $ui:expr, $text:ident, $fill:expr) => {
-        $ui.add_sized(
-            DEFAULT_LARGE_BUTTOM_DIMS,
-            egui::Button::new(RichText::new($text).color(Color32::BLACK)).fill($fill),
-        )
-    };
-}
-
-impl DataProUiElements for Ui {
-    fn large_button(&mut self, text: &'static str) -> Response {
-        self.add_sized(DEFAULT_LARGE_BUTTOM_DIMS, egui::Button::new(text))
-    }
-
-    fn large_green_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(large, self, text, Color32::LIGHT_GREEN)
-    }
-
-    fn green_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(self, text, Color32::LIGHT_GREEN)
-    }
-
-    fn large_red_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(large, self, text, Color32::LIGHT_RED)
-    }
-
-    fn red_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(self, text, Color32::LIGHT_RED)
-    }
-
-    fn large_blue_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(large, self, text, Color32::LIGHT_BLUE)
-    }
-
-    fn blue_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(self, text, Color32::LIGHT_BLUE)
-    }
-
-    /// Small button that shows an unlocked icon when condition is true and a locked icon when condition is false. Toggles condition on click.
-    fn lock_unlock_button(&mut self, condition: &mut bool) {
-        if *condition {
-            if self.small_button("🔓").clicked() {
-                *condition = false;
-            }
-        } else {
-            if self.small_button("🔒").clicked() {
-                *condition = true;
+pub fn overwrite_file(pathbuf: Result<PathBuf>, data: &str) -> Result<()> {
+    match pathbuf {
+        Ok(pb) => {
+            if pb.exists() {
+                std::fs::write(pb, data)?
+            } else {
+                let mut writer = BufWriter::new(File::create_new(pb)?);
+                writer.write_all(data.as_bytes())?;
+                writer.flush()?;
             }
         }
+        Err(e) => return Err(e),
     }
+    Ok(())
 }
 
 // Create a windows style error dialog

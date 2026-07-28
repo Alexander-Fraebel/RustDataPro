@@ -1,6 +1,6 @@
 use crate::{
     app::{DataPro, NO_CLIENT},
-    utils::DataProUiElements,
+    ui_elements::DataProUiElements,
 };
 use egui::{Ui, warn_if_debug_build};
 use egui_file_dialog::FileDialog;
@@ -61,18 +61,7 @@ impl Sidebar {
                 ui.add_space(10.0);
 
                 ui.label("Clients Directory");
-                if ui
-                    .add(
-                        egui::Button::new(
-                            egui::RichText::new(app.root_directory.to_string_lossy()).monospace(),
-                        )
-                        .truncate(),
-                    )
-                    .on_hover_text(app.root_directory.to_string_lossy())
-                    .clicked()
-                {
-                    app.pick_root_directory.pick_directory();
-                }
+                ui.directory_picker(&mut app.pick_root_directory, &app.root_directory);
 
                 ui.add_space(10.0);
                 ui.separator();
@@ -86,23 +75,20 @@ impl Sidebar {
                 ui.separator();
                 ui.add_space(10.0);
 
-                ui.add_enabled_ui(app.data.client_loaded(), |ui| {
-                    if ui
-                        .large_button("Calculate IOA")
-                        .on_disabled_hover_text(NO_CLIENT)
-                        .clicked()
-                    {
-                        app.display_info.go_to_ioa();
-                    }
-                    ui.add_space(5.0);
+                if ui
+                    .large_button("Calculate IOA")
+                    .on_disabled_hover_text(NO_CLIENT)
+                    .clicked()
+                {
+                    app.display_info.go_to_ioa();
+                }
+                ui.add_space(5.0);
 
-                    if ui
-                        .large_button("KSFs")
-                        .on_disabled_hover_text(NO_CLIENT)
-                        .clicked()
-                    {
-                        // Load the assessments for editing
-                        app.edit_ksfs.user_input.clear();
+                if ui.large_button("KSF").clicked() {
+                    app.edit_ksfs.user_input.clear();
+
+                    // If there is a client loaded rebuild the UI with the client information
+                    if app.data.client_loaded() {
                         for (name, ksf) in app.data.ksfs.iter() {
                             let (freq, dura) = ksf.pairs();
                             app.edit_ksfs.user_input.push((
@@ -113,25 +99,32 @@ impl Sidebar {
                                     .join("\n"),
                             ));
                         }
-                        app.display_info.go_to_new_ksf();
+                    } else {
+                        // If there is no client loaded create a UI with a single empty region to start with
+                        app.edit_ksfs.user_input.push(Default::default());
                     }
-                    ui.add_space(5.0);
 
-                    if ui
-                        .large_button("Assessments")
-                        .on_disabled_hover_text(NO_CLIENT)
-                        .clicked()
-                    {
-                        // Load the assessments for editing
-                        app.edit_assessments.user_input.clear();
+                    app.display_info.go_to_new_ksf();
+                }
+                ui.add_space(5.0);
+
+                if ui.large_button("Assessments").clicked() {
+                    app.edit_assessments.user_input.clear();
+
+                    // If there is a client loaded rebuild the UI with the client information
+                    if app.data.client_loaded() {
                         for (assessment, conds) in app.data.assessments.iter() {
                             app.edit_assessments
                                 .user_input
                                 .push((assessment.clone(), conds.iter().join(", ")));
                         }
-                        app.display_info.go_to_new_assessments();
+                    } else {
+                        // If there is no client loaded create a UI with a single empty region to start with
+                        app.edit_assessments.user_input.push(Default::default());
                     }
-                });
+
+                    app.display_info.go_to_new_assessments();
+                }
 
                 ui.add_space(10.0);
                 ui.separator();

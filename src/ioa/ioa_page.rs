@@ -6,7 +6,8 @@ use crate::{
         excel_output::save_excel_workbook,
         validate_files::validate_files,
     },
-    utils::{DataProUiElements, quick_file_name, time_stamp},
+    ui_elements::DataProUiElements,
+    utils::{quick_file_name, time_stamp},
 };
 use anyhow::{Context, Result};
 use egui::{Color32, RichText, Ui};

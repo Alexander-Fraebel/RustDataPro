@@ -6,17 +6,13 @@ use crate::{
         EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
         edit_assessments::EditAssessments,
     },
-    utils::{date_time_string, windows_error_dialog},
+    utils::{date_time_string, overwrite_file, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use chrono::Local;
 use egui::{TextBuffer, Visuals};
 use egui_file_dialog::FileDialog;
-use std::{
-    fs::File,
-    io::{BufWriter, Write},
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 pub const DEFAULT_ROOT_DIRECTORY: &'static str = "C:\\";
 pub const DEFAULT_ROOT_DIRECTORY_NAME: &'static str = "DataProClients";
@@ -185,19 +181,7 @@ impl DataPro {
     }
 
     pub fn overwrite_file(&self, name: &str, data: &str) -> Result<()> {
-        match self.path_to(name) {
-            Ok(pb) => {
-                if pb.exists() {
-                    std::fs::write(pb, data)?
-                } else {
-                    let mut writer = BufWriter::new(File::create_new(pb)?);
-                    writer.write_all(data.as_bytes())?;
-                    writer.flush()?;
-                }
-            }
-            Err(e) => return Err(e),
-        }
-        Ok(())
+        overwrite_file(self.path_to(name), data)
     }
 
     pub fn overwrite_client_data(&self) -> Result<()> {

@@ -1,10 +1,13 @@
 use crate::{
     app::DataPro,
     data::{ALLOWED_KEYS, Ksf, KsfData},
-    utils::{DataProUiElements, windows_error_dialog},
+    ui_elements::DataProUiElements,
+    utils::windows_error_dialog,
 };
 use anyhow::Result;
 use egui::{Color32, Key, RichText};
+use egui_file_dialog::FileDialog;
+use std::path::PathBuf;
 
 fn parse_line(s: &str) -> Result<(Key, String)> {
     let (k, d) = match s.split_once(",") {
@@ -104,57 +107,123 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
         })
 }
 
+fn edit_client_ksf(app: &mut DataPro, ui: &mut egui::Ui) {
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        ui.heading("Edit Keyboard Setup File for Client ");
+        ui.add(egui::Label::new(
+            egui::RichText::new(&app.data.client.id).heading().strong(),
+        ));
+    });
+
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            ksf_scroller(app, ui);
+        });
+        ui.add_space(30.0);
+        ui.vertical(|ui| {
+            ui.add_space(30.0);
+            if ui.button("Add KSF").clicked() {
+                app.edit_ksfs
+                    .user_input
+                    .push((String::new(), String::new(), String::new()));
+            }
+            ui.add_space(10.0);
+
+            // TODO: disable if invalid KSF writtens
+            ui.add_enabled_ui(true, |ui| {
+                if ui
+                    .large_green_button("Save")
+                    .on_disabled_hover_text("no file name provided")
+                    .clicked()
+                {
+                    let mut write_succeeded = true;
+                    let mut temp_ksfs = KsfData::default();
+                    for input in app.edit_ksfs.user_input.iter() {
+                        if let Err(e) = build_ksfs(&mut temp_ksfs, input) {
+                            windows_error_dialog(e);
+                            write_succeeded = false;
+                        }
+                    }
+                    if write_succeeded {
+                        app.data.ksfs = temp_ksfs;
+                        match app.overwrite_ksf_data() {
+                            Ok(_) => app.edit_ksfs.save_finished = true,
+                            Err(e) => {
+                                windows_error_dialog(e);
+                                app.edit_ksfs.save_finished = false;
+                            }
+                        }
+                    }
+                }
+            });
+
+            if ui.large_red_button("Return").clicked() {
+                app.edit_ksfs.save_finished = false;
+                app.display_info.go_to_prep_session();
+            }
+
+            if app.edit_ksfs.save_finished {
+                ui.monospace(
+                    RichText::new("KSF Updated!")
+                        .heading()
+                        .color(Color32::GREEN),
+                );
+            }
+        });
+    });
+}
+
 #[derive(Default)]
 pub struct EditKsfData {
     pub user_input: Vec<(String, String, String)>,
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
+    pub file_dialog: FileDialog,
+    pub create_ksf_path: PathBuf,
 }
 
 impl EditKsfData {
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
+        if let Some(pathbuf) = app.edit_ksfs.file_dialog.take_picked() {
+            app.edit_ksfs.create_ksf_path = pathbuf;
+        }
+
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = 0.0;
-                ui.heading("Edit Keyboard Setup Files for Client ");
-                ui.add(egui::Label::new(
-                    egui::RichText::new(&app.data.client.id).heading().strong(),
-                ));
-            });
+            // If a client is loaded we will edit the client KSF file
+            if app.data.client_loaded() {
+                edit_client_ksf(app, ui);
+            } else {
+                ui.heading("Create a Keyboard Setup File");
 
-            ui.horizontal(|ui| {
-                ui.vertical(|ui| {
-                    ksf_scroller(app, ui);
-                });
-                ui.add_space(30.0);
-                ui.vertical(|ui| {
+                ui.add_space(10.0);
+                ui.label("Pick Directory");
+                ui.directory_picker(&mut app.pick_root_directory, &app.root_directory);
+                ui.add_space(10.0);
+
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        ksf_scroller(app, ui);
+                    });
                     ui.add_space(30.0);
-                    if ui.button("Add KSF").clicked() {
-                        app.edit_ksfs.user_input.push((
-                            String::new(),
-                            String::new(),
-                            String::new(),
-                        ));
-                    }
-                    ui.add_space(10.0);
+                    ui.vertical(|ui| {
+                        ui.add_space(30.0);
+                        if ui.button("Add KSF").clicked() {
+                            app.edit_ksfs.user_input.push(Default::default());
+                        }
+                        ui.add_space(10.0);
 
-                    // TODO: disable if invalid KSF writtens
-                    ui.add_enabled_ui(true, |ui| {
-                        if ui
-                            .large_green_button("Save")
-                            .on_disabled_hover_text("no file name provided")
-                            .clicked()
-                        {
+                        if ui.large_green_button("Save").clicked() {
                             let mut write_succeeded = true;
-                            let mut temp_ksfs = KsfData::default();
+                            let mut temp_ksf_data = KsfData::default();
                             for input in app.edit_ksfs.user_input.iter() {
-                                if let Err(e) = build_ksfs(&mut temp_ksfs, input) {
+                                if let Err(e) = build_ksfs(&mut temp_ksf_data, input) {
                                     windows_error_dialog(e);
                                     write_succeeded = false;
                                 }
                             }
                             if write_succeeded {
-                                app.data.ksfs = temp_ksfs;
+                                app.data.ksfs = temp_ksf_data;
                                 match app.overwrite_ksf_data() {
                                     Ok(_) => app.edit_ksfs.save_finished = true,
                                     Err(e) => {
@@ -164,22 +233,20 @@ impl EditKsfData {
                                 }
                             }
                         }
+
+                        if ui.large_red_button("Return").clicked() {
+                            app.edit_ksfs.save_finished = false;
+                            app.display_info.go_to_prep_session();
+                        }
+
+                        if app.edit_ksfs.save_finished {
+                            ui.monospace(
+                                RichText::new("KSF Saved!").heading().color(Color32::GREEN),
+                            );
+                        }
                     });
-
-                    if ui.large_red_button("Return").clicked() {
-                        app.edit_ksfs.save_finished = false;
-                        app.display_info.go_to_prep_session();
-                    }
-
-                    if app.edit_ksfs.save_finished {
-                        ui.monospace(
-                            RichText::new("KSF Updated!")
-                                .heading()
-                                .color(Color32::GREEN),
-                        );
-                    }
                 });
-            });
+            }
         });
     }
 }

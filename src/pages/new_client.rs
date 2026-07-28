@@ -4,7 +4,7 @@ use crate::{
         SESSION_DATA_FOLDER_NAME,
     },
     data::{AssessmentsData, ClientData, KsfData},
-    utils::DataProUiElements,
+    ui_elements::DataProUiElements,
 };
 use anyhow::Result;
 use chrono::Local;

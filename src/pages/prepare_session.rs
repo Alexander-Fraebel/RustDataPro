@@ -1,7 +1,8 @@
 use crate::{
     app::{DataPro, NO_CLIENT, SESSION_DATA_FOLDER_NAME},
     data::DataType,
-    utils::{DataProUiElements, windows_error_dialog},
+    ui_elements::DataProUiElements,
+    utils::windows_error_dialog,
 };
 use egui::{Color32, TextStyle};
 use egui_file_dialog::FileDialog;

@@ -5,7 +5,8 @@ use crate::{
         timeline::Timeline, view_simple_timer,
     },
     display_controller::DisplayInfo,
-    utils::{ClickedKeys, DataProUiElements, date_time_string, rounded_f32, windows_error_dialog},
+    ui_elements::DataProUiElements,
+    utils::{ClickedKeys, date_time_string, rounded_f32, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
