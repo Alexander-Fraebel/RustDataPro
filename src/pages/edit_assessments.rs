@@ -1,12 +1,12 @@
-use std::path::PathBuf;
-
-use crate::app::ASSESSMENTS_FILE_NAME;
-use crate::data::AssessmentsData;
+use crate::app::{ASSESSMENTS_FILE_NAME, DEFAULT_ROOT_DIRECTORY};
+use crate::data::{AssessmentsData, Data};
 use crate::utils::{overwrite_file, windows_error_dialog};
 use crate::{app::DataPro, ui_elements::DataProUiElements};
 use egui::{Color32, RichText};
 use egui_file_dialog::FileDialog;
 use indexmap::IndexSet;
+use itertools::Itertools;
+use std::path::PathBuf;
 
 fn assessment_scroller(
     app: &mut DataPro,
@@ -56,13 +56,6 @@ fn assessment_scroller(
 }
 
 fn edit_client_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.heading("Edit Assessments File for Client ");
-        ui.add(egui::Label::new(
-            egui::RichText::new(&app.data.client.id).heading().strong(),
-        ));
-    });
     ui.add_space(10.0);
 
     ui.horizontal(|ui| {
@@ -118,14 +111,6 @@ fn edit_client_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
 }
 
 fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
-    ui.heading("Create an Assessments File");
-
-    ui.add_space(10.0);
-    ui.label("Pick Directory");
-    ui.directory_picker(
-        &mut app.edit_assessments.file_dialog,
-        &app.edit_assessments.new_assessments_path,
-    );
     ui.add_space(10.0);
 
     ui.horizontal(|ui| {
@@ -194,8 +179,31 @@ pub struct EditAssessments {
 }
 
 impl EditAssessments {
+    pub fn prepare(&mut self, data: &Data) {
+        self.user_input.clear();
+
+        // If there is a client loaded rebuild the UI with the client information
+        if data.client_loaded() {
+            for (assessment, conds) in data.assessments.iter() {
+                self.user_input
+                    .push((assessment.clone(), conds.iter().join(", ")));
+            }
+        } else {
+            self.file_dialog = FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
+            self.new_assessments_path = DEFAULT_ROOT_DIRECTORY.into();
+            self.user_input.push(Default::default());
+        }
+    }
+
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.heading("Assessments File for ");
+                ui.client_picker(app, "assessments_page_client_picker");
+            });
+
+            ui.label("If a client is selected this page will automatically udpate\nthe assessments file for that client. If no client is selected you may\nsave the assessments file created here to the directory below.");
+
             if app.data.client_loaded() {
                 edit_client_assessments(app, ui)
             } else {

@@ -1,10 +1,8 @@
 use crate::{
-    app::{DEFAULT_ROOT_DIRECTORY, DataPro, NO_CLIENT},
+    app::{DataPro, NO_CLIENT},
     ui_elements::DataProUiElements,
 };
 use egui::{Ui, warn_if_debug_build};
-use egui_file_dialog::FileDialog;
-use itertools::Itertools;
 
 pub struct Sidebar {}
 
@@ -16,8 +14,6 @@ impl Sidebar {
             app.data.clear();
             // Then we set the client picker to look there and reset the ksf picker entirely
             app.root_directory = pathbuf.clone();
-            app.pick_client_folder = FileDialog::new().initial_directory(pathbuf.clone());
-            app.pick_ksf = FileDialog::new()
         }
         egui::Panel::left("welcome_panel")
             .default_size(200.0)
@@ -84,58 +80,13 @@ impl Sidebar {
                 }
                 ui.add_space(5.0);
 
-                let ksf_button_name = match app.data.client_loaded() {
-                    true => "Edit KSF",
-                    false => "New KSF",
-                };
-                if ui.large_button(ksf_button_name).clicked() {
-                    app.edit_ksfs.user_input.clear();
-
-                    // If there is a client loaded rebuild the UI with the client information
-                    if app.data.client_loaded() {
-                        for (name, ksf) in app.data.ksfs.iter() {
-                            let (freq, dura) = ksf.pairs();
-                            app.edit_ksfs.user_input.push((
-                                name.to_string(),
-                                freq.map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
-                                    .join("\n"),
-                                dura.map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
-                                    .join("\n"),
-                            ));
-                        }
-                    } else {
-                        // If there is no client loaded create a UI with a single empty region to start with
-                        app.edit_ksfs.file_dialog =
-                            FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
-                        app.edit_ksfs.user_input.push(Default::default());
-                        app.edit_ksfs.new_ksf_path = DEFAULT_ROOT_DIRECTORY.into();
-                    }
-
+                if ui.large_button("KSF").clicked() {
+                    app.edit_ksfs.prepare(&app.data);
                     app.display_info.go_to_new_ksf();
                 }
                 ui.add_space(5.0);
 
-                let assessment_button_name = match app.data.client_loaded() {
-                    true => "Edit Assessments",
-                    false => "New Assessments",
-                };
-                if ui.large_button(assessment_button_name).clicked() {
-                    app.edit_assessments.user_input.clear();
-
-                    // If there is a client loaded rebuild the UI with the client information
-                    if app.data.client_loaded() {
-                        for (assessment, conds) in app.data.assessments.iter() {
-                            app.edit_assessments
-                                .user_input
-                                .push((assessment.clone(), conds.iter().join(", ")));
-                        }
-                    } else {
-                        app.edit_assessments.file_dialog =
-                            FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
-                        app.edit_assessments.new_assessments_path = DEFAULT_ROOT_DIRECTORY.into();
-                        app.edit_assessments.user_input.push(Default::default());
-                    }
-
+                if ui.large_button("Assessments").clicked() {
                     app.display_info.go_to_new_assessments();
                 }
 

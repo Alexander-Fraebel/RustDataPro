@@ -39,9 +39,6 @@ pub struct DataPro {
     pub data: Data,
     pub display_info: DisplayInfo,
 
-    pub pick_client_folder: FileDialog,
-    pub pick_ksf: FileDialog,
-
     pub randomness_page: RandomServices,
     pub timers: Timers,
 
@@ -84,8 +81,6 @@ impl Default for DataPro {
             },
 
             pick_root_directory: FileDialog::new().initial_directory(root_directory.clone()),
-            pick_client_folder: FileDialog::new().initial_directory(root_directory.clone()),
-            pick_ksf: FileDialog::default().initial_directory(root_directory.clone()),
             root_directory,
 
             randomness_page: RandomServices::default(),
@@ -227,26 +222,36 @@ impl DataPro {
             .context("error reading client_data.txt")
         {
             Ok(client) => {
-                self.data.client = client;
-                self.data.client.current_session += 1; // We are always one session ahead of the last saved value
+                // Clear all data
+                self.data.clear();
 
-                // Reset the KSF
-                match KsfData::from_file(&Path::new(path).join(KSF_FILE_NAME)) {
-                    Ok(ks) => self.data.ksfs = ks,
-                    Err(_) => self.data.ksfs = KsfData::default(),
-                };
-                match self.data.ksfs.first() {
-                    Some((name, _ksf)) => self.data.session.chosen_ksf = name.clone(),
-                    None => self.data.session.chosen_ksf.clear(),
+                // Load the client
+                // We are always one session ahead of the last saved value
+                self.data.client = client;
+                self.data.client.current_session += 1;
+
+                // Load the KSF Data
+                if let Ok(ksf_data) = KsfData::from_file(&Path::new(path).join(KSF_FILE_NAME)) {
+                    self.data.ksfs = ksf_data
+                }
+                // Load the first KSF listed
+                if let Some((name, _)) = self.data.ksfs.first() {
+                    self.data.session.chosen_ksf = name.clone()
                 }
 
-                // Load assessments from file
-                // If it doesen't exist then reset AssessmentsData, errors will be visible and easy to repair in the application
-                match AssessmentsData::from_file(&Path::new(path).join(ASSESSMENTS_FILE_NAME)) {
-                    Ok(a) => self.data.assessments = a,
-                    Err(_) => self.data.assessments = AssessmentsData::default(),
-                };
+                // Load the Assessments Data
+                if let Ok(assessments_data) =
+                    AssessmentsData::from_file(&Path::new(path).join(ASSESSMENTS_FILE_NAME))
+                {
+                    self.data.assessments = assessments_data;
+                }
+                // Load the first assessment and first condition
                 self.choose_first_assessment_and_condition();
+
+                self.edit_ksfs.file_dialog =
+                    FileDialog::new().initial_directory(path.to_path_buf());
+                self.ioa_page.file_dialog =
+                    FileDialog::new().initial_directory(path.join(SESSION_DATA_FOLDER_NAME));
             }
             Err(e) => {
                 self.data.clear();

@@ -1,12 +1,13 @@
 use crate::{
-    app::{DataPro, KSF_FILE_NAME},
-    data::{ALLOWED_KEYS, Ksf, KsfData},
+    app::{DEFAULT_ROOT_DIRECTORY, DataPro, KSF_FILE_NAME},
+    data::{ALLOWED_KEYS, Data, Ksf, KsfData},
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
 };
 use anyhow::Result;
 use egui::{Color32, Key, RichText};
 use egui_file_dialog::FileDialog;
+use itertools::Itertools;
 use std::path::PathBuf;
 
 fn parse_line(s: &str) -> Result<(Key, String)> {
@@ -109,14 +110,6 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
 
 fn edit_client_ksf(app: &mut DataPro, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.heading("Edit Keyboard Setup File for Client ");
-        ui.add(egui::Label::new(
-            egui::RichText::new(&app.data.client.id).heading().strong(),
-        ));
-    });
-
-    ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ksf_scroller(app, ui);
         });
@@ -175,13 +168,6 @@ fn edit_client_ksf(app: &mut DataPro, ui: &mut egui::Ui) {
 }
 
 fn new_ksf_creator(app: &mut DataPro, ui: &mut egui::Ui) {
-    ui.heading("Create a Keyboard Setup File");
-
-    ui.add_space(10.0);
-    ui.label("Pick Directory");
-    ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.new_ksf_path);
-    ui.add_space(10.0);
-
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ksf_scroller(app, ui);
@@ -243,6 +229,29 @@ pub struct EditKsfData {
 }
 
 impl EditKsfData {
+    pub fn prepare(&mut self, data: &Data) {
+        self.user_input.clear();
+
+        // If there is a client loaded rebuild the UI with the client information
+        if data.client_loaded() {
+            for (name, ksf) in data.ksfs.iter() {
+                let (freq, dura) = ksf.pairs();
+                self.user_input.push((
+                    name.to_string(),
+                    freq.map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
+                        .join("\n"),
+                    dura.map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
+                        .join("\n"),
+                ));
+            }
+        } else {
+            // If there is no client loaded create a UI with a single empty region to start with
+            self.file_dialog = FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
+            self.user_input.push(Default::default());
+            self.new_ksf_path = DEFAULT_ROOT_DIRECTORY.into();
+        }
+    }
+
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         app.edit_ksfs.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = app.edit_ksfs.file_dialog.take_picked() {
@@ -250,6 +259,20 @@ impl EditKsfData {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.heading("Keyboard Setup File for ");
+                ui.client_picker(app, "ksf_page_client_picker");
+            });
+
+            ui.label("If a client is selected this page will automatically udpate\nthe KSF for that client. If no client is selected you may\nsave this KSF created here to the directory below.");
+
+            ui.add_space(10.0);
+            ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
+                ui.label("Save File To:");
+                ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.new_ksf_path);
+            });
+            ui.add_space(10.0);
+
             if app.data.client_loaded() {
                 edit_client_ksf(app, ui)
             } else {

@@ -1,13 +1,11 @@
 use crate::{
-    app::{DataPro, NO_CLIENT, SESSION_DATA_FOLDER_NAME},
+    app::{DataPro, NO_CLIENT},
     data::DataType,
     ui_elements::DataProUiElements,
     utils::windows_error_dialog,
 };
 use egui::{Color32, TextStyle};
-use egui_file_dialog::FileDialog;
 use indexmap::IndexSet;
-use std::path::Path;
 
 pub struct PrepareSession {
     pub can_start_session: bool,
@@ -299,38 +297,7 @@ impl PrepareSession {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     ui.add_space(25.0);
-                    ui.horizontal(|ui| {
-                        egui::ComboBox::from_id_salt("client_select")
-                            .selected_text("SELECT CLIENT")
-                            .show_ui(ui, |ui| {
-                                if let Ok(entries) = app.root_directory.read_dir() {
-                                    for entry in entries {
-                                        if let Ok(e) = entry {
-                                            if ui
-                                                .selectable_value(
-                                                    &mut app.data.client.id,
-                                                    e.file_name().to_string_lossy().to_string(),
-                                                    e.file_name().to_string_lossy().to_string(),
-                                                )
-                                                .clicked()
-                                            {
-                                                app.load_client_file(&e.path());
-                                                app.pick_ksf =
-                                                    FileDialog::new().initial_directory(e.path());
-                                                app.ioa_page.file_dialog = FileDialog::new()
-                                                    .initial_directory(
-                                                        Path::new(&e.path())
-                                                            .join(SESSION_DATA_FOLDER_NAME),
-                                                    );
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-                        if ui.small_button("X").on_hover_text("clear client").clicked() {
-                            app.data.clear();
-                        }
-                    });
+                    ui.client_picker(app, "prep_page_client_picker");
 
                     ui.add_space(5.0);
                     PrepareSession::client_and_session_information(app, ui);
