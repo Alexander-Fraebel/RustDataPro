@@ -53,14 +53,6 @@ pub struct DataPro {
 
 impl Default for DataPro {
     fn default() -> Self {
-        // In debug mode use the current directory
-        #[cfg(debug_assertions)]
-        let root_directory =
-            Path::new(&std::env::current_dir().unwrap_or(PathBuf::from(DEFAULT_ROOT_DIRECTORY)))
-                .join(DEFAULT_ROOT_DIRECTORY_NAME);
-
-        // In release mode use the C: drive
-        #[cfg(not(debug_assertions))]
         let root_directory = Path::new(DEFAULT_ROOT_DIRECTORY).join(DEFAULT_ROOT_DIRECTORY_NAME);
 
         // If the directory chosen doesn't exist crate it.

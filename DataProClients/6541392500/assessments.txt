@@ -1,9 +1,0 @@
-{
-  "FA": [
-    "Ignore",
-    "Tangible",
-    "Demand",
-    "Attention",
-    "Toy Play"
-  ]
-}

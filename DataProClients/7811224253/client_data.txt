@@ -1,9 +1,0 @@
-{
-  "name": "Bruce Wayne",
-  "id": "7811224253",
-  "case_manager": "Alfred Pennyworth",
-  "primary_therapist": "Richard Grayson",
-  "current_session": 5,
-  "date_of_admission": "1939-02-19",
-  "location": "Wayne Manor"
-}

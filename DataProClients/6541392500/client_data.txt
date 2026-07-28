@@ -1,9 +1,0 @@
-{
-  "name": "Diana Prince",
-  "id": "6541392500",
-  "case_manager": "Hippolyta",
-  "primary_therapist": "Etta Candy",
-  "current_session": 6,
-  "date_of_admission": "1941-10-21",
-  "location": "Themyscira"
-}

@@ -2,7 +2,7 @@ use crate::{
     app::DataPro,
     data::{ALLOWED_KEYS, Ksf, KsfData},
     ui_elements::DataProUiElements,
-    utils::windows_error_dialog,
+    utils::{overwrite_file, windows_error_dialog},
 };
 use anyhow::Result;
 use egui::{Color32, Key, RichText};
@@ -185,6 +185,7 @@ pub struct EditKsfData {
 
 impl EditKsfData {
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
+        app.edit_ksfs.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = app.edit_ksfs.file_dialog.take_picked() {
             app.edit_ksfs.create_ksf_path = pathbuf;
         }
@@ -198,7 +199,10 @@ impl EditKsfData {
 
                 ui.add_space(10.0);
                 ui.label("Pick Directory");
-                ui.directory_picker(&mut app.pick_root_directory, &app.root_directory);
+                ui.directory_picker(
+                    &mut app.edit_ksfs.file_dialog,
+                    &app.edit_ksfs.create_ksf_path,
+                );
                 ui.add_space(10.0);
 
                 ui.horizontal(|ui| {
@@ -223,8 +227,10 @@ impl EditKsfData {
                                 }
                             }
                             if write_succeeded {
-                                app.data.ksfs = temp_ksf_data;
-                                match app.overwrite_ksf_data() {
+                                match overwrite_file(
+                                    Ok(app.edit_ksfs.create_ksf_path.clone()),
+                                    &temp_ksf_data.to_json().expect("ERROR WRITING JSON"),
+                                ) {
                                     Ok(_) => app.edit_ksfs.save_finished = true,
                                     Err(e) => {
                                         windows_error_dialog(e);
