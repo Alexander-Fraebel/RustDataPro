@@ -174,84 +174,82 @@ fn edit_client_ksf(app: &mut DataPro, ui: &mut egui::Ui) {
     });
 }
 
+fn new_ksf_creator(app: &mut DataPro, ui: &mut egui::Ui) {
+    ui.heading("Create a Keyboard Setup File");
+
+    ui.add_space(10.0);
+    ui.label("Pick Directory");
+    ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.new_ksf_path);
+    ui.add_space(10.0);
+
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            ksf_scroller(app, ui);
+        });
+        ui.add_space(30.0);
+        ui.vertical(|ui| {
+            ui.add_space(30.0);
+            if ui.button("Add KSF").clicked() {
+                app.edit_ksfs.user_input.push(Default::default());
+            }
+            ui.add_space(10.0);
+
+            if ui.large_green_button("Save").clicked() {
+                let mut write_succeeded = true;
+                let mut temp_ksf_data = KsfData::default();
+                for input in app.edit_ksfs.user_input.iter() {
+                    if let Err(e) = build_ksfs(&mut temp_ksf_data, input) {
+                        windows_error_dialog(e);
+                        write_succeeded = false;
+                    }
+                }
+                if write_succeeded {
+                    match overwrite_file(
+                        Ok(app.edit_ksfs.new_ksf_path.clone()),
+                        &temp_ksf_data.to_json().expect("ERROR WRITING JSON"),
+                    ) {
+                        Ok(_) => app.edit_ksfs.save_finished = true,
+                        Err(e) => {
+                            windows_error_dialog(e);
+                            app.edit_ksfs.save_finished = false;
+                        }
+                    }
+                }
+            }
+
+            if ui.large_red_button("Return").clicked() {
+                app.edit_ksfs.save_finished = false;
+                app.display_info.go_to_prep_session();
+            }
+
+            if app.edit_ksfs.save_finished {
+                ui.monospace(RichText::new("KSF Saved!").heading().color(Color32::GREEN));
+            }
+        });
+    });
+}
+
 #[derive(Default)]
 pub struct EditKsfData {
     pub user_input: Vec<(String, String, String)>,
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
-    pub create_ksf_path: PathBuf,
+    pub new_ksf_path: PathBuf,
 }
 
 impl EditKsfData {
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         app.edit_ksfs.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = app.edit_ksfs.file_dialog.take_picked() {
-            app.edit_ksfs.create_ksf_path = pathbuf;
+            app.edit_ksfs.new_ksf_path = pathbuf;
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            // If a client is loaded we will edit the client KSF file
             if app.data.client_loaded() {
                 edit_client_ksf(app, ui);
             } else {
-                ui.heading("Create a Keyboard Setup File");
-
-                ui.add_space(10.0);
-                ui.label("Pick Directory");
-                ui.directory_picker(
-                    &mut app.edit_ksfs.file_dialog,
-                    &app.edit_ksfs.create_ksf_path,
-                );
-                ui.add_space(10.0);
-
-                ui.horizontal(|ui| {
-                    ui.vertical(|ui| {
-                        ksf_scroller(app, ui);
-                    });
-                    ui.add_space(30.0);
-                    ui.vertical(|ui| {
-                        ui.add_space(30.0);
-                        if ui.button("Add KSF").clicked() {
-                            app.edit_ksfs.user_input.push(Default::default());
-                        }
-                        ui.add_space(10.0);
-
-                        if ui.large_green_button("Save").clicked() {
-                            let mut write_succeeded = true;
-                            let mut temp_ksf_data = KsfData::default();
-                            for input in app.edit_ksfs.user_input.iter() {
-                                if let Err(e) = build_ksfs(&mut temp_ksf_data, input) {
-                                    windows_error_dialog(e);
-                                    write_succeeded = false;
-                                }
-                            }
-                            if write_succeeded {
-                                match overwrite_file(
-                                    Ok(app.edit_ksfs.create_ksf_path.clone()),
-                                    &temp_ksf_data.to_json().expect("ERROR WRITING JSON"),
-                                ) {
-                                    Ok(_) => app.edit_ksfs.save_finished = true,
-                                    Err(e) => {
-                                        windows_error_dialog(e);
-                                        app.edit_ksfs.save_finished = false;
-                                    }
-                                }
-                            }
-                        }
-
-                        if ui.large_red_button("Return").clicked() {
-                            app.edit_ksfs.save_finished = false;
-                            app.display_info.go_to_prep_session();
-                        }
-
-                        if app.edit_ksfs.save_finished {
-                            ui.monospace(
-                                RichText::new("KSF Saved!").heading().color(Color32::GREEN),
-                            );
-                        }
-                    });
-                });
+                new_ksf_creator(app, ui);
             }
         });
     }

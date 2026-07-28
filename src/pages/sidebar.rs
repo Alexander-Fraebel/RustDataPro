@@ -1,5 +1,5 @@
 use crate::{
-    app::{DataPro, NO_CLIENT},
+    app::{DEFAULT_ROOT_DIRECTORY, DataPro, NO_CLIENT},
     ui_elements::DataProUiElements,
 };
 use egui::{Ui, warn_if_debug_build};
@@ -84,7 +84,11 @@ impl Sidebar {
                 }
                 ui.add_space(5.0);
 
-                if ui.large_button("KSF").clicked() {
+                let ksf_button_name = match app.data.client_loaded() {
+                    true => "Edit KSF",
+                    false => "New KSF",
+                };
+                if ui.large_button(ksf_button_name).clicked() {
                     app.edit_ksfs.user_input.clear();
 
                     // If there is a client loaded rebuild the UI with the client information
@@ -101,14 +105,21 @@ impl Sidebar {
                         }
                     } else {
                         // If there is no client loaded create a UI with a single empty region to start with
+                        app.edit_ksfs.file_dialog =
+                            FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
                         app.edit_ksfs.user_input.push(Default::default());
+                        app.edit_ksfs.new_ksf_path = DEFAULT_ROOT_DIRECTORY.into();
                     }
 
                     app.display_info.go_to_new_ksf();
                 }
                 ui.add_space(5.0);
 
-                if ui.large_button("Assessments").clicked() {
+                let assessment_button_name = match app.data.client_loaded() {
+                    true => "Edit Assessments",
+                    false => "New Assessments",
+                };
+                if ui.large_button(assessment_button_name).clicked() {
                     app.edit_assessments.user_input.clear();
 
                     // If there is a client loaded rebuild the UI with the client information

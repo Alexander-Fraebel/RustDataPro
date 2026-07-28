@@ -293,28 +293,45 @@ impl PrepareSession {
     }
 
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
-        app.pick_ksf.update(ui.ctx());
-        if let Some(path) = app.pick_ksf.take_picked() {
-            app.load_ksf(&path);
-        }
-
-        app.pick_client_folder.update(ui.ctx());
-        if let Some(path) = app.pick_client_folder.take_picked() {
-            app.load_client_file(&path.clone());
-            app.pick_ksf = FileDialog::new().initial_directory(path.clone());
-            app.ioa_page.file_dialog = FileDialog::new()
-                .initial_directory(Path::new(&path).join(SESSION_DATA_FOLDER_NAME));
-        }
-
         app.prep_session.can_start_session = app.ready_to_start_session();
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     ui.add_space(25.0);
-                    if ui.large_blue_button("Select Client").clicked() {
-                        app.pick_client_folder.pick_directory();
-                    }
+                    ui.horizontal(|ui| {
+                        egui::ComboBox::from_id_salt("client_select")
+                            .selected_text("SELECT CLIENT")
+                            .show_ui(ui, |ui| {
+                                if let Ok(entries) = app.root_directory.read_dir() {
+                                    for entry in entries {
+                                        if let Ok(e) = entry {
+                                            if ui
+                                                .selectable_value(
+                                                    &mut app.data.client.id,
+                                                    e.file_name().to_string_lossy().to_string(),
+                                                    e.file_name().to_string_lossy().to_string(),
+                                                )
+                                                .clicked()
+                                            {
+                                                app.load_client_file(&e.path());
+                                                app.pick_ksf =
+                                                    FileDialog::new().initial_directory(e.path());
+                                                app.ioa_page.file_dialog = FileDialog::new()
+                                                    .initial_directory(
+                                                        Path::new(&e.path())
+                                                            .join(SESSION_DATA_FOLDER_NAME),
+                                                    );
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        if ui.small_button("X").on_hover_text("clear client").clicked() {
+                            app.data.clear();
+                        }
+                    });
+
                     ui.add_space(5.0);
                     PrepareSession::client_and_session_information(app, ui);
                 });
@@ -351,7 +368,7 @@ impl PrepareSession {
                 {
                     // Update the client file with any changes
                     // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
-                    // If they do anything else the file will update when they switch pages
+                    // If they do anything else the file will update when they switch selections
                     if let Err(e) = app.overwrite_client_data() {
                         windows_error_dialog(e)
                     } else {

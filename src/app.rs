@@ -12,9 +12,12 @@ use anyhow::{Context, Result};
 use chrono::Local;
 use egui::{TextBuffer, Visuals};
 use egui_file_dialog::FileDialog;
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
-pub const DEFAULT_ROOT_DIRECTORY: &'static str = "C:\\";
+pub const DEFAULT_ROOT_DIRECTORY: &'static str = "C:\\DataProClients";
 pub const DEFAULT_ROOT_DIRECTORY_NAME: &'static str = "DataProClients";
 pub const DEFAULT_ZOOM: f32 = 1.5;
 
@@ -53,9 +56,10 @@ pub struct DataPro {
 
 impl Default for DataPro {
     fn default() -> Self {
-        let root_directory = Path::new(DEFAULT_ROOT_DIRECTORY).join(DEFAULT_ROOT_DIRECTORY_NAME);
+        let root_directory =
+            PathBuf::from_str(DEFAULT_ROOT_DIRECTORY).expect("invalid default directory");
 
-        // If the directory chosen doesn't exist crate it.
+        // If the default directory doesn't exist crate it.
         if !root_directory.exists() {
             match std::fs::create_dir(&root_directory) {
                 Ok(_) => (),
