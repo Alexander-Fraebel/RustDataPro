@@ -101,9 +101,7 @@ impl DataProUiElements for Ui {
                         .selectable_value(&mut app.data.client.id, String::new(), "None")
                         .clicked()
                     {
-                        app.data.clear();
-                        app.edit_ksfs.prepare(&app.data);
-                        app.edit_assessments.prepare(&app.data);
+                        app.unload_client();
                     }
                     if let Ok(entries) = app.root_directory.read_dir() {
                         for entry in entries {
@@ -116,9 +114,7 @@ impl DataProUiElements for Ui {
                                     )
                                     .clicked()
                                 {
-                                    app.load_client_file(&e.path());
-                                    app.edit_ksfs.prepare(&app.data);
-                                    app.edit_assessments.prepare(&app.data);
+                                    app.load_client(&e.path());
                                 }
                             }
                         }

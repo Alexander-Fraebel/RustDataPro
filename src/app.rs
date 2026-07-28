@@ -216,7 +216,14 @@ impl DataPro {
         }
     }
 
-    pub fn load_client_file(&mut self, path: &PathBuf) {
+    pub fn unload_client(&mut self) {
+        self.data.clear();
+        self.edit_assessments.prepare(&self.data);
+        self.edit_ksfs.prepare(&self.data);
+        self.ioa_page.reset();
+    }
+
+    pub fn load_client(&mut self, path: &PathBuf) {
         // Determine if the client file exists
         match ClientData::from_file(&Path::new(path).join(CLIENT_DATA_FILE_NAME))
             .context("error reading client_data.txt")
@@ -248,13 +255,17 @@ impl DataPro {
                 // Load the first assessment and first condition
                 self.choose_first_assessment_and_condition();
 
-                self.edit_ksfs.file_dialog =
-                    FileDialog::new().initial_directory(path.to_path_buf());
+                // Update the data editing pages
+                self.edit_ksfs.prepare(&self.data);
+                self.edit_assessments.prepare(&self.data);
+
+                // Update the IOA page
+                self.ioa_page.reset();
                 self.ioa_page.file_dialog =
                     FileDialog::new().initial_directory(path.join(SESSION_DATA_FOLDER_NAME));
             }
             Err(e) => {
-                self.data.clear();
+                self.unload_client();
                 windows_error_dialog(e);
             }
         };

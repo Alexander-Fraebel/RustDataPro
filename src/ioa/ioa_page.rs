@@ -1,5 +1,5 @@
 use crate::{
-    app::DataPro,
+    app::{DEFAULT_ROOT_DIRECTORY, DataPro},
     data::{DataType, IoaData, OutputData},
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
@@ -7,7 +7,7 @@ use crate::{
         validate_files::validate_files,
     },
     ui_elements::DataProUiElements,
-    utils::{quick_file_name, time_stamp},
+    utils::{quick_file_name, time_stamp, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use egui::{Color32, RichText, Ui};
@@ -22,7 +22,6 @@ pub struct IoaPage {
     pub file_dialog: FileDialog,
     pub prim_data: Vec<(OutputData, PathBuf)>,
     pub reli_data: Vec<(OutputData, PathBuf)>,
-    pub error: String,
     pub ioa_finished: bool,
     pub strict: bool,
     pub none_val: f32,
@@ -31,10 +30,9 @@ pub struct IoaPage {
 impl Default for IoaPage {
     fn default() -> Self {
         Self {
-            file_dialog: Default::default(),
+            file_dialog: FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into()),
             prim_data: Vec::new(),
             reli_data: Vec::new(),
-            error: String::new(),
             ioa_finished: false,
             strict: true,
             none_val: f32::NAN,
@@ -43,20 +41,8 @@ impl Default for IoaPage {
 }
 
 impl IoaPage {
-    fn push_error(&mut self, text: &str) {
-        if self.error.is_empty() {
-            self.error.push_str(text);
-        } else {
-            self.error.push('\n');
-            self.error.push_str(text);
-        }
-    }
-
-    fn clear(&mut self) {
-        self.prim_data.clear();
-        self.reli_data.clear();
-        self.error.clear();
-        self.ioa_finished = false;
+    pub fn reset(&mut self) {
+        *self = Self::default()
     }
 
     fn interval_ioa(&self, ioa_data: &mut IoaData) {
@@ -154,7 +140,7 @@ impl IoaPage {
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
         app.ioa_page.file_dialog.update(ui.ctx());
         if let Some(bufs) = app.ioa_page.file_dialog.take_picked_multiple() {
-            app.ioa_page.clear();
+            app.ioa_page.reset();
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match OutputData::from_file(buf.as_path()) {
@@ -169,11 +155,8 @@ impl IoaPage {
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = 0.0;
-                ui.heading("Calculate IOA for Client ");
-                ui.add(egui::Label::new(
-                    egui::RichText::new(&app.data.client.id).heading().strong(),
-                ));
+                ui.heading("Calculate IOA for ");
+                ui.client_picker(app, "ioa_page_client_picker");
             });
             ui.add_space(10.0);
 
@@ -209,38 +192,32 @@ impl IoaPage {
             });
             ui.add_space(20.0);
 
-            ui.add_enabled_ui(app.data.client_loaded(), |ui| {
-                if ui
-                    .large_green_button("Calculate IOA")
-                    .on_disabled_hover_text("no client selected")
-                    .clicked()
-                {
-                    if !app.ioa_page.ioa_finished {
-                        match validate_files(&app.ioa_page.prim_data, &app.ioa_page.reli_data) {
-                            Ok(_) => match app.ioa_page.calculate_ioa(
-                                &app.path_to_ioa_data().expect("ERROR REACHING IOA DATA"),
-                            ) {
-                                Ok(_) => {
-                                    app.ioa_page.error.clear();
-                                    app.ioa_page.ioa_finished = true;
-                                }
-                                Err(e) => app.ioa_page.push_error(&e.to_string()),
-                            },
-                            Err(e) => app.ioa_page.push_error(&e.to_string()),
+            if ui.large_green_button("Calculate IOA").clicked() {
+                if !app.ioa_page.ioa_finished {
+                    app.ioa_page.ioa_finished = false;
+                    match app.path_to_ioa_data() {
+                        Ok(path) => {
+                            match validate_files(&app.ioa_page.prim_data, &app.ioa_page.reli_data) {
+                                Ok(_) => match app.ioa_page.calculate_ioa(&path) {
+                                    Ok(_) => {
+                                        app.ioa_page.ioa_finished = true;
+                                    }
+                                    Err(e) => windows_error_dialog(e),
+                                },
+                                Err(e) => windows_error_dialog(e),
+                            }
                         }
-                    }
+                        Err(e) => windows_error_dialog(e),
+                    };
                 }
-            });
+            }
 
             ui.add_space(5.0);
 
             if ui.large_red_button("Return").clicked() {
-                app.ioa_page.clear();
+                app.ioa_page.reset();
                 app.display_info.go_to_prep_session();
             }
-            ui.add_space(5.0);
-
-            ui.strong(&app.ioa_page.error);
             ui.add_space(5.0);
 
             if app.ioa_page.ioa_finished {
