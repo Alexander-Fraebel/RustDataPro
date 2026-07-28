@@ -18,6 +18,15 @@ impl Display for DataType {
     }
 }
 
+impl DataType {
+    pub fn abbrev(&self) -> &'static str {
+        match self {
+            DataType::Primary => "Prim",
+            DataType::Reliability => "Reli",
+        }
+    }
+}
+
 /// Data needed for running a session
 #[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct SessionData {

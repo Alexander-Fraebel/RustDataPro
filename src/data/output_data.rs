@@ -66,6 +66,7 @@ fn create_test_data() {
     let mut rng: StdRng = make_rng();
 
     let mut client = ClientData::default();
+    client.name = String::from("BW");
 
     for session in 11..16 {
         client.current_session = session;
@@ -176,10 +177,10 @@ fn create_test_data() {
         };
 
         let pfile = File::create(&format!(
-            "{}{}_{}_raw.txt",
+            "{}{}_{}.txt",
             client.initials(),
             prim.session_number,
-            prim.session.data_type
+            prim.session.data_type.abbrev()
         ))
         .unwrap();
         let mut writer = std::io::BufWriter::new(pfile);
@@ -187,10 +188,10 @@ fn create_test_data() {
         std::io::Write::flush(&mut writer).unwrap();
 
         let rfile = File::create(&format!(
-            "{}{}_{}_raw.txt",
+            "{}{}_{}.txt",
             client.initials(),
             reli.session_number,
-            reli.session.data_type
+            reli.session.data_type.abbrev()
         ))
         .unwrap();
         let mut writer = std::io::BufWriter::new(rfile);

@@ -13,7 +13,7 @@ use chrono::{DateTime, Local};
 use egui::{Color32, Key, Layout, RichText, Ui};
 use egui_extras::Column;
 use indexmap::IndexMap;
-use itertools::Itertools;
+// use itertools::Itertools;
 use std::{
     collections::VecDeque,
     fs::File,
@@ -105,8 +105,8 @@ const KEY_WIDTH: f32 = 30.0;
 const ROW_HEIGHT: f32 = 20.0;
 
 pub struct SessionPage {
-    pub timers: Vec<(Timer, u32, Key, String)>,
-    pub counters: Vec<(u32, Key, String)>,
+    pub freq_keys: Vec<(u32, Key, String)>,
+    pub dura_keys: Vec<(Timer, u32, Key, String)>,
     pub session_timer: Timer,
     pub session_start: DateTime<Local>,
     pub timeline: Timeline,
@@ -118,13 +118,13 @@ pub struct SessionPage {
     pub maximum_session_length: f32,
 }
 
-impl SessionPage {
-    pub fn new() -> Self {
+impl Default for SessionPage {
+    fn default() -> Self {
         Self {
             session_timer: Timer::default(),
             session_start: Local::now(),
-            timers: Vec::new(),
-            counters: Vec::new(),
+            freq_keys: Vec::new(),
+            dura_keys: Vec::new(),
             timeline: Timeline::default(),
             keypresses_display: VecDeque::from(["_"; 11]),
             clicked_keys: ClickedKeys::new(),
@@ -134,34 +134,33 @@ impl SessionPage {
             maximum_session_length: 0.0,
         }
     }
+}
 
+impl SessionPage {
     fn reset(&mut self) {
-        self.timers.clear();
-        self.counters.clear();
-        self.session_timer.reset();
-        self.timeline.clear();
-        self.keypresses_display = VecDeque::from(["_"; 11]);
-        self.clicked_keys.clear();
-        self.save_discard_open = false;
+        *self = Self::default()
     }
 
-    /// Stop all timers and update their saved times. This should only occur once in a session, when it ends.
+    /// Stops all timers, records the final keypress (simulates it if session ended another way), disallows unpressing keys, then opens the Save/Discard dialog.
+    /// This should only occur once in a session, when it ends.
     fn stop_all_timers(&mut self) {
-        if self.session_timer.was_started() {
+        if self.session_timer.was_started() && !self.session_timer.is_stopped() {
+            for (timer, _, _, _) in self.dura_keys.iter_mut() {
+                timer.stop();
+            }
+            self.session_timer.stop();
             self.timeline
                 .push((Key::Escape, rounded_f32(self.session_timer.total_time())));
             self.keypresses_display.pop_front();
             self.keypresses_display.push_back("e");
-            for (timer, _, _, _) in self.timers.iter_mut() {
-                timer.stop();
-            }
-            self.session_timer.stop();
         }
+        self.unpress_available = false;
+        self.save_discard_open = true;
     }
 
-    /// Pause or unpause all timers, including the session timer.
+    /// Pause or unpause all timers, including the session timer. This method should be the only way to pause or unpause any timers.
     fn pause_unpause_all_timers(&mut self) {
-        for (timer, _, _, _) in self.timers.iter_mut() {
+        for (timer, _, _, _) in self.dura_keys.iter_mut() {
             if timer.was_started() {
                 timer.toggle();
             }
@@ -169,12 +168,13 @@ impl SessionPage {
         self.session_timer.toggle();
     }
 
+    /// Decrement a key's counter and rewind the recorded time if necessary.
     fn unpress_key(&mut self) {
         if self.unpress_available {
             self.keypresses_display.push_front("_");
             self.keypresses_display.pop_back();
             if let Some((removed_key, _time)) = self.timeline.pop() {
-                for (timer, bouts, key, _) in self.timers.iter_mut() {
+                for (timer, bouts, key, _) in self.dura_keys.iter_mut() {
                     if key == &removed_key {
                         if timer.is_active() {
                             timer.unstart();
@@ -184,7 +184,7 @@ impl SessionPage {
                         }
                     }
                 }
-                for (counter, key, _) in self.counters.iter_mut() {
+                for (counter, key, _) in self.freq_keys.iter_mut() {
                     if key == &removed_key {
                         *counter = counter.saturating_sub(1);
                     }
@@ -194,19 +194,22 @@ impl SessionPage {
         }
     }
 
+    /// Create the counters and timers defined by the KSF to use in session
     pub fn load_ksf(&mut self, data: &Data) {
         if let Some(active_ksf) = data.ksfs.get(data.chosen_ksf()) {
             let (freq, dura) = active_ksf.pairs();
 
             for (key, desc) in freq {
-                self.counters.push((0, *key, desc.clone()));
+                self.freq_keys.push((0, *key, desc.clone()));
             }
             for (key, desc) in dura {
-                self.timers.push((Timer::default(), 0, *key, desc.clone()));
+                self.dura_keys
+                    .push((Timer::default(), 0, *key, desc.clone()));
             }
         }
     }
 
+    /// Start the session time and ecord the initial keypress.
     fn start_session(&mut self) {
         self.session_timer.start();
         self.session_start = Local::now();
@@ -215,64 +218,74 @@ impl SessionPage {
         self.keypresses_display.push_back("t");
     }
 
-    fn end_session(&mut self, display_info: &mut DisplayInfo) {
+    /// Reset the session page and return to the prep session page.
+    fn leave_session(&mut self, display_info: &mut DisplayInfo) {
         self.reset();
         display_info.go_to_prep_session();
     }
 
-    /// Write the output data into a human readable format.
-    fn write_output_pretty(&self, data: &Data) -> String {
-        let mut output = String::new();
-
-        output.push_str("---Session---\n");
-        output.push_str(&data.client.to_string());
-        output.push('\n');
-        output.push_str(&format!(
-            "\nStart {}\nDuration {:.1}\n",
-            date_time_string(&self.session_start),
-            self.session_timer.total_time()
-        ));
-        output.push('\n');
-        output.push_str(&data.session.to_string());
-
-        output.push_str("\n\n--Duration--\n");
-
-        for (timer, bouts, _key, desc) in self.timers.iter() {
-            output.push_str(&format!(
-                "{} {:.1} ({} bouts)\n",
-                desc,
-                timer.saved_time(),
-                bouts
-            ));
-        }
-
-        output.push_str("\n--Frequency--\n");
-        for (counter, _, desc) in self.counters.iter() {
-            output.push_str(&format!("{} {}\n", desc, counter));
-        }
-
-        output.push_str("\n--Raw Inputs--\n");
-        output.push_str(
-            &self
-                .timeline
-                .iter()
-                .map(|(k, t)| format!("{} {:.1}", k.name(), t))
-                .join("\n"),
-        );
-
-        output
+    /// Save the output data and increment the session number.
+    fn finalize_session(&mut self, data: &mut Data, root_directory: &PathBuf) -> Result<()> {
+        self.save_output(data, root_directory)?;
+        self.increment_current_session(data, root_directory)?;
+        Ok(())
     }
+
+    // /// Write the output data into a human readable format.
+    // fn write_output_pretty(&self, data: &Data) -> String {
+    //     let mut output = String::new();
+
+    //     output.push_str("---Session---\n");
+    //     output.push_str(&data.client.to_string());
+    //     output.push('\n');
+    //     output.push_str(&format!(
+    //         "\nStart {}\nDuration {:.1}\n",
+    //         date_time_string(&self.session_start),
+    //         self.session_timer.total_time()
+    //     ));
+    //     output.push('\n');
+    //     output.push_str(&data.session.to_string());
+
+    //     output.push_str("\n\n--Duration--\n");
+
+    //     for (timer, bouts, _key, desc) in self.dura_keys.iter() {
+    //         output.push_str(&format!(
+    //             "{} {:.1} ({} bouts)\n",
+    //             desc,
+    //             timer.saved_time(),
+    //             bouts
+    //         ));
+    //     }
+
+    //     output.push_str("\n--Frequency--\n");
+    //     for (counter, _, desc) in self.freq_keys.iter() {
+    //         output.push_str(&format!("{} {}\n", desc, counter));
+    //     }
+
+    //     output.push_str("\n--Raw Inputs--\n");
+    //     output.push_str(
+    //         &self
+    //             .timeline
+    //             .iter()
+    //             .map(|(k, t)| format!("{} {:.1}", k.name(), t))
+    //             .join("\n"),
+    //     );
+
+    //     output
+    // }
 
     /// Write the output data into a JSON format. Not especially human readable.
     fn write_output_json(&self, data: &Data) -> Result<String> {
         let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
-        for (t, k, _d) in self.counters.iter() {
+        for (t, k, _d) in self.freq_keys.iter() {
             fre_map.insert(*k, *t);
         }
         let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
-        for (t, bouts, k, _d) in self.timers.iter() {
+        for (t, bouts, k, _d) in self.dura_keys.iter() {
             dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
         }
+
+        let doa = data.client.days_since_admission()?;
 
         serde_json::to_string(&OutputData {
             datetime: date_time_string(&self.session_start),
@@ -291,43 +304,24 @@ impl SessionPage {
             case_manager: data.client.case_manager.clone(),
             primary_therapist: data.client.primary_therapist.clone(),
             session_number: data.client.current_session,
-            days_since_admissions: data
-                .client
-                .days_since_admission()
-                .expect(DATE_OF_ADMISSION_FORMAT_ERROR),
+            days_since_admissions: doa,
             location: data.client.location.clone(),
         })
         .context("failure to create json")
     }
 
-    fn save_session(&mut self, data: &mut Data, root_directory: &PathBuf) -> Result<()> {
-        self.save_output(data, root_directory)?;
-        self.increment_current_session(data, root_directory)?;
-        Ok(())
-    }
-
+    /// Write the output to a file.
     fn save_output(&mut self, data: &Data, root_directory: &PathBuf) -> Result<()> {
         let path_to_folder = Path::new(root_directory)
             .join(data.client.id.to_string())
             .join(SESSION_DATA_FOLDER_NAME);
 
-        let mut file_name = path_to_folder.clone();
-        file_name.push(format!(
+        let mut file_name_raw = path_to_folder.clone();
+        file_name_raw.push(format!(
             "{}{}_{}.txt",
             data.client.initials(),
             data.client.current_session,
-            data.session.data_type
-        ));
-        let mut writer = BufWriter::new(File::create(file_name)?);
-        writer.write_all(self.write_output_pretty(data).as_bytes())?;
-        writer.flush()?;
-
-        let mut file_name_raw = path_to_folder.clone();
-        file_name_raw.push(format!(
-            "{}{}_{}_raw.txt",
-            data.client.initials(),
-            data.client.current_session,
-            data.session.data_type
+            data.session.data_type.abbrev()
         ));
         let mut writer = BufWriter::new(File::create(file_name_raw)?);
         writer.write_all(self.write_output_json(data)?.as_bytes())?;
@@ -336,7 +330,6 @@ impl SessionPage {
         Ok(())
     }
 
-    /// The saved current session increments for both the primary and reliability documents
     /// This assumes that both data collectors use INDEPENDENT files
     fn increment_current_session(
         &mut self,
@@ -376,7 +369,6 @@ impl SessionPage {
         }
         // Stop timers and open the confirmation app.session_page.
         if app.session_page.clicked_keys.contains(&egui::Key::Escape) {
-            app.session_page.save_discard_open = true;
             app.session_page.stop_all_timers();
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
@@ -397,7 +389,7 @@ impl SessionPage {
 
         // ### Duration and Frequency Keys ###
         if app.session_page.session_timer.is_active() {
-            for (timer, bouts, key, _) in app.session_page.timers.iter_mut() {
+            for (timer, bouts, key, _) in app.session_page.dura_keys.iter_mut() {
                 if app.session_page.clicked_keys.contains(key) {
                     timer.stop_start();
                     if timer.is_active() {
@@ -410,7 +402,7 @@ impl SessionPage {
                     );
                 }
             }
-            for (counter, key, _) in app.session_page.counters.iter_mut() {
+            for (counter, key, _) in app.session_page.freq_keys.iter_mut() {
                 if app.session_page.clicked_keys.contains(key) {
                     *counter += 1;
                     record_keypress!(
@@ -524,7 +516,7 @@ impl SessionPage {
                                             ui.strong("Count");
                                         });
                                     });
-                                    for (counter, key, desc) in app.session_page.counters.iter() {
+                                    for (counter, key, desc) in app.session_page.freq_keys.iter() {
                                         body.row(ROW_HEIGHT, |mut row| {
                                             row.col(|ui| {
                                                 ui.monospace(desc);
@@ -575,7 +567,8 @@ impl SessionPage {
                                             ui.strong("Current");
                                         });
                                     });
-                                    for (timer, bouts, key, desc) in app.session_page.timers.iter()
+                                    for (timer, bouts, key, desc) in
+                                        app.session_page.dura_keys.iter()
                                     {
                                         body.row(ROW_HEIGHT, |mut row| match timer.status() {
                                             TimerStatus::Active | TimerStatus::Paused => {
@@ -629,19 +622,18 @@ impl SessionPage {
                                 .on_disabled_hover_text("no data to save")
                                 .clicked()
                             {
-                                match app
+                                if let Err(e) = app
                                     .session_page
-                                    .save_session(&mut app.data, &app.root_directory)
+                                    .finalize_session(&mut app.data, &app.root_directory)
                                 {
-                                    Ok(_) => (),
-                                    Err(e) => windows_error_dialog(e),
+                                    windows_error_dialog(e) // application will not leave session until error dialog is closed
                                 }
-                                app.session_page.end_session(&mut app.display_info);
+                                app.session_page.leave_session(&mut app.display_info);
                             }
                         });
                         columns[1].set_height(50.0);
                         if columns[1].large_red_button("DISCARD").clicked() {
-                            app.session_page.end_session(&mut app.display_info);
+                            app.session_page.leave_session(&mut app.display_info);
                         }
                     });
                 });

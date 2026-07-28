@@ -18,7 +18,6 @@ use std::{
 };
 
 pub const DEFAULT_ROOT_DIRECTORY: &'static str = "C:\\DataProClients";
-pub const DEFAULT_ROOT_DIRECTORY_NAME: &'static str = "DataProClients";
 pub const DEFAULT_ZOOM: f32 = 1.5;
 
 pub const CLIENT_DATA_FILE_NAME: &'static str = "client_data.txt";
@@ -80,14 +79,14 @@ impl Default for DataPro {
                 zoom: DEFAULT_ZOOM,
             },
 
-            pick_root_directory: FileDialog::new().initial_directory(root_directory.clone()),
+            pick_root_directory: FileDialog::default().initial_directory(root_directory.clone()),
             root_directory,
 
             randomness_page: RandomServices::default(),
             timers: Timers::default(),
 
             prep_session: PrepareSession::default(),
-            session_page: SessionPage::new(),
+            session_page: SessionPage::default(),
 
             ioa_page: IoaPage::default(),
             new_client_page: NewClient::default(),

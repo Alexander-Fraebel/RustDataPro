@@ -18,7 +18,7 @@ pub struct PrepareSession {
 impl Default for PrepareSession {
     fn default() -> Self {
         Self {
-            can_start_session: true,
+            can_start_session: false,
             session_start_error: NO_CLIENT,
             edit_primary_therapist: false,
             edit_case_manager: false,
@@ -333,12 +333,12 @@ impl PrepareSession {
                     .on_disabled_hover_text(app.prep_session.session_start_error)
                     .clicked()
                 {
-                    // Update the client file with any changes
-                    // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
-                    // If they do anything else the file will update when they switch selections
                     if let Err(e) = app.overwrite_client_data() {
                         windows_error_dialog(e)
                     } else {
+                        // Update the client file with any changes
+                        // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
+                        // If they do anything else the file will update when they switch selections
                         // Load the data and switch pages.
                         app.session_page.load_ksf(&app.data);
                         app.timers.pause_all_timers();
