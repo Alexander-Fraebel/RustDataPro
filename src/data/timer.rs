@@ -5,19 +5,19 @@ use std::{fmt::Display, time::Instant};
 /// Need to use a macro to pass around a string literal
 macro_rules! timer_format {
     () => {
-        "{:4.0}:{:05.2}"
+        "{:.0}:{:05.2}"
     };
 }
 
 macro_rules! timer_display {
-    ($timer:expr) => {
-        RichText::new(format!(timer_format!(), $timer / 60.0, $timer % 60.0)).monospace()
+    ($mins:expr, $secs:expr) => {
+        RichText::new(format!(timer_format!(), $mins, $secs)).monospace()
     };
-    ($ui:ident, $timer:expr) => {
-        $ui.label(timer_display!($timer))
+    ($ui:ident, $mins:expr, $secs:expr) => {
+        $ui.label(timer_display!($mins, $secs))
     };
-    ($ui:ident, $timer:expr, $color:expr) => {
-        $ui.label(timer_display!($timer).color($color))
+    ($ui:ident, $mins:expr, $secs:expr, $color:expr) => {
+        $ui.label(timer_display!($mins, $secs).color($color))
     };
 }
 
@@ -229,17 +229,20 @@ impl Timer {
 pub fn view_simple_timer(ui: &mut Ui, timer: &Timer) {
     match timer.status {
         TimerStatus::Active => {
+            let t = timer.total_time();
             ui.request_repaint();
-            timer_display!(ui, timer.total_time(), ACTIVE_COLOR);
+            timer_display!(ui, (t / 60.0).trunc(), t % 60.0, ACTIVE_COLOR);
         }
         TimerStatus::Stopped => {
-            timer_display!(ui, timer.saved_time());
+            let t = timer.saved_time();
+            timer_display!(ui, (t / 60.0).trunc(), t % 60.0);
         }
         TimerStatus::Paused => {
-            timer_display!(ui, timer.stashed_time(), ACTIVE_COLOR);
+            let t = timer.stashed_time();
+            timer_display!(ui, (t / 60.0).trunc(), t % 60.0, ACTIVE_COLOR);
         }
         TimerStatus::NotStarted => {
-            timer_display!(ui, 0.0);
+            timer_display!(ui, 0.0, 0.0);
         }
     }
 }
@@ -250,9 +253,9 @@ pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
             ui.request_repaint();
             let t = timer.remaining_time();
             if t.is_sign_positive() {
-                timer_display!(ui, t, ACTIVE_COLOR);
+                timer_display!(ui, (t / 60.0).trunc(), t % 60.0, ACTIVE_COLOR);
             } else {
-                timer_display!(ui, -t, NEGATIVE_COLOR);
+                timer_display!(ui, (-t / 60.0).trunc(), -t % 60.0, NEGATIVE_COLOR);
             }
         }
         // Currently Stopped is not possible for a countdown timer via any interface
@@ -260,21 +263,22 @@ pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
         TimerStatus::Stopped => {
             let t = timer.countdown_from - timer.saved_time();
             if t.is_sign_positive() {
-                timer_display!(ui, t, ACTIVE_COLOR);
+                timer_display!(ui, (t / 60.0).trunc(), t % 60.0, ACTIVE_COLOR);
             } else {
-                timer_display!(ui, -t, NEGATIVE_COLOR);
+                timer_display!(ui, (-t / 60.0).trunc(), -t % 60.0, NEGATIVE_COLOR);
             }
         }
         TimerStatus::Paused => {
             let t = timer.countdown_from - timer.stashed_time();
             if t.is_sign_positive() {
-                timer_display!(ui, t, ACTIVE_COLOR);
+                timer_display!(ui, (t / 60.0).trunc(), t % 60.0, ACTIVE_COLOR);
             } else {
-                timer_display!(ui, -t, NEGATIVE_COLOR);
+                timer_display!(ui, (-t / 60.0).trunc(), -t % 60.0, NEGATIVE_COLOR);
             }
         }
         TimerStatus::NotStarted => {
-            timer_display!(ui, timer.countdown_from);
+            let t = timer.countdown_from;
+            timer_display!(ui, (t / 60.0).trunc(), t % 60.0);
         }
     }
 }

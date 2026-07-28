@@ -119,6 +119,13 @@ fn edit_client_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
 
 fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
     ui.heading("Create an Assessments File");
+
+    ui.add_space(10.0);
+    ui.label("Pick Directory");
+    ui.directory_picker(
+        &mut app.edit_assessments.file_dialog,
+        &app.edit_assessments.new_assessments_path,
+    );
     ui.add_space(10.0);
 
     ui.horizontal(|ui| {
