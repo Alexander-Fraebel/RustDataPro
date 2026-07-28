@@ -130,7 +130,9 @@ impl Sidebar {
                                 .push((assessment.clone(), conds.iter().join(", ")));
                         }
                     } else {
-                        // If there is no client loaded create a UI with a single empty region to start with
+                        app.edit_assessments.file_dialog =
+                            FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
+                        app.edit_assessments.new_assessments_path = DEFAULT_ROOT_DIRECTORY.into();
                         app.edit_assessments.user_input.push(Default::default());
                     }
 

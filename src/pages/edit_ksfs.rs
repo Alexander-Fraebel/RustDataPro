@@ -1,5 +1,5 @@
 use crate::{
-    app::DataPro,
+    app::{DataPro, KSF_FILE_NAME},
     data::{ALLOWED_KEYS, Ksf, KsfData},
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
@@ -205,7 +205,7 @@ fn new_ksf_creator(app: &mut DataPro, ui: &mut egui::Ui) {
                 }
                 if write_succeeded {
                     match overwrite_file(
-                        Ok(app.edit_ksfs.new_ksf_path.clone()),
+                        Ok(app.edit_ksfs.new_ksf_path.join(KSF_FILE_NAME)),
                         &temp_ksf_data.to_json().expect("ERROR WRITING JSON"),
                     ) {
                         Ok(_) => app.edit_ksfs.save_finished = true,
@@ -223,7 +223,11 @@ fn new_ksf_creator(app: &mut DataPro, ui: &mut egui::Ui) {
             }
 
             if app.edit_ksfs.save_finished {
-                ui.monospace(RichText::new("KSF Saved!").heading().color(Color32::GREEN));
+                ui.monospace(
+                    RichText::new("KSF Created!")
+                        .heading()
+                        .color(Color32::GREEN),
+                );
             }
         });
     });
@@ -247,9 +251,9 @@ impl EditKsfData {
 
         egui::CentralPanel::default().show(ui, |ui| {
             if app.data.client_loaded() {
-                edit_client_ksf(app, ui);
+                edit_client_ksf(app, ui)
             } else {
-                new_ksf_creator(app, ui);
+                new_ksf_creator(app, ui)
             }
         });
     }
