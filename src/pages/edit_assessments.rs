@@ -210,7 +210,13 @@ impl EditAssessments {
             });
 
             ui.label("If a client is selected this page will automatically udpate\nthe assessments file for that client. If no client is selected you may\nsave the assessments file created here to the directory below.");
+            ui.add_space(10.0);
 
+            ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
+                ui.label("Save File To:");
+                ui.directory_picker(&mut app.edit_assessments.file_dialog, &app.edit_assessments.new_assessments_path);
+            });
+            ui.add_space(10.0);
             if app.data.client_loaded() {
                 edit_client_assessments(app, ui)
             } else {

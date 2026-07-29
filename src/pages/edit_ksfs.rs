@@ -273,8 +273,8 @@ impl EditKsfData {
             });
 
             ui.label("If a client is selected this page will automatically udpate\nthe KSF for that client. If no client is selected you may\nsave this KSF created here to the directory below.");
-
             ui.add_space(10.0);
+            
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
                 ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.new_ksf_path);
