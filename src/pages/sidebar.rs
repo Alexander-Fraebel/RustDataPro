@@ -87,6 +87,7 @@ impl Sidebar {
                 ui.add_space(5.0);
 
                 if ui.large_button("Assessments").clicked() {
+                    app.edit_assessments.prepare(&app.data);
                     app.display_info.go_to_new_assessments();
                 }
 

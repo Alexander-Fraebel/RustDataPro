@@ -24,8 +24,6 @@ impl Display for TimerType {
     }
 }
 
-const NUM_TIMERS: usize = 5;
-
 struct UserTimer {
     timer: Timer,
     linked: bool,
@@ -52,7 +50,7 @@ pub struct Timers {
 impl Default for Timers {
     fn default() -> Self {
         let mut timers = Vec::new();
-        for _ in 0..NUM_TIMERS {
+        for _ in 0..5 {
             timers.push(UserTimer::new());
         }
         timers[0].linked = true;
@@ -150,13 +148,10 @@ impl Timers {
                                 timer.timer.reset();
                             }
                             if ui.selectable_value(&mut timer.timer_type, TimerType::Stopwatch, "Stopwatch").clicked() {
-                                                                timer.timer.reset();
+                                timer.timer.reset();
                             }
                         });
                             ui.add_space(5.0);
-
-
-
                         });
 
                         ui.end_row();
