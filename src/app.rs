@@ -30,6 +30,7 @@ pub const NO_CLIENT: &'static str = "no client loaded";
 pub const NO_KSF: &'static str = "no KSF loaded";
 pub const NO_ASSESSMENT: &'static str = "no assessment chosen";
 pub const NO_CONDITION: &'static str = "no condition chosen";
+pub const INVALID_DATE: &'static str = "Date of Admission is not valid";
 
 pub struct DataPro {
     pub pick_root_directory: FileDialog,
@@ -52,6 +53,7 @@ pub struct DataPro {
 
 impl Default for DataPro {
     fn default() -> Self {
+        // provided directory should always be valid on Windows and we are not handling any other OS
         let root_directory =
             PathBuf::from_str(DEFAULT_ROOT_DIRECTORY).expect("invalid default directory");
 
@@ -106,6 +108,9 @@ impl DataPro {
     pub fn ready_to_start_session(&mut self) -> bool {
         if !self.data.client_loaded() {
             self.prep_session.session_start_error = NO_CLIENT;
+            false
+        } else if !self.data.client_admission_valid() {
+            self.prep_session.session_start_error = INVALID_DATE;
             false
         } else if !self.data.ksf_loaded() {
             self.prep_session.session_start_error = NO_KSF;

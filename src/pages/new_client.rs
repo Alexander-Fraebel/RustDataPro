@@ -5,9 +5,11 @@ use crate::{
     },
     data::{AssessmentsData, ClientData, KsfData},
     ui_elements::DataProUiElements,
+    utils::windows_error_dialog,
 };
 use anyhow::Result;
 use chrono::Local;
+use egui::{Color32, RichText};
 use rand::{RngExt, make_rng, rngs::StdRng};
 use std::{
     fs::File,
@@ -18,7 +20,7 @@ use std::{
 pub struct NewClient {
     prng: StdRng,
     client: ClientData,
-    error: String,
+    created: bool,
 }
 
 impl Default for NewClient {
@@ -26,13 +28,13 @@ impl Default for NewClient {
         Self {
             prng: make_rng(),
             client: ClientData::default(),
-            error: String::new(),
+            created: false,
         }
     }
 }
 
 impl NewClient {
-    fn save_file_to_path(&mut self, root_directory: &PathBuf) -> Result<()> {
+    fn create_new_client_folder(&mut self, root_directory: &PathBuf) -> Result<()> {
         let client_path = Path::new(root_directory).join(self.client.id.to_string());
 
         // Create a new directory for the client inside the root
@@ -116,9 +118,11 @@ impl NewClient {
                     .clicked()
                 {
                     app.new_client_page.client.trim_all_fields();
-                    match app.new_client_page.save_file_to_path(&app.root_directory) {
-                        Ok(_) => app.new_client_page.error.clear(),
-                        Err(e) => app.new_client_page.error = e.to_string(),
+                    if let Err(e) = app
+                        .new_client_page
+                        .create_new_client_folder(&app.root_directory)
+                    {
+                        windows_error_dialog(e);
                     }
                 }
             });
@@ -127,7 +131,13 @@ impl NewClient {
                 app.display_info.go_to_prep_session();
             }
 
-            ui.strong(app.new_client_page.error.to_string());
+            if app.new_client_page.created {
+                ui.monospace(
+                    RichText::new("New Client Created!")
+                        .heading()
+                        .color(Color32::GREEN),
+                );
+            }
         });
     }
 }

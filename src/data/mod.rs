@@ -33,6 +33,10 @@ impl Data {
         !self.client.id.is_empty()
     }
 
+    pub fn client_admission_valid(&self) -> bool {
+        self.client.days_since_admission().is_ok()
+    }
+
     pub fn ksf_loaded(&self) -> bool {
         !self.chosen_ksf().is_empty()
     }

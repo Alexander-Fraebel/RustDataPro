@@ -111,5 +111,5 @@ pub fn windows_error_dialog(message: anyhow::Error) {
         .title("Error")
         .set_foreground()
         .show()
-        .expect("unable to create well dialog box");
+        .expect("unable to create error dialog box");
 }

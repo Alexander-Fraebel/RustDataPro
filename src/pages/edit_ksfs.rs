@@ -189,10 +189,18 @@ fn new_ksf_creator(app: &mut DataPro, ui: &mut egui::Ui) {
                         write_succeeded = false;
                     }
                 }
+                let mut output_json = String::new();
+                match temp_ksf_data.to_json() {
+                    Ok(json) => output_json = json,
+                    Err(e) => {
+                        windows_error_dialog(e);
+                        write_succeeded = false;
+                    }
+                }
                 if write_succeeded {
                     match overwrite_file(
                         Ok(app.edit_ksfs.new_ksf_path.join(KSF_FILE_NAME)),
-                        &temp_ksf_data.to_json().expect("ERROR WRITING JSON"),
+                        &output_json,
                     ) {
                         Ok(_) => app.edit_ksfs.save_finished = true,
                         Err(e) => {

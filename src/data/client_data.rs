@@ -2,21 +2,7 @@ use anyhow::{Context, Result};
 use chrono::{Datelike, Local, NaiveDate};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, fs::File, io::Read, path::PathBuf};
-
-// // Must run before trailing comma as this will add a trailing comma
-// const MISSING_COMMA_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r#"(".+")\r?\n"#).unwrap());
-// const MISSING_COMMA_REPLACE: &'static str = "$1,\n";
-
-// const TRAILING_COMMA_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r",(\r?\n *\})").unwrap());
-// const TRAILING_COMMA_REPLACE: &'static str = "$1";
-
-// /// Add in missing commas and then remove a trailing comma if found
-// fn prepare_json_for_reading(text: String) -> String {
-//     let pass1 = MISSING_COMMA_FIND.replace_all(&text, MISSING_COMMA_REPLACE);
-//     let pass2 = TRAILING_COMMA_FIND.replace_all(&pass1, TRAILING_COMMA_REPLACE);
-//     pass2.to_string()
-// }
+use std::{fs::File, io::Read, path::PathBuf};
 
 pub const DATE_OF_ADMISSION_FORMAT_ERROR: &'static str =
     "check client_data.txt\nDate of Admission must be formated as YYYY-MM-DD";
@@ -68,9 +54,7 @@ impl Default for ClientData {
 impl ClientData {
     /// Number of days since admission
     pub fn days_since_admission(&self) -> Result<i32> {
-        let x = NaiveDate::parse_from_str(&self.date_of_admission, "%Y-%m-%d")
-            .with_context(|| DATE_OF_ADMISSION_FORMAT_ERROR)?
-            .num_days_from_ce();
+        let x = NaiveDate::parse_from_str(&self.date_of_admission, "%Y-%m-%d")?.num_days_from_ce();
         Ok(Local::now().date_naive().num_days_from_ce() - x)
     }
 

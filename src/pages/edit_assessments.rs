@@ -138,17 +138,24 @@ fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
                     }
                 }
 
-                if let Err(e) = overwrite_file(
-                    Ok(app
-                        .edit_assessments
-                        .new_assessments_path
-                        .join(ASSESSMENTS_FILE_NAME)
-                        .clone()),
-                    &temp_assessments_data.to_json().expect("ERROR WRITING JSON"),
-                ) {
-                    windows_error_dialog(e)
-                } else {
-                    app.edit_assessments.save_finished = true;
+                match temp_assessments_data.to_json() {
+                    Ok(json) => {
+                        if let Err(e) = overwrite_file(
+                            Ok(app
+                                .edit_assessments
+                                .new_assessments_path
+                                .join(ASSESSMENTS_FILE_NAME)
+                                .clone()),
+                            &json,
+                        ) {
+                            windows_error_dialog(e)
+                        } else {
+                            app.edit_assessments.save_finished = true;
+                        }
+                    }
+                    Err(e) => {
+                        windows_error_dialog(e);
+                    }
                 }
             }
 

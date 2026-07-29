@@ -1,8 +1,5 @@
 use crate::{
-    app::{DataPro, NO_CLIENT},
-    data::DataType,
-    ui_elements::DataProUiElements,
-    utils::windows_error_dialog,
+    app::DataPro, data::DataType, ui_elements::DataProUiElements, utils::windows_error_dialog,
 };
 use egui::{Color32, TextStyle};
 use indexmap::IndexSet;
@@ -19,7 +16,7 @@ impl Default for PrepareSession {
     fn default() -> Self {
         Self {
             can_start_session: false,
-            session_start_error: NO_CLIENT,
+            session_start_error: "configuration error, this should not be visible",
             edit_primary_therapist: false,
             edit_case_manager: false,
             edit_client_id: false,

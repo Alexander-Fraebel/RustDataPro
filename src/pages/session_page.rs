@@ -1,8 +1,8 @@
 use crate::{
     app::{CLIENT_DATA_FILE_NAME, DataPro, SESSION_DATA_FOLDER_NAME},
     data::{
-        DATE_OF_ADMISSION_FORMAT_ERROR, Data, Ksf, Timer, TimerStatus, output_data::OutputData,
-        timeline::Timeline, view_simple_timer,
+        Data, Ksf, Timer, TimerStatus, output_data::OutputData, timeline::Timeline,
+        view_simple_timer,
     },
     display_controller::DisplayInfo,
     ui_elements::DataProUiElements,
@@ -13,7 +13,6 @@ use chrono::{DateTime, Local};
 use egui::{Color32, Key, Layout, RichText, Ui};
 use egui_extras::Column;
 use indexmap::IndexMap;
-// use itertools::Itertools;
 use std::{
     collections::VecDeque,
     fs::File,
@@ -285,8 +284,6 @@ impl SessionPage {
             dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
         }
 
-        let doa = data.client.days_since_admission()?;
-
         serde_json::to_string(&OutputData {
             datetime: date_time_string(&self.session_start),
             session_duration: rounded_f32(self.session_timer.total_time()),
@@ -304,7 +301,7 @@ impl SessionPage {
             case_manager: data.client.case_manager.clone(),
             primary_therapist: data.client.primary_therapist.clone(),
             session_number: data.client.current_session,
-            days_since_admissions: doa,
+            days_since_admissions: data.client.days_since_admission().unwrap_or(i32::MIN), // this should always be valid but avoid crash by giving default
             location: data.client.location.clone(),
         })
         .context("failure to create json")
@@ -425,10 +422,7 @@ impl SessionPage {
                         ));
                         ui.label(format!(
                             "DOA: {}",
-                            app.data
-                                .client
-                                .days_since_admission()
-                                .expect(DATE_OF_ADMISSION_FORMAT_ERROR)
+                            app.data.client.days_since_admission().unwrap_or(i32::MIN) //this should always be valid but avoid crash by giving default
                         ));
                         ui.label(format!("Location: {}", app.data.client.location));
                     });
