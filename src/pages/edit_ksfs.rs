@@ -199,7 +199,7 @@ fn new_ksf_creator(app: &mut DataPro, ui: &mut egui::Ui) {
                 }
                 if write_succeeded {
                     match overwrite_file(
-                        Ok(app.edit_ksfs.new_ksf_path.join(KSF_FILE_NAME)),
+                        Ok(app.edit_ksfs.save_new_path.join(KSF_FILE_NAME)),
                         &output_json,
                     ) {
                         Ok(_) => app.edit_ksfs.save_finished = true,
@@ -233,14 +233,14 @@ pub struct EditKsfData {
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
-    pub new_ksf_path: PathBuf,
+    pub save_new_path: PathBuf,
 }
 
 impl EditKsfData {
     pub fn prepare(&mut self, data: &Data, path: PathBuf) {
         self.user_input.clear();
 
-        self.new_ksf_path = path.clone();
+        self.save_new_path = path.clone();
         self.file_dialog = FileDialog::new().initial_directory(path.clone());
 
         // If there is a client loaded rebuild the UI with the client information
@@ -255,9 +255,8 @@ impl EditKsfData {
                         .join("\n"),
                 ));
             }
-        } else {
-            // If there is no client loaded create a UI with a single empty region to start with
-
+        }
+        if self.user_input.is_empty() {
             self.user_input.push(Default::default());
         }
     }
@@ -265,7 +264,7 @@ impl EditKsfData {
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         app.edit_ksfs.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = app.edit_ksfs.file_dialog.take_picked() {
-            app.edit_ksfs.new_ksf_path = pathbuf;
+            app.edit_ksfs.save_new_path = pathbuf;
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
@@ -279,7 +278,7 @@ impl EditKsfData {
 
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
-                ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.new_ksf_path);
+                ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.save_new_path);
             });
             ui.add_space(10.0);
 

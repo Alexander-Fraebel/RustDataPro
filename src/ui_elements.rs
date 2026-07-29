@@ -95,7 +95,12 @@ impl DataProUiElements for Ui {
         };
         self.horizontal(|ui| {
             egui::ComboBox::from_id_salt(id_salt)
-                .selected_text(RichText::new(client_picker_text).heading().strong())
+                .selected_text(
+                    RichText::new(client_picker_text)
+                        // .monospace()
+                        .size(ui.text_style_height(&egui::TextStyle::Heading))
+                        .strong(),
+                )
                 .show_ui(ui, |ui| {
                     if ui
                         .selectable_value(&mut app.data.client.id, String::new(), "None")

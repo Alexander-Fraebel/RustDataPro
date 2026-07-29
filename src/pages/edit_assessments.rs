@@ -143,7 +143,7 @@ fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
                         if let Err(e) = overwrite_file(
                             Ok(app
                                 .edit_assessments
-                                .new_assessments_path
+                                .save_new_path
                                 .join(ASSESSMENTS_FILE_NAME)
                                 .clone()),
                             &json,
@@ -182,14 +182,14 @@ pub struct EditAssessments {
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
-    pub new_assessments_path: PathBuf,
+    pub save_new_path: PathBuf,
 }
 
 impl EditAssessments {
     pub fn prepare(&mut self, data: &Data, path: PathBuf) {
         self.user_input.clear();
 
-        self.new_assessments_path = path.clone();
+        self.save_new_path = path.clone();
         self.file_dialog = FileDialog::new().initial_directory(path.clone());
 
         // If there is a client loaded rebuild the UI with the client information
@@ -200,7 +200,10 @@ impl EditAssessments {
             }
         } else {
             self.file_dialog = FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
-            self.new_assessments_path = DEFAULT_ROOT_DIRECTORY.into();
+            self.save_new_path = DEFAULT_ROOT_DIRECTORY.into();
+        }
+
+        if self.user_input.is_empty() {
             self.user_input.push(Default::default());
         }
     }
@@ -208,7 +211,7 @@ impl EditAssessments {
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         app.edit_assessments.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = app.edit_assessments.file_dialog.take_picked() {
-            app.edit_assessments.new_assessments_path = pathbuf;
+            app.edit_assessments.save_new_path = pathbuf;
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
@@ -222,7 +225,7 @@ impl EditAssessments {
 
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
-                ui.directory_picker(&mut app.edit_assessments.file_dialog, &app.edit_assessments.new_assessments_path);
+                ui.directory_picker(&mut app.edit_assessments.file_dialog, &app.edit_assessments.save_new_path);
             });
             ui.add_space(10.0);
             if app.data.client_loaded() {

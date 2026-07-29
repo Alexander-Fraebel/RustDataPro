@@ -1,5 +1,5 @@
 use crate::{
-    data::{AssessmentsData, ClientData, Data, KsfData, SessionData},
+    data::{AssessmentsData, ClientData, Data, KsfData},
     display_controller::{DisplayInfo, Page},
     ioa::IoaPage,
     pages::{
@@ -66,12 +66,7 @@ impl Default for DataPro {
         }
 
         Self {
-            data: Data {
-                client: ClientData::default(),
-                session: SessionData::default(),
-                assessments: AssessmentsData::default(),
-                ksfs: KsfData::default(),
-            },
+            data: Data::default(),
 
             display_info: DisplayInfo {
                 active_page: Default::default(),
@@ -248,7 +243,7 @@ impl DataPro {
                 if let Ok(ksf_data) = KsfData::from_file(&ksf_path) {
                     self.data.ksfs = ksf_data;
                     self.edit_ksfs.prepare(&self.data, ksf_path.clone());
-                    self.edit_ksfs.new_ksf_path = ksf_path.clone();
+                    self.edit_ksfs.save_new_path = ksf_path.clone();
                     self.edit_ksfs.file_dialog = FileDialog::new().initial_directory(ksf_path)
                 }
                 if let Some((name, _)) = self.data.ksfs.first() {
@@ -261,7 +256,7 @@ impl DataPro {
                     self.data.assessments = assessments_data;
                     self.edit_assessments
                         .prepare(&self.data, assessments_path.clone());
-                    self.edit_assessments.new_assessments_path = assessments_path.clone();
+                    self.edit_assessments.save_new_path = assessments_path.clone();
                     self.edit_assessments.file_dialog =
                         FileDialog::new().initial_directory(assessments_path)
                 }

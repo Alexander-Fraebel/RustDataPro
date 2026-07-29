@@ -10,6 +10,7 @@ pub struct PrepareSession {
     pub edit_primary_therapist: bool,
     pub edit_case_manager: bool,
     pub edit_client_id: bool,
+    pub edit_doa: bool,
 }
 
 impl Default for PrepareSession {
@@ -20,6 +21,7 @@ impl Default for PrepareSession {
             edit_primary_therapist: false,
             edit_case_manager: false,
             edit_client_id: false,
+            edit_doa: false,
         }
     }
 }
@@ -64,43 +66,59 @@ impl PrepareSession {
                     ui.end_row();
 
                     ui.monospace("Date of Admission");
-                    match app.data.client.days_since_admission() {
-                        Ok(n) => {
-                            // emphasize negative DOA with red text
-                            if n.is_negative() {
+                    if app.prep_session.edit_doa {
+                        if ui
+                            .add(
+                                egui::TextEdit::singleline(&mut app.data.client.date_of_admission)
+                                    .font(TextStyle::Monospace),
+                            )
+                            .on_hover_text("format date as YYYY-MM-DD")
+                            .lost_focus()
+                        {
+                            if let Err(e) = app.overwrite_client_data() {
+                                windows_error_dialog(e);
+                            }
+                        }
+                    } else {
+                        match app.data.client.days_since_admission() {
+                            Ok(n) => {
+                                // emphasize negative DOA with red text
+                                if n.is_negative() {
+                                    ui.add(
+                                        egui::TextEdit::singleline(&mut format!("{n} days ago"))
+                                            .font(TextStyle::Monospace)
+                                            .text_color(Color32::RED)
+                                            .interactive(false),
+                                    )
+                                    .on_hover_text(&app.data.client.date_of_admission);
+                                    app.prep_session.can_start_session = false;
+                                } else {
+                                    // normal DOA information
+                                    ui.add(
+                                        egui::TextEdit::singleline(&mut format!("{n} days ago"))
+                                            .font(TextStyle::Monospace)
+                                            .interactive(false),
+                                    )
+                                    .on_hover_text(&app.data.client.date_of_admission);
+                                }
+                            }
+                            Err(_e) => {
+                                // indicate invalid date with ERROR, red text, and hover text explanation
                                 ui.add(
-                                    egui::TextEdit::singleline(&mut format!("{n} days ago"))
+                                    egui::TextEdit::singleline(&mut format!("ERROR"))
                                         .font(TextStyle::Monospace)
                                         .text_color(Color32::RED)
                                         .interactive(false),
                                 )
-                                .on_hover_text(&app.data.client.date_of_admission);
+                                .on_hover_text(format!(
+                                    "{} is an invalid date\nformat date as YYYY-MM-DD",
+                                    app.data.client.date_of_admission
+                                ));
                                 app.prep_session.can_start_session = false;
-                            } else {
-                                // normal DOA information
-                                ui.add(
-                                    egui::TextEdit::singleline(&mut format!("{n} days ago"))
-                                        .font(TextStyle::Monospace)
-                                        .interactive(false),
-                                )
-                                .on_hover_text(&app.data.client.date_of_admission);
                             }
                         }
-                        Err(_e) => {
-                            // indicate invalid date with ERROR, red text, and hover text explanation
-                            ui.add(
-                                egui::TextEdit::singleline(&mut format!("ERROR"))
-                                    .font(TextStyle::Monospace)
-                                    .text_color(Color32::RED)
-                                    .interactive(false),
-                            )
-                            .on_hover_text(format!(
-                                "{} is an invalid date\nformat date as YYYY-MM-DD",
-                                app.data.client.date_of_admission
-                            ));
-                            app.prep_session.can_start_session = false;
-                        }
                     }
+                    ui.lock_unlock_button(&mut app.prep_session.edit_doa);
                     ui.end_row();
 
                     ui.monospace("Session Number");
@@ -128,7 +146,6 @@ impl PrepareSession {
                         }
                     }
                     ui.lock_unlock_button(&mut app.prep_session.edit_case_manager);
-
                     ui.end_row();
 
                     ui.monospace("Primary Therapist");
@@ -156,7 +173,7 @@ impl PrepareSession {
                     ui.text_edit_singleline(&mut app.data.session.data_collector);
                     ui.end_row();
 
-                    ui.monospace("Primary/Reli Data");
+                    ui.monospace("Primary/Reliability");
                     egui::ComboBox::from_id_salt("datatype")
                         .selected_text(app.data.session.data_type.to_string())
                         .show_ui(ui, |ui| {
