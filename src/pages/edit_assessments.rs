@@ -203,6 +203,11 @@ impl EditAssessments {
     }
 
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
+        app.edit_assessments.file_dialog.update(ui.ctx());
+        if let Some(pathbuf) = app.edit_assessments.file_dialog.take_picked() {
+            app.edit_assessments.new_assessments_path = pathbuf;
+        }
+
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("Assessments File for ");
