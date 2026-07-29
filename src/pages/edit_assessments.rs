@@ -186,8 +186,11 @@ pub struct EditAssessments {
 }
 
 impl EditAssessments {
-    pub fn prepare(&mut self, data: &Data) {
+    pub fn prepare(&mut self, data: &Data, path: PathBuf) {
         self.user_input.clear();
+
+        self.new_assessments_path = path.clone();
+        self.file_dialog = FileDialog::new().initial_directory(path.clone());
 
         // If there is a client loaded rebuild the UI with the client information
         if data.client_loaded() {

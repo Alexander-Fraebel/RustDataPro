@@ -1,5 +1,5 @@
 use crate::{
-    app::{DEFAULT_ROOT_DIRECTORY, DataPro, KSF_FILE_NAME},
+    app::{DataPro, KSF_FILE_NAME},
     data::{ALLOWED_KEYS, Data, Ksf, KsfData},
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
@@ -237,8 +237,11 @@ pub struct EditKsfData {
 }
 
 impl EditKsfData {
-    pub fn prepare(&mut self, data: &Data) {
+    pub fn prepare(&mut self, data: &Data, path: PathBuf) {
         self.user_input.clear();
+
+        self.new_ksf_path = path.clone();
+        self.file_dialog = FileDialog::new().initial_directory(path.clone());
 
         // If there is a client loaded rebuild the UI with the client information
         if data.client_loaded() {
@@ -254,9 +257,8 @@ impl EditKsfData {
             }
         } else {
             // If there is no client loaded create a UI with a single empty region to start with
-            self.file_dialog = FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
+
             self.user_input.push(Default::default());
-            self.new_ksf_path = DEFAULT_ROOT_DIRECTORY.into();
         }
     }
 
@@ -274,7 +276,7 @@ impl EditKsfData {
 
             ui.label("If a client is selected this page will automatically udpate\nthe KSF for that client. If no client is selected you may\nsave this KSF created here to the directory below.");
             ui.add_space(10.0);
-            
+
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
                 ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.new_ksf_path);

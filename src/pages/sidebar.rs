@@ -1,5 +1,5 @@
 use crate::{
-    app::{DataPro, NO_CLIENT},
+    app::{DEFAULT_ROOT_DIRECTORY, DataPro, NO_CLIENT},
     ui_elements::DataProUiElements,
 };
 use egui::{Ui, warn_if_debug_build};
@@ -81,13 +81,21 @@ impl Sidebar {
                 ui.add_space(5.0);
 
                 if ui.large_button("KSF").clicked() {
-                    app.edit_ksfs.prepare(&app.data);
+                    app.edit_ksfs.prepare(
+                        &app.data,
+                        app.path_to_ksf_data()
+                            .unwrap_or(DEFAULT_ROOT_DIRECTORY.into()),
+                    );
                     app.display_info.go_to_new_ksf();
                 }
                 ui.add_space(5.0);
 
                 if ui.large_button("Assessments").clicked() {
-                    app.edit_assessments.prepare(&app.data);
+                    app.edit_assessments.prepare(
+                        &app.data,
+                        app.path_to_assessments()
+                            .unwrap_or(DEFAULT_ROOT_DIRECTORY.into()),
+                    );
                     app.display_info.go_to_new_assessments();
                 }
 

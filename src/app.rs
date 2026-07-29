@@ -222,8 +222,10 @@ impl DataPro {
 
     pub fn unload_client(&mut self) {
         self.data.clear();
-        self.edit_assessments.prepare(&self.data);
-        self.edit_ksfs.prepare(&self.data);
+        self.edit_assessments
+            .prepare(&self.data, DEFAULT_ROOT_DIRECTORY.into());
+        self.edit_ksfs
+            .prepare(&self.data, DEFAULT_ROOT_DIRECTORY.into());
         self.ioa_page.reset();
     }
 
@@ -242,26 +244,28 @@ impl DataPro {
                 self.data.client.current_session += 1;
 
                 // Load the KSF Data
-                if let Ok(ksf_data) = KsfData::from_file(&Path::new(path).join(KSF_FILE_NAME)) {
-                    self.data.ksfs = ksf_data
+                let ksf_path = Path::new(path).join(KSF_FILE_NAME);
+                if let Ok(ksf_data) = KsfData::from_file(&ksf_path) {
+                    self.data.ksfs = ksf_data;
+                    self.edit_ksfs.prepare(&self.data, ksf_path.clone());
+                    self.edit_ksfs.new_ksf_path = ksf_path.clone();
+                    self.edit_ksfs.file_dialog = FileDialog::new().initial_directory(ksf_path)
                 }
-                // Load the first KSF listed
                 if let Some((name, _)) = self.data.ksfs.first() {
                     self.data.session.chosen_ksf = name.clone()
                 }
 
                 // Load the Assessments Data
-                if let Ok(assessments_data) =
-                    AssessmentsData::from_file(&Path::new(path).join(ASSESSMENTS_FILE_NAME))
-                {
+                let assessments_path = Path::new(path).join(ASSESSMENTS_FILE_NAME);
+                if let Ok(assessments_data) = AssessmentsData::from_file(&assessments_path) {
                     self.data.assessments = assessments_data;
+                    self.edit_assessments
+                        .prepare(&self.data, assessments_path.clone());
+                    self.edit_assessments.new_assessments_path = assessments_path.clone();
+                    self.edit_assessments.file_dialog =
+                        FileDialog::new().initial_directory(assessments_path)
                 }
-                // Load the first assessment and first condition
                 self.choose_first_assessment_and_condition();
-
-                // Update the data editing pages
-                self.edit_ksfs.prepare(&self.data);
-                self.edit_assessments.prepare(&self.data);
 
                 // Update the IOA page
                 self.ioa_page.reset();
