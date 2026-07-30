@@ -268,10 +268,9 @@ impl EditKsfData {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading("Keyboard Setup File for ");
-                ui.client_picker(app, "ksf_page_client_picker");
-            });
+            ui.heading("Keyboard Setup File");
+            app.client_picker(ui);
+            ui.add_space(15.0);
 
             ui.label("If a client is selected this page will automatically udpate\nthe KSF for that client. If no client is selected you may\nsave this KSF created here to the directory below.");
             ui.add_space(10.0);

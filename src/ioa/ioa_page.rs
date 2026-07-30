@@ -156,7 +156,7 @@ impl IoaPage {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("Calculate IOA for ");
-                ui.client_picker(app, "ioa_page_client_picker");
+                app.client_picker(ui);
             });
             ui.add_space(10.0);
 

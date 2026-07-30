@@ -311,7 +311,7 @@ impl PrepareSession {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     ui.add_space(25.0);
-                    ui.client_picker(app, "prep_page_client_picker");
+                    app.client_picker(ui);
 
                     ui.add_space(5.0);
                     PrepareSession::client_and_session_information(app, ui);

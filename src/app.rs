@@ -10,7 +10,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::Local;
-use egui::{TextBuffer, Visuals};
+use egui::{RichText, TextBuffer, Visuals};
 use egui_file_dialog::FileDialog;
 use std::{
     path::{Path, PathBuf},
@@ -98,6 +98,46 @@ impl DataPro {
         cc.egui_ctx.set_pixels_per_point(DEFAULT_ZOOM);
         cc.egui_ctx.set_visuals(Visuals::dark());
         Default::default()
+    }
+
+    pub fn client_picker(&mut self, ui: &mut egui::Ui) {
+        let client_picker_text = match self.data.client_loaded() {
+            true => self.data.client.id.clone(),
+            false => String::from("Choose Client"),
+        };
+
+        egui::ComboBox::from_id_salt("client picker")
+            .selected_text(
+                RichText::new(client_picker_text)
+                    // .monospace()
+                    .size(ui.text_style_height(&egui::TextStyle::Heading))
+                    .strong(),
+            )
+            .show_ui(ui, |ui| {
+                if ui
+                    .selectable_value(&mut self.data.client.id, String::new(), "None")
+                    .clicked()
+                {
+                    self.unload_client();
+                }
+                if let Ok(entries) = self.root_directory.read_dir() {
+                    for entry in entries {
+                        if let Ok(e) = entry {
+                            if ui
+                                .selectable_value(
+                                    &mut self.data.client.id,
+                                    e.file_name().to_string_lossy().to_string(),
+                                    e.file_name().to_string_lossy().to_string(),
+                                )
+                                .clicked()
+                            {
+                                self.unload_client();
+                                self.load_client(&e.path());
+                            }
+                        }
+                    }
+                }
+            });
     }
 
     pub fn ready_to_start_session(&mut self) -> bool {
