@@ -280,25 +280,35 @@ impl DataPro {
 
                 // Load the KSF Data
                 let ksf_path = Path::new(path).join(KSF_FILE_NAME);
-                if let Ok(ksf_data) = KsfData::from_file(&ksf_path) {
-                    self.data.ksfs = ksf_data;
-                    self.edit_ksfs.prepare(&self.data, ksf_path.clone());
-                    self.edit_ksfs.save_new_path = ksf_path.clone();
-                    self.edit_ksfs.file_dialog = FileDialog::new().initial_directory(ksf_path)
-                }
+                match KsfData::from_file(&ksf_path) {
+                    Ok(ksf_data) => {
+                        self.data.ksfs = ksf_data;
+                        self.edit_ksfs.prepare(&self.data, ksf_path.clone());
+                        self.edit_ksfs.save_new_path = ksf_path.clone();
+                        self.edit_ksfs.file_dialog = FileDialog::new().initial_directory(ksf_path)
+                    }
+                    Err(e) => {
+                        windows_error_dialog(e.context(format!("unable to read {}", KSF_FILE_NAME)))
+                    }
+                };
                 if let Some((name, _)) = self.data.ksfs.first() {
                     self.data.session.chosen_ksf = name.clone()
                 }
 
                 // Load the Assessments Data
                 let assessments_path = Path::new(path).join(ASSESSMENTS_FILE_NAME);
-                if let Ok(assessments_data) = AssessmentsData::from_file(&assessments_path) {
-                    self.data.assessments = assessments_data;
-                    self.edit_assessments
-                        .prepare(&self.data, assessments_path.clone());
-                    self.edit_assessments.save_new_path = assessments_path.clone();
-                    self.edit_assessments.file_dialog =
-                        FileDialog::new().initial_directory(assessments_path)
+                match AssessmentsData::from_file(&assessments_path) {
+                    Ok(assessments_data) => {
+                        self.data.assessments = assessments_data;
+                        self.edit_assessments
+                            .prepare(&self.data, assessments_path.clone());
+                        self.edit_assessments.save_new_path = assessments_path.clone();
+                        self.edit_assessments.file_dialog =
+                            FileDialog::new().initial_directory(assessments_path)
+                    }
+                    Err(e) => windows_error_dialog(
+                        e.context(format!("unable to read {}", ASSESSMENTS_FILE_NAME)),
+                    ),
                 }
                 self.choose_first_assessment_and_condition();
 
