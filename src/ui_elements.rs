@@ -4,14 +4,9 @@ use std::path::PathBuf;
 
 macro_rules! simple_custom_button {
     ($ui:expr, $text:ident, $fill:expr) => {
-        $ui.add(
-            egui::Button::new(RichText::new($text).monospace().color(Color32::BLACK)).fill($fill),
-        )
-    };
-    (large, $ui:expr, $text:ident, $fill:expr) => {
         $ui.add_sized(
             DEFAULT_LARGE_BUTTOM_DIMS,
-            egui::Button::new(RichText::new($text).color(Color32::BLACK)).fill($fill),
+            egui::Button::new(egui::RichText::new($text).color(egui::Color32::BLACK)).fill($fill),
         )
     };
 }
@@ -20,41 +15,29 @@ const DEFAULT_LARGE_BUTTOM_DIMS: (f32, f32) = (120.0, 40.0);
 pub trait DataProUiElements {
     fn large_button(&mut self, text: &'static str) -> Response;
     fn large_green_button(&mut self, text: &'static str) -> Response;
-    fn green_button(&mut self, text: &'static str) -> Response;
     fn large_red_button(&mut self, text: &'static str) -> Response;
-    fn red_button(&mut self, text: &'static str) -> Response;
     fn large_blue_button(&mut self, text: &'static str) -> Response;
-    fn blue_button(&mut self, text: &'static str) -> Response;
     fn lock_unlock_button(&mut self, condition: &mut bool);
     fn directory_picker(&mut self, file_dialog: &mut FileDialog, directory_name: &PathBuf);
 }
 
 impl DataProUiElements for Ui {
     fn large_button(&mut self, text: &'static str) -> Response {
-        self.add_sized(DEFAULT_LARGE_BUTTOM_DIMS, egui::Button::new(text))
+        self.add_sized(
+            DEFAULT_LARGE_BUTTOM_DIMS,
+            egui::Button::new(RichText::new(text)),
+        )
     }
 
     fn large_green_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(large, self, text, Color32::LIGHT_GREEN)
-    }
-
-    fn green_button(&mut self, text: &'static str) -> Response {
         simple_custom_button!(self, text, Color32::LIGHT_GREEN)
     }
 
     fn large_red_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(large, self, text, Color32::LIGHT_RED)
-    }
-
-    fn red_button(&mut self, text: &'static str) -> Response {
         simple_custom_button!(self, text, Color32::LIGHT_RED)
     }
 
     fn large_blue_button(&mut self, text: &'static str) -> Response {
-        simple_custom_button!(large, self, text, Color32::LIGHT_BLUE)
-    }
-
-    fn blue_button(&mut self, text: &'static str) -> Response {
         simple_custom_button!(self, text, Color32::LIGHT_BLUE)
     }
 
