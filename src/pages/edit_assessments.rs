@@ -1,4 +1,4 @@
-use crate::{app::{ASSESSMENTS_FILE_NAME, DataPro}, configs::DEFAULT_ROOT_DIRECTORY, data::{AssessmentsData, Data}, ui_elements::DataProUiElements, utils::{overwrite_file, windows_error_dialog}};
+use crate::{app::DataPro, configs::ASSESSMENTS_FILE_NAME, data::{AssessmentsData, Data}, ui_elements::DataProUiElements, utils::{overwrite_file, windows_error_dialog}};
 use egui::{Color32, RichText};
 use egui_file_dialog::FileDialog;
 use indexmap::IndexSet;
@@ -183,11 +183,11 @@ pub struct EditAssessments {
 }
 
 impl EditAssessments {
-    pub fn prepare(&mut self, data: &Data, path: PathBuf) {
+    pub fn prepare(&mut self, data: &Data, path_to_file: PathBuf) {
         self.user_input.clear();
 
-        self.save_new_path = path.clone();
-        self.file_dialog = FileDialog::new().initial_directory(path.clone());
+        self.save_new_path = path_to_file.clone();
+        self.file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
 
         // If there is a client loaded rebuild the UI with the client information
         if data.client_loaded() {
@@ -196,8 +196,8 @@ impl EditAssessments {
                     .push((assessment.clone(), conds.iter().join(", ")));
             }
         } else {
-            self.file_dialog = FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into());
-            self.save_new_path = DEFAULT_ROOT_DIRECTORY.into();
+            self.file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
+            self.save_new_path = path_to_file.clone();
         }
 
         if self.user_input.is_empty() {

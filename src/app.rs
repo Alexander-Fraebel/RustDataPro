@@ -1,5 +1,9 @@
 use crate::{
-    configs::{Configs, DEFAULT_ROOT_DIRECTORY, DEFAULT_ZOOM},
+    configs::{
+        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Configs, DEFAULT_DIRECTORY, DEFAULT_ZOOM,
+        HARDCODED_ROOT_DIR, HARDCODED_ZOOM, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
+        SESSION_DATA_FOLDER_NAME,
+    },
     data::{AssessmentsData, ClientData, Data, KsfData},
     display_control::{DisplayControl, Page},
     ioa::IoaPage,
@@ -13,16 +17,7 @@ use anyhow::{Context, Result};
 use chrono::Local;
 use egui::{RichText, TextBuffer, Visuals};
 use egui_file_dialog::FileDialog;
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-};
-
-pub const CLIENT_DATA_FILE_NAME: &'static str = "client_data.txt";
-pub const ASSESSMENTS_FILE_NAME: &'static str = "assessments.txt";
-pub const KSF_FILE_NAME: &'static str = "ksf_data.txt";
-pub const SESSION_DATA_FOLDER_NAME: &'static str = "Session Records";
-pub const IOA_DATA_FOLDER_NAME: &'static str = "IOA Data";
+use std::path::{Path, PathBuf};
 
 pub const NO_CLIENT: &'static str = "no client loaded";
 pub const NO_KSF: &'static str = "no KSF loaded";
@@ -51,11 +46,8 @@ pub struct DataPro {
 
 impl Default for DataPro {
     fn default() -> Self {
-        let configs = Configs::from_file().unwrap_or_default();
-
         // provided directory should always be valid on Windows and we are not handling any other OS
-        let root_directory =
-            PathBuf::from_str(&configs.root_dir).expect("invalid default directory");
+        let root_directory = DEFAULT_DIRECTORY.get_or_init(|| HARDCODED_ROOT_DIR.into());
 
         // If the default directory doesn't exist crate it.
         if !root_directory.exists() {
@@ -74,11 +66,11 @@ impl Default for DataPro {
                 timers_open: false,
                 random_open: false,
                 sidebar_open: true,
-                zoom: configs.zoom,
+                zoom: *DEFAULT_ZOOM.get_or_init(|| HARDCODED_ZOOM),
             },
 
             pick_root_directory: FileDialog::default().initial_directory(root_directory.clone()),
-            root_directory,
+            root_directory: root_directory.clone(),
 
             randomness_page: RandomServices::default(),
             timers: Timers::default(),
@@ -96,7 +88,13 @@ impl Default for DataPro {
 
 impl DataPro {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_pixels_per_point(DEFAULT_ZOOM);
+        let configs = Configs::from_current_dir();
+
+        DEFAULT_DIRECTORY
+            .set(configs.root_dir)
+            .expect("failed to set default directory");
+        cc.egui_ctx
+            .set_pixels_per_point(*DEFAULT_ZOOM.get_or_init(|| configs.zoom));
         cc.egui_ctx.set_visuals(Visuals::dark());
         Default::default()
     }
@@ -258,10 +256,18 @@ impl DataPro {
 
     pub fn unload_client(&mut self) {
         self.data.clear();
-        self.edit_assessments
-            .prepare(&self.data, DEFAULT_ROOT_DIRECTORY.into());
-        self.edit_ksfs
-            .prepare(&self.data, DEFAULT_ROOT_DIRECTORY.into());
+        self.edit_assessments.prepare(
+            &self.data,
+            DEFAULT_DIRECTORY
+                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                .clone(),
+        );
+        self.edit_ksfs.prepare(
+            &self.data,
+            DEFAULT_DIRECTORY
+                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                .clone(),
+        );
         self.ioa_page.reset();
     }
 

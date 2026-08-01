@@ -1,6 +1,5 @@
 use crate::{
     app::DataPro,
-    configs::DEFAULT_ROOT_DIRECTORY,
     data::{DataType, IoaData, OutputData},
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
@@ -31,7 +30,7 @@ pub struct IoaPage {
 impl Default for IoaPage {
     fn default() -> Self {
         Self {
-            file_dialog: FileDialog::new().initial_directory(DEFAULT_ROOT_DIRECTORY.into()),
+            file_dialog: FileDialog::new(),
             prim_data: Vec::new(),
             reli_data: Vec::new(),
             ioa_finished: false,

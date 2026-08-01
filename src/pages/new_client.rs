@@ -1,6 +1,7 @@
 use crate::{
-    app::{
-        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, DataPro, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
+    app::DataPro,
+    configs::{
+        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
     },
     data::{AssessmentsData, ClientData, KsfData},

@@ -43,7 +43,7 @@ fn restore_num_names(text: String) -> String {
     NUM_FIND.replace_all(&text, NUM_REPLACE).to_string()
 }
 
-pub const ALLOWED_KEYS: [Key; 36] = [
+pub const ALLOWED_KSF_KEYS: [Key; 36] = [
     Key::Num0,
     Key::Num1,
     Key::Num2,

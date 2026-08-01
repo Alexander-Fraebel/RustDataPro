@@ -1,6 +1,7 @@
 use crate::{
-    app::{DataPro, KSF_FILE_NAME},
-    data::{ALLOWED_KEYS, Data, Ksf, KsfData},
+    app::DataPro,
+    configs::KSF_FILE_NAME,
+    data::{ALLOWED_KSF_KEYS, Data, Ksf, KsfData},
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
 };
@@ -19,7 +20,7 @@ fn parse_line(s: &str) -> Result<(Key, String)> {
     };
     let key = match Key::from_name(k) {
         Some(key) => {
-            if !ALLOWED_KEYS.contains(&key) {
+            if !ALLOWED_KSF_KEYS.contains(&key) {
                 return Err(anyhow::anyhow!(
                     "invalid key name `{}` in line `{}`",
                     key.symbol_or_name(),
@@ -225,11 +226,11 @@ pub struct EditKsfData {
 }
 
 impl EditKsfData {
-    pub fn prepare(&mut self, data: &Data, path: PathBuf) {
+    pub fn prepare(&mut self, data: &Data, default_dir: PathBuf) {
         *self = Self::default();
 
-        self.save_new_path = path.clone();
-        self.file_dialog = FileDialog::new().initial_directory(path.clone());
+        self.save_new_path = default_dir.clone();
+        self.file_dialog = FileDialog::new().initial_directory(default_dir.clone());
 
         // If there is a client loaded rebuild the UI with the client information
         if data.client_loaded() {

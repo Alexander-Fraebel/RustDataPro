@@ -1,6 +1,6 @@
 use crate::{
     app::{DataPro, NO_CLIENT},
-    configs::DEFAULT_ROOT_DIRECTORY,
+    configs::{DEFAULT_DIRECTORY, HARDCODED_ROOT_DIR},
     ui_elements::DataProUiElements,
 };
 use egui::{Ui, warn_if_debug_build};
@@ -73,8 +73,11 @@ impl Sidebar {
                 if ui.large_button("KSF").clicked() {
                     app.edit_ksfs.prepare(
                         &app.data,
-                        app.path_to_ksf_data()
-                            .unwrap_or(DEFAULT_ROOT_DIRECTORY.into()),
+                        app.path_to_ksf_data().unwrap_or(
+                            DEFAULT_DIRECTORY
+                                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                                .clone(),
+                        ),
                     );
                     app.display_info.go_to_new_ksf();
                 }
@@ -83,8 +86,11 @@ impl Sidebar {
                 if ui.large_button("Assessments").clicked() {
                     app.edit_assessments.prepare(
                         &app.data,
-                        app.path_to_assessments()
-                            .unwrap_or(DEFAULT_ROOT_DIRECTORY.into()),
+                        app.path_to_assessments().unwrap_or(
+                            DEFAULT_DIRECTORY
+                                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                                .clone(),
+                        ),
                     );
                     app.display_info.go_to_new_assessments();
                 }
