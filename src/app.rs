@@ -4,7 +4,7 @@ use crate::{
     ioa::IoaPage,
     pages::{
         EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
-        edit_assessments::EditAssessments,
+        edit_assessments::EditAssessments, settings::Settings,
     },
     utils::{date_time_string, overwrite_file, windows_error_dialog},
 };
@@ -356,6 +356,7 @@ impl eframe::App for DataPro {
             Page::CreateClient => NewClient::view(self, ui),
             Page::CreateKsf => EditKsfData::view(self, ui),
             Page::CreateAssessments => EditAssessments::view(self, ui),
+            Page::Settings => Settings::view(self, ui),
         }
     }
 }

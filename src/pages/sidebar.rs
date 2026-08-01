@@ -37,22 +37,6 @@ impl Sidebar {
                 });
 
                 ui.add_space(20.0);
-                ui.horizontal(|ui| {
-                    ui.label("Visual Scaling");
-                    if ui
-                        .add(
-                            egui::DragValue::new(&mut app.display_info.zoom)
-                                .range(1.0..=2.0)
-                                .speed(0.1)
-                                .fixed_decimals(1),
-                        )
-                        .lost_focus()
-                    {
-                        ui.ctx().set_pixels_per_point(app.display_info.zoom);
-                    }
-                });
-
-                ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
 
@@ -110,6 +94,11 @@ impl Sidebar {
 
                 if ui.large_button("Timers").clicked() {
                     app.display_info.toggle_timer_display();
+                }
+                ui.add_space(5.0);
+
+                if ui.large_button("Settings").clicked() {
+                    app.display_info.go_to_settings();
                 }
                 ui.add_space(5.0);
             });

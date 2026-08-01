@@ -15,6 +15,7 @@ pub enum Page {
     CreateClient,
     CreateKsf,
     CreateAssessments,
+    Settings,
 }
 
 impl DisplayInfo {
@@ -47,6 +48,11 @@ impl DisplayInfo {
 
     pub fn go_to_new_ksf(&mut self) {
         self.active_page = Page::CreateKsf;
+        self.sidebar_open = false;
+    }
+
+    pub fn go_to_settings(&mut self) {
+        self.active_page = Page::Settings;
         self.sidebar_open = false;
     }
 

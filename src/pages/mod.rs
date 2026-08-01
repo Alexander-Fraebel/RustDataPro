@@ -4,6 +4,7 @@ pub mod new_client;
 pub mod prepare_session;
 pub mod random_services;
 pub mod session_page;
+pub mod settings;
 pub mod sidebar;
 pub mod timers;
 
