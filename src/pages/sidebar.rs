@@ -35,8 +35,13 @@ impl Sidebar {
                     );
                     ui.label(".");
                 });
+                ui.add_space(10.0);
 
-                ui.add_space(20.0);
+                if ui.large_button("Settings").clicked() {
+                    app.display_info.go_to_settings();
+                }
+
+                ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
 
@@ -94,11 +99,6 @@ impl Sidebar {
 
                 if ui.large_button("Timers").clicked() {
                     app.display_info.toggle_timer_display();
-                }
-                ui.add_space(5.0);
-
-                if ui.large_button("Settings").clicked() {
-                    app.display_info.go_to_settings();
                 }
                 ui.add_space(5.0);
             });
