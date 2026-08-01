@@ -1,6 +1,6 @@
 use crate::{
     configs::{
-        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Configs, DEFAULT_DIRECTORY, DEFAULT_ZOOM,
+        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, DEFAULT_DIRECTORY, DEFAULT_ZOOM,
         HARDCODED_ROOT_DIR, HARDCODED_ZOOM, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
     },
@@ -88,8 +88,7 @@ impl Default for DataPro {
 
 impl DataPro {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let configs = Configs::from_current_dir();
-
+        let configs = Config::from_current_dir();
         DEFAULT_DIRECTORY
             .set(configs.root_dir)
             .expect("failed to set default directory");
