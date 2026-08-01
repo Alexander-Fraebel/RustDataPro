@@ -1,5 +1,5 @@
 pub mod app;
-pub mod configs;
+pub mod config;
 pub mod data;
 pub mod display_control;
 pub mod ioa;

@@ -1,6 +1,6 @@
 use crate::{
     app::{DataPro, NO_CLIENT},
-    configs::{DEFAULT_DIRECTORY, HARDCODED_ROOT_DIR},
+    config::{DEFAULT_DIRECTORY, HARDCODED_ROOT_DIR},
     ui_elements::DataProUiElements,
 };
 use egui::{Ui, warn_if_debug_build};

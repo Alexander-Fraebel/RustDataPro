@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    configs::{CLIENT_DATA_FILE_NAME, SESSION_DATA_FOLDER_NAME},
+    config::{CLIENT_DATA_FILE_NAME, SESSION_DATA_FOLDER_NAME},
     data::{
         Data, Ksf, Timer, TimerStatus, output_data::OutputData, timeline::Timeline,
         view_simple_timer,

@@ -1,4 +1,10 @@
-use crate::{app::DataPro, configs::ASSESSMENTS_FILE_NAME, data::{AssessmentsData, Data}, ui_elements::DataProUiElements, utils::{overwrite_file, windows_error_dialog}};
+use crate::{
+    app::DataPro,
+    config::ASSESSMENTS_FILE_NAME,
+    data::{AssessmentsData, Data},
+    ui_elements::DataProUiElements,
+    utils::{overwrite_file, windows_error_dialog},
+};
 use egui::{Color32, RichText};
 use egui_file_dialog::FileDialog;
 use indexmap::IndexSet;
@@ -213,8 +219,8 @@ impl EditAssessments {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading("Assessments File");
-            app.client_picker(ui);          
+            ui.heading("Assessments File");  
+            app.client_picker(ui);
             ui.add_space(15.0);
 
             ui.label("If a client is selected this page will automatically udpate\nthe assessments file for that client. If no client is selected you may\nsave the assessments file created here to the directory below.");

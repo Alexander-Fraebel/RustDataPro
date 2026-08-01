@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    configs::KSF_FILE_NAME,
+    config::KSF_FILE_NAME,
     data::{ALLOWED_KSF_KEYS, Data, Ksf, KsfData},
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},

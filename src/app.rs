@@ -1,5 +1,5 @@
 use crate::{
-    configs::{
+    config::{
         ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, DEFAULT_DIRECTORY, DEFAULT_ZOOM,
         HARDCODED_ROOT_DIR, HARDCODED_ZOOM, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
@@ -8,8 +8,8 @@ use crate::{
     display_control::{DisplayControl, Page},
     ioa::IoaPage,
     pages::{
-        EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
-        edit_assessments::EditAssessments, settings::Settings,
+        EditAssessments, EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage,
+        Settings, Sidebar, Timers,
     },
     utils::{date_time_string, overwrite_file, windows_error_dialog},
 };
