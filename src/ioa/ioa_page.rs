@@ -214,10 +214,7 @@ impl IoaPage {
 
             ui.add_space(5.0);
 
-            if ui.large_red_button("Return").clicked() {
-                app.ioa_page.reset();
-                app.display_info.go_to_prep_session();
-            }
+            ui.return_button(app, |app| app.ioa_page.reset());
             ui.add_space(5.0);
 
             if app.ioa_page.ioa_finished {

@@ -1,6 +1,5 @@
 use crate::{
     app::DataPro,
-    config::KSF_FILE_NAME,
     data::{ALLOWED_KSF_KEYS, Data, Ksf, KsfData},
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
@@ -72,7 +71,7 @@ fn build_ksfs(ksfs: &mut KsfData, (name, freq, dura): &(String, String, String))
 }
 
 fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
-    if ui.large_green_button("Save").clicked() {
+    if ui.large_green_button("SAVE").clicked() {
         let mut write_succeeded = true;
         let mut temp_ksf_data = KsfData::default();
         // Check if each KSF builds
@@ -103,23 +102,20 @@ fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
         }
         // Write the file
         if write_succeeded {
-            match overwrite_file(
-                Ok(app.edit_ksfs.save_new_path.join(KSF_FILE_NAME)),
-                &output_json,
-            ) {
-                Ok(_) => app.edit_ksfs.save_finished = true,
+            match overwrite_file(Ok(app.edit_ksfs.save_new_path.clone()), &output_json) {
+                Ok(_) => {
+                    app.edit_ksfs.save_finished = true;
+                    app.data.ksfs = temp_ksf_data
+                }
                 Err(e) => {
-                    windows_error_dialog(e);
+                    windows_error_dialog(e.context("error while saving"));
                     app.edit_ksfs.save_finished = false;
                 }
             }
         }
     }
 
-    if ui.large_red_button("Return").clicked() {
-        app.edit_ksfs.save_finished = false;
-        app.display_info.go_to_prep_session();
-    }
+    ui.return_button(app, |app| app.edit_ksfs.save_finished = false);
 }
 
 fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::ScrollAreaOutput<()> {
@@ -227,11 +223,11 @@ pub struct EditKsfData {
 }
 
 impl EditKsfData {
-    pub fn prepare(&mut self, data: &Data, default_dir: PathBuf) {
+    pub fn prepare(&mut self, data: &Data, path_to_file: PathBuf) {
         *self = Self::default();
 
-        self.save_new_path = default_dir.clone();
-        self.file_dialog = FileDialog::new().initial_directory(default_dir.clone());
+        self.save_new_path = path_to_file.clone();
+        self.file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
 
         // If there is a client loaded rebuild the UI with the client information
         if data.client_loaded() {

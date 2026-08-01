@@ -15,7 +15,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::Local;
-use egui::{RichText, TextBuffer, Visuals};
+use egui::{FontDefinitions, RichText, TextBuffer, Visuals};
 use egui_file_dialog::FileDialog;
 use std::path::{Path, PathBuf};
 
@@ -95,6 +95,39 @@ impl DataPro {
         cc.egui_ctx
             .set_pixels_per_point(*DEFAULT_ZOOM.get_or_init(|| configs.zoom));
         cc.egui_ctx.set_visuals(Visuals::dark());
+
+        // Custom monospace font
+        let mut font_defs = FontDefinitions::default();
+        font_defs.font_data.insert(
+            "AtkinsonMono".into(),
+            std::sync::Arc::new(
+                // .ttf and .otf supported
+                egui::FontData::from_static(include_bytes!(
+                    "..\\AtkinsonHyperlegibleMono-VariableFont_wght.ttf"
+                )),
+            ),
+        );
+        // font_defs.font_data.insert(
+        //     "AtkinsonNext".into(),
+        //     std::sync::Arc::new(
+        //         // .ttf and .otf supported
+        //         egui::FontData::from_static(include_bytes!(
+        //             "..\\AtkinsonHyperlegibleNext-VariableFont_wght.ttf"
+        //         )),
+        //     ),
+        // );
+        font_defs
+            .families
+            .get_mut(&egui::FontFamily::Monospace)
+            .unwrap()
+            .insert(0, "AtkinsonMono".to_owned());
+
+        // font_defs
+        //     .families
+        //     .get_mut(&egui::FontFamily::Proportional)
+        //     .unwrap()
+        //     .insert(0, "AtkinsonNext".to_owned());
+        cc.egui_ctx.set_fonts(font_defs);
         Default::default()
     }
 
@@ -107,8 +140,8 @@ impl DataPro {
         egui::ComboBox::from_id_salt("client picker")
             .selected_text(
                 RichText::new(client_picker_text)
-                    // .monospace()
                     .size(ui.text_style_height(&egui::TextStyle::Heading))
+                    .monospace()
                     .strong(),
             )
             .show_ui(ui, |ui| {

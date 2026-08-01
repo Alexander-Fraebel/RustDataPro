@@ -1,7 +1,7 @@
 use crate::{
     app::DataPro, data::DataType, ui_elements::DataProUiElements, utils::windows_error_dialog,
 };
-use egui::{Color32, TextStyle};
+use egui::{RichText, TextStyle};
 use indexmap::IndexSet;
 
 pub struct PrepareSession {
@@ -87,7 +87,7 @@ impl PrepareSession {
                                     ui.add(
                                         egui::TextEdit::singleline(&mut format!("{n} days ago"))
                                             .font(TextStyle::Monospace)
-                                            .text_color(Color32::RED)
+                                            .text_color(ui.visuals().error_fg_color)
                                             .interactive(false),
                                     )
                                     .on_hover_text(&app.data.client.date_of_admission);
@@ -107,7 +107,7 @@ impl PrepareSession {
                                 ui.add(
                                     egui::TextEdit::singleline(&mut format!("ERROR"))
                                         .font(TextStyle::Monospace)
-                                        .text_color(Color32::RED)
+                                        .text_color(ui.visuals().error_fg_color)
                                         .interactive(false),
                                 )
                                 .on_hover_text(format!(
@@ -193,7 +193,7 @@ impl PrepareSession {
                     ui.monospace("Assessment");
                     let assessment_text = match app.data.assessment_chosen() {
                         true => egui::RichText::new(&app.data.session.chosen_assessment),
-                        false => egui::RichText::new("NONE").color(Color32::RED),
+                        false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
                     };
                     let assessment_box =
                         ui.text_edit_singleline(&mut app.data.session.chosen_assessment);
@@ -229,7 +229,7 @@ impl PrepareSession {
                     ui.monospace("Condition");
                     let condition_text = match app.data.condition_chosen() {
                         true => egui::RichText::new(&app.data.session.chosen_condition),
-                        false => egui::RichText::new("NONE").color(Color32::RED),
+                        false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
                     };
                     let condition_box =
                         ui.text_edit_singleline(&mut app.data.session.chosen_condition);
@@ -265,9 +265,11 @@ impl PrepareSession {
     }
 
     fn ksf_display(app: &mut DataPro, ui: &mut egui::Ui) {
+        ui.spacing_mut().item_spacing = (0.0, -1.0).into();
+
         let ksf_text = match app.data.ksf_loaded() {
             true => egui::RichText::new(app.data.chosen_ksf().clone()),
-            false => egui::RichText::new("NONE").color(Color32::RED),
+            false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
         };
 
         egui::ComboBox::from_id_salt("ksfs_dropdown")
@@ -283,16 +285,29 @@ impl PrepareSession {
                 if let Some(ksf) = app.data.ksfs.get(app.data.chosen_ksf()) {
                     let (freq, dura) = ksf.pairs();
                     ui.strong("Frequency Keys");
+                    ui.add_space(2.0);
                     for (key, desc) in freq {
-                        ui.monospace(format!("{:>2} {}", key.symbol_or_name(), desc));
+                        ui.add(egui::Label::new(
+                            RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
+                                .monospace()
+                                .size(11.0),
+                        ));
                     }
                     ui.add_space(10.0);
                     ui.strong("Duration Keys");
+                    ui.add_space(2.0);
                     for (key, desc) in dura {
-                        ui.monospace(format!("{:>2} {}", key.symbol_or_name(), desc));
+                        ui.add(egui::Label::new(
+                            RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
+                                .monospace()
+                                .size(11.0),
+                        ));
                     }
                 } else {
-                    ui.monospace(egui::RichText::new("ERROR INVALID KSF NAME").color(Color32::RED));
+                    ui.monospace(
+                        egui::RichText::new("ERROR INVALID KSF NAME")
+                            .color(ui.visuals().error_fg_color),
+                    );
                 }
             });
         } else {
@@ -310,15 +325,46 @@ impl PrepareSession {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    ui.add_space(25.0);
+                    ui.add_space(15.0);
                     app.client_picker(ui);
 
                     ui.add_space(5.0);
                     PrepareSession::client_and_session_information(app, ui);
+                    ui.horizontal(|ui| {
+                        ui.add_enabled(
+                            app.session_page.limit_session_length,
+                            egui::DragValue::new(&mut app.session_page.maximum_session_length)
+                                .suffix("  secs")
+                                .range(0.0..=100_000.0),
+                        );
+                        ui.checkbox(
+                            &mut app.session_page.limit_session_length,
+                            "Limit Session Length",
+                        );
+                    });
+                    ui.add_enabled_ui(app.prep_session.can_start_session, |ui| {
+                        if ui
+                            .large_green_button("BEGIN SESSION")
+                            .on_disabled_hover_text(app.prep_session.session_start_error)
+                            .clicked()
+                        {
+                            if let Err(e) = app.overwrite_client_data() {
+                                windows_error_dialog(e)
+                            } else {
+                                // Update the client file with any changes
+                                // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
+                                // If they do anything else the file will update when they switch selections
+                                // Load the data and switch pages.
+                                app.session_page.load_ksf(&app.data);
+                                app.timers.pause_all_timers();
+                                app.display_info.go_to_run_session();
+                            }
+                        }
+                    })
                 });
                 ui.add_space(50.0);
                 ui.vertical(|ui| {
-                    ui.add_space(25.0);
+                    ui.add_space(15.0);
                     ui.add_enabled_ui(app.data.client_loaded(), |ui| {
                         ui.heading("KSF");
                         ui.add_space(5.0);
@@ -327,39 +373,7 @@ impl PrepareSession {
                 });
             });
 
-            ui.horizontal(|ui| {
-                ui.add_enabled(
-                    app.session_page.limit_session_length,
-                    egui::DragValue::new(&mut app.session_page.maximum_session_length)
-                        .suffix("  secs")
-                        .range(0.0..=100_000.0),
-                );
-                ui.checkbox(
-                    &mut app.session_page.limit_session_length,
-                    "Limit Session Length",
-                );
-            });
             ui.add_space(10.0);
-
-            ui.add_enabled_ui(app.prep_session.can_start_session, |ui| {
-                if ui
-                    .large_green_button("BEGIN SESSION")
-                    .on_disabled_hover_text(app.prep_session.session_start_error)
-                    .clicked()
-                {
-                    if let Err(e) = app.overwrite_client_data() {
-                        windows_error_dialog(e)
-                    } else {
-                        // Update the client file with any changes
-                        // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
-                        // If they do anything else the file will update when they switch selections
-                        // Load the data and switch pages.
-                        app.session_page.load_ksf(&app.data);
-                        app.timers.pause_all_timers();
-                        app.display_info.go_to_run_session();
-                    }
-                }
-            })
         });
     }
 }

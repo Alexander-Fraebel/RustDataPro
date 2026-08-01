@@ -37,9 +37,9 @@ impl Settings {
             }
             ui.add_space(10.0);
 
-            if ui.large_red_button("Return").clicked() {
-                app.display_info.go_to_prep_session();
-            }
+            ui.return_button(app, |_| ());
+            ui.add_space(10.0);
+
             if cfg!(debug_assertions) {
                 ui.label(
                     RichText::new("⚠ Debug build ⚠")

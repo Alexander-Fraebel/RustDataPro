@@ -1,6 +1,5 @@
 use crate::{
     app::DataPro,
-    config::ASSESSMENTS_FILE_NAME,
     data::{AssessmentsData, Data},
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
@@ -129,7 +128,7 @@ fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
             }
             ui.add_space(10.0);
 
-            if ui.large_green_button("Save").clicked() {
+            if ui.large_green_button("SAVE").clicked() {
                 let mut temp_assessments_data = AssessmentsData::default();
                 for (assessment, conditions) in app.edit_assessments.user_input.iter() {
                     if !assessment.trim().is_empty() {
@@ -144,14 +143,9 @@ fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
 
                 match temp_assessments_data.to_json() {
                     Ok(json) => {
-                        if let Err(e) = overwrite_file(
-                            Ok(app
-                                .edit_assessments
-                                .save_new_path
-                                .join(ASSESSMENTS_FILE_NAME)
-                                .clone()),
-                            &json,
-                        ) {
+                        if let Err(e) =
+                            overwrite_file(Ok(app.edit_assessments.save_new_path.clone()), &json)
+                        {
                             windows_error_dialog(e)
                         } else {
                             app.edit_assessments.save_finished = true;
@@ -163,10 +157,7 @@ fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
                 }
             }
 
-            if ui.large_red_button("Return").clicked() {
-                app.display_info.go_to_prep_session();
-                app.edit_assessments.save_finished = false;
-            }
+            ui.return_button(app, |app| app.edit_assessments.save_finished = false);
 
             ui.add_space(10.0);
             if app.edit_assessments.save_finished {
