@@ -12,7 +12,6 @@ use std::{
     path::Path,
 };
 
-// TODO: restore these to make the actual file nicer to read for troubleshooting
 const LEAF_PAIR_FIND: LazyCell<Regex> =
     LazyCell::new(|| Regex::new(r#"\s*\[\s*(".+"),\s*(".+")\s*]"#).unwrap());
 const LEAF_PAIR_REPLACE: &'static str = "\n        [$1, $2]";
@@ -172,27 +171,35 @@ impl Ksf {
     }
 }
 
-/// A map of KSFs kept together.
+/// A map of KSFs kept in insertion order and index by name.
 #[derive(Serialize, Deserialize, Default, Debug)]
-pub struct KsfData {
-    pub ksfs: IndexMap<String, Ksf>,
-}
+pub struct KsfData(pub IndexMap<String, Ksf>);
 
 impl Deref for KsfData {
     type Target = IndexMap<String, Ksf>;
 
     fn deref(&self) -> &Self::Target {
-        &self.ksfs
+        &self.0
     }
 }
 
 impl DerefMut for KsfData {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.ksfs
+        &mut self.0
     }
 }
 
 impl KsfData {
+    // Return an error with the name of the first KSF that does not have all unique keys
+    pub fn all_keys_unique(&self) -> Result<()> {
+        for (name, ksf) in self.iter() {
+            if !ksf.keys_unique() {
+                return Err(anyhow::anyhow!("{}", name));
+            }
+        }
+        Ok(())
+    }
+
     pub fn from_file(file_path: &Path) -> Result<Self> {
         let mut file = File::open(&file_path)?;
         let mut s = String::new();

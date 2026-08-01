@@ -70,6 +70,57 @@ fn build_ksfs(ksfs: &mut KsfData, (name, freq, dura): &(String, String, String))
     Ok(())
 }
 
+fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
+    if ui.large_green_button("Save").clicked() {
+        let mut write_succeeded = true;
+        let mut temp_ksf_data = KsfData::default();
+        // Check if each KSF builds
+        for input in app.edit_ksfs.user_input.iter() {
+            if let Err(e) = build_ksfs(&mut temp_ksf_data, input) {
+                windows_error_dialog(e);
+                write_succeeded = false;
+                app.edit_ksfs.save_finished = false;
+            }
+        }
+        // Check if each KSF is valid
+        if let Err(name) = temp_ksf_data.all_keys_unique() {
+            windows_error_dialog(anyhow::anyhow!(
+                "the KSF named {name} does not have unique keys",
+            ));
+            write_succeeded = false;
+            app.edit_ksfs.save_finished = false;
+        }
+        // Check if the JSON builds
+        let mut output_json = String::new();
+        match temp_ksf_data.to_json() {
+            Ok(json) => output_json = json,
+            Err(e) => {
+                windows_error_dialog(e);
+                write_succeeded = false;
+                app.edit_ksfs.save_finished = false;
+            }
+        }
+        // Write the file
+        if write_succeeded {
+            match overwrite_file(
+                Ok(app.edit_ksfs.save_new_path.join(KSF_FILE_NAME)),
+                &output_json,
+            ) {
+                Ok(_) => app.edit_ksfs.save_finished = true,
+                Err(e) => {
+                    windows_error_dialog(e);
+                    app.edit_ksfs.save_finished = false;
+                }
+            }
+        }
+    }
+
+    if ui.large_red_button("Return").clicked() {
+        app.edit_ksfs.save_finished = false;
+        app.display_info.go_to_prep_session();
+    }
+}
+
 fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::ScrollAreaOutput<()> {
     if let Some(idx) = app.edit_ksfs.deleted_row {
         app.edit_ksfs.user_input.remove(idx);
@@ -123,38 +174,8 @@ fn edit_client_ksf(app: &mut DataPro, ui: &mut egui::Ui) {
             }
             ui.add_space(10.0);
 
-            // TODO: disable if invalid KSF writtens
-            ui.add_enabled_ui(true, |ui| {
-                if ui
-                    .large_green_button("Save")
-                    .on_disabled_hover_text("no file name provided")
-                    .clicked()
-                {
-                    let mut write_succeeded = true;
-                    let mut temp_ksfs = KsfData::default();
-                    for input in app.edit_ksfs.user_input.iter() {
-                        if let Err(e) = build_ksfs(&mut temp_ksfs, input) {
-                            windows_error_dialog(e);
-                            write_succeeded = false;
-                        }
-                    }
-                    if write_succeeded {
-                        app.data.ksfs = temp_ksfs;
-                        match app.overwrite_ksf_data() {
-                            Ok(_) => app.edit_ksfs.save_finished = true,
-                            Err(e) => {
-                                windows_error_dialog(e);
-                                app.edit_ksfs.save_finished = false;
-                            }
-                        }
-                    }
-                }
-            });
-
-            if ui.large_red_button("Return").clicked() {
-                app.edit_ksfs.save_finished = false;
-                app.display_info.go_to_prep_session();
-            }
+            save_button(app, ui);
+            ui.add_space(10.0);
 
             if app.edit_ksfs.save_finished {
                 ui.monospace(
@@ -180,41 +201,8 @@ fn new_ksf_creator(app: &mut DataPro, ui: &mut egui::Ui) {
             }
             ui.add_space(10.0);
 
-            if ui.large_green_button("Save").clicked() {
-                let mut write_succeeded = true;
-                let mut temp_ksf_data = KsfData::default();
-                for input in app.edit_ksfs.user_input.iter() {
-                    if let Err(e) = build_ksfs(&mut temp_ksf_data, input) {
-                        windows_error_dialog(e);
-                        write_succeeded = false;
-                    }
-                }
-                let mut output_json = String::new();
-                match temp_ksf_data.to_json() {
-                    Ok(json) => output_json = json,
-                    Err(e) => {
-                        windows_error_dialog(e);
-                        write_succeeded = false;
-                    }
-                }
-                if write_succeeded {
-                    match overwrite_file(
-                        Ok(app.edit_ksfs.save_new_path.join(KSF_FILE_NAME)),
-                        &output_json,
-                    ) {
-                        Ok(_) => app.edit_ksfs.save_finished = true,
-                        Err(e) => {
-                            windows_error_dialog(e);
-                            app.edit_ksfs.save_finished = false;
-                        }
-                    }
-                }
-            }
-
-            if ui.large_red_button("Return").clicked() {
-                app.edit_ksfs.save_finished = false;
-                app.display_info.go_to_prep_session();
-            }
+            save_button(app, ui);
+            ui.add_space(10.0);
 
             if app.edit_ksfs.save_finished {
                 ui.monospace(
@@ -238,7 +226,7 @@ pub struct EditKsfData {
 
 impl EditKsfData {
     pub fn prepare(&mut self, data: &Data, path: PathBuf) {
-        self.user_input.clear();
+        *self = Self::default();
 
         self.save_new_path = path.clone();
         self.file_dialog = FileDialog::new().initial_directory(path.clone());
