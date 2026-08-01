@@ -48,7 +48,7 @@ macro_rules! active_text {
     };
 }
 
-macro_rules! active_row {
+macro_rules! active_cell {
     ($row:ident, $format:expr, $text:expr) => {
         $row.col(|ui| {
             ui.label(active_text!($format, $text));
@@ -70,7 +70,7 @@ macro_rules! passive_text {
     };
 }
 
-macro_rules! passive_row {
+macro_rules! passive_cell {
     ($row:ident,$format:expr, $text:expr) => {
         $row.col(|ui| {
             ui.label(passive_text!($format, $text));
@@ -85,18 +85,20 @@ macro_rules! passive_row {
 
 macro_rules! timer_display {
     (bright, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
-        active_row!($row, $desc);
-        active_row!($row, $key.name());
-        active_row!($row, $bouts);
-        active_row!($row, timer_format!(), $time1);
-        active_row!($row, timer_format!(), $time2);
+        // when this is set alter the bg fill when selected
+        // $row.set_selected(true);
+        active_cell!($row, $desc);
+        active_cell!($row, $key.name());
+        active_cell!($row, $bouts);
+        active_cell!($row, timer_format!(), $time1);
+        active_cell!($row, timer_format!(), $time2);
     };
     (dim, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
-        passive_row!($row, $desc);
-        passive_row!($row, $key.name());
-        passive_row!($row, $bouts);
-        passive_row!($row, timer_format!(), $time1);
-        passive_row!($row, timer_format!(), $time2);
+        passive_cell!($row, $desc);
+        passive_cell!($row, $key.name());
+        passive_cell!($row, $bouts);
+        passive_cell!($row, timer_format!(), $time1);
+        passive_cell!($row, timer_format!(), $time2);
     };
 }
 
@@ -413,6 +415,7 @@ impl SessionPage {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
+            // ui.visuals_mut().selection.bg_fill = Color32::GOLD;
             ui.horizontal(|ui| {
                 ui.group(|ui| {
                     ui.vertical(|ui| {
@@ -456,7 +459,7 @@ impl SessionPage {
             ui.label("TAB to start. ESC return to end session. SPACE to pause/unpause.");
             match app.session_page.session_timer.status() {
                 TimerStatus::Active => {
-                    ui.label(RichText::new("ACTIVE").monospace().color(Color32::GREEN))
+                    ui.label(RichText::new("ACTIVE").color(Color32::GREEN).monospace())
                 }
                 TimerStatus::Stopped => {
                     ui.label(RichText::new("STOPPED").monospace().color(Color32::RED))

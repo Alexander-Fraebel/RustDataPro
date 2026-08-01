@@ -4,9 +4,6 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read, path::PathBuf};
 
-pub const DATE_OF_ADMISSION_FORMAT_ERROR: &'static str =
-    "check client_data.txt\nDate of Admission must be formated as YYYY-MM-DD";
-
 /// Client information that persists between sessions.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ClientData {
@@ -32,24 +29,6 @@ impl Default for ClientData {
         }
     }
 }
-
-// impl Display for ClientData {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(
-//             f,
-//             "Client: {}\nID: {}\nLocation: {}\nCase Manager: {}\nPrimary Therapist: {}\nSession Number: {}\nDate of Admission: {} ({} days ago)",
-//             self.name,
-//             self.id,
-//             self.location,
-//             self.case_manager,
-//             self.primary_therapist,
-//             self.current_session,
-//             self.date_of_admission,
-//             self.days_since_admission()
-//                 .expect(DATE_OF_ADMISSION_FORMAT_ERROR)
-//         )
-//     }
-// }
 
 impl ClientData {
     /// Number of days since admission

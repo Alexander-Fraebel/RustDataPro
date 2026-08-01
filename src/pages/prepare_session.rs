@@ -38,21 +38,21 @@ impl PrepareSession {
                     // ui.monospace(&app.data.client.name);
                     // ui.end_row();
 
-                    ui.monospace("Client ID");
-                    if ui
-                        .add(
-                            egui::TextEdit::singleline(&mut app.data.client.id.to_string())
-                                .font(TextStyle::Monospace)
-                                .interactive(app.prep_session.edit_client_id),
-                        )
-                        .lost_focus()
-                    {
-                        if let Err(e) = app.overwrite_client_data() {
-                            windows_error_dialog(e);
-                        }
-                    }
-                    ui.lock_unlock_button(&mut app.prep_session.edit_client_id);
-                    ui.end_row();
+                    // ui.monospace("Client ID");
+                    // if ui
+                    //     .add(
+                    //         egui::TextEdit::singleline(&mut app.data.client.id.to_string())
+                    //             .font(TextStyle::Monospace)
+                    //             .interactive(app.prep_session.edit_client_id),
+                    //     )
+                    //     .lost_focus()
+                    // {
+                    //     if let Err(e) = app.overwrite_client_data() {
+                    //         windows_error_dialog(e);
+                    //     }
+                    // }
+                    // ui.lock_unlock_button(&mut app.prep_session.edit_client_id);
+                    // ui.end_row();
 
                     ui.monospace("Location");
                     if ui

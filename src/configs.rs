@@ -11,6 +11,7 @@ pub static DEFAULT_ZOOM: OnceLock<f32> = OnceLock::new();
 pub const CLIENT_DATA_FILE_NAME: &'static str = "client_data.txt";
 pub const ASSESSMENTS_FILE_NAME: &'static str = "assessments.txt";
 pub const KSF_FILE_NAME: &'static str = "ksf_data.txt";
+pub const CONFIG_FILE_NAME: &'static str = "config.json";
 pub const SESSION_DATA_FOLDER_NAME: &'static str = "Session Records";
 pub const IOA_DATA_FOLDER_NAME: &'static str = "IOA Data";
 
@@ -43,13 +44,16 @@ impl Config {
     /// Search the directory the program is in for a config file and try to load it
     pub fn try_from_current_dir() -> Result<Self> {
         if let Ok(path_buf) = std::env::current_dir() {
-            let mut file = File::open(&path_buf.join("config.json"))?;
+            let mut file = File::open(&path_buf.join(CONFIG_FILE_NAME))?;
             let mut s = String::new();
             file.read_to_string(&mut s)?;
             let configs: Config = serde_json::from_str(&s)?;
             return Ok(configs);
         };
-        Err(anyhow::anyhow!(""))
+        Err(anyhow::anyhow!(
+            "current directory could not be accessed while looking for {}",
+            CONFIG_FILE_NAME
+        ))
     }
 
     /// Search the directory the program is in for a config file and load it or create the default config
@@ -58,6 +62,16 @@ impl Config {
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string(&self).context("unable to create config.json")
+        serde_json::to_string_pretty(&self)
+            .context(format!("unable to create {}", CONFIG_FILE_NAME))
     }
 }
+
+// #[test]
+// fn create_config_file() {
+//     let config_file = File::create(&format!("config.json",)).unwrap();
+//     let mut writer = std::io::BufWriter::new(config_file);
+//     std::io::Write::write_all(&mut writer, Config::default().to_json().unwrap().as_bytes())
+//         .unwrap();
+//     std::io::Write::flush(&mut writer).unwrap();
+// }

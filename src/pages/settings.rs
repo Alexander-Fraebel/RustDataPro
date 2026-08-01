@@ -1,5 +1,5 @@
 use crate::{app::DataPro, ui_elements::DataProUiElements};
-use egui::Visuals;
+use egui::{RichText, Visuals};
 
 pub struct Settings {}
 
@@ -40,6 +40,22 @@ impl Settings {
             if ui.large_red_button("Return").clicked() {
                 app.display_info.go_to_prep_session();
             }
+            if cfg!(debug_assertions) {
+                ui.label(
+                    RichText::new("⚠ Debug build ⚠")
+                        .small()
+                        .color(ui.visuals().warn_fg_color),
+                )
+                .on_hover_text("egui was compiled with debug assertions enabled.");
+                egui::ScrollArea::vertical()
+                    .min_scrolled_height(400.0)
+                    .content_margin(15.0)
+                    .id_salt("scroller")
+                    .show(ui, |ui| {
+                        ui.monospace(format!("{:#?}", ui.visuals()));
+                        ui.add_space(30.0);
+                    });
+            };
         });
     }
 }

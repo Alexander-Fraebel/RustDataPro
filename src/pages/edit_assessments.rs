@@ -13,6 +13,7 @@ fn assessment_scroller(
         app.edit_assessments.user_input.remove(idx);
         app.edit_assessments.deleted_row = None;
     }
+    ui.style_mut().spacing.scroll = egui::style::ScrollStyle::solid();
     ui.add_space(30.0);
     egui::ScrollArea::vertical()
         .min_scrolled_height(400.0)

@@ -127,6 +127,7 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
         app.edit_ksfs.user_input.remove(idx);
         app.edit_ksfs.deleted_row = None;
     }
+    ui.style_mut().spacing.scroll = egui::style::ScrollStyle::solid();
     ui.add_space(30.0);
     egui::ScrollArea::vertical()
         .min_scrolled_height(400.0)

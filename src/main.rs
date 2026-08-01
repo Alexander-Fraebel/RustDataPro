@@ -20,7 +20,7 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     eframe::run_native(
-        "Rutgers Data Pro",
+        "Rust Data Pro",
         native_options,
         Box::new(|cc| Ok(Box::new(datapro::app::DataPro::new(cc)))),
     )
