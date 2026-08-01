@@ -4,7 +4,7 @@ use crate::{
         Data, Ksf, Timer, TimerStatus, output_data::OutputData, timeline::Timeline,
         view_simple_timer,
     },
-    display_controller::DisplayInfo,
+    display_control::DisplayControl,
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, rounded_f32, windows_error_dialog},
 };
@@ -218,7 +218,7 @@ impl SessionPage {
     }
 
     /// Reset the session page and return to the prep session page.
-    fn leave_session(&mut self, display_info: &mut DisplayInfo) {
+    fn leave_session(&mut self, display_info: &mut DisplayControl) {
         self.reset();
         display_info.go_to_prep_session();
     }

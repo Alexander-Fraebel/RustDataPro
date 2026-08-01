@@ -1,6 +1,7 @@
 use crate::{
+    configs::{Configs, DEFAULT_ROOT_DIRECTORY, DEFAULT_ZOOM},
     data::{AssessmentsData, ClientData, Data, KsfData},
-    display_controller::{DisplayInfo, Page},
+    display_control::{DisplayControl, Page},
     ioa::IoaPage,
     pages::{
         EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage, Sidebar, Timers,
@@ -16,9 +17,6 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-
-pub const DEFAULT_ROOT_DIRECTORY: &'static str = "C:\\DataProClients";
-pub const DEFAULT_ZOOM: f32 = 1.5;
 
 pub const CLIENT_DATA_FILE_NAME: &'static str = "client_data.txt";
 pub const ASSESSMENTS_FILE_NAME: &'static str = "assessments.txt";
@@ -37,7 +35,7 @@ pub struct DataPro {
     pub root_directory: PathBuf,
 
     pub data: Data,
-    pub display_info: DisplayInfo,
+    pub display_info: DisplayControl,
 
     pub randomness_page: RandomServices,
     pub timers: Timers,
@@ -53,27 +51,30 @@ pub struct DataPro {
 
 impl Default for DataPro {
     fn default() -> Self {
+        let configs = Configs::from_file().unwrap_or_default();
+
         // provided directory should always be valid on Windows and we are not handling any other OS
         let root_directory =
-            PathBuf::from_str(DEFAULT_ROOT_DIRECTORY).expect("invalid default directory");
+            PathBuf::from_str(&configs.root_dir).expect("invalid default directory");
 
         // If the default directory doesn't exist crate it.
         if !root_directory.exists() {
-            match std::fs::create_dir(&root_directory) {
-                Ok(_) => (),
-                Err(e) => windows_error_dialog(e.into()),
-            }
+            if let Err(e) =
+                std::fs::create_dir(&root_directory).context("cannot create root directory")
+            {
+                windows_error_dialog(e);
+            };
         }
 
         Self {
             data: Data::default(),
 
-            display_info: DisplayInfo {
-                active_page: Default::default(),
+            display_info: DisplayControl {
+                active_page: Page::PrepareSession,
                 timers_open: false,
                 random_open: false,
                 sidebar_open: true,
-                zoom: DEFAULT_ZOOM,
+                zoom: configs.zoom,
             },
 
             pick_root_directory: FileDialog::default().initial_directory(root_directory.clone()),

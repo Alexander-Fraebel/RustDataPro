@@ -1,4 +1,4 @@
-pub struct DisplayInfo {
+pub struct DisplayControl {
     pub active_page: Page,
     pub timers_open: bool,
     pub random_open: bool,
@@ -6,9 +6,8 @@ pub struct DisplayInfo {
     pub zoom: f32,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Page {
-    #[default]
     PrepareSession,
     RunSession,
     Ioa,
@@ -18,7 +17,7 @@ pub enum Page {
     Settings,
 }
 
-impl DisplayInfo {
+impl DisplayControl {
     pub fn go_to_prep_session(&mut self) {
         self.active_page = Page::PrepareSession;
         self.sidebar_open = true;

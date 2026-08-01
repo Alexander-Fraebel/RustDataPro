@@ -1,5 +1,6 @@
 use crate::{
-    app::{DEFAULT_ROOT_DIRECTORY, DataPro},
+    app::DataPro,
+    configs::DEFAULT_ROOT_DIRECTORY,
     data::{DataType, IoaData, OutputData},
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
