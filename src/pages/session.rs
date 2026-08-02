@@ -3,7 +3,7 @@ use crate::{
     config::{CLIENT_DATA_FILE_NAME, SESSION_DATA_FOLDER_NAME},
     data::{
         Data, Ksf, Timer, TimerStatus, output_data::OutputData, timeline::Timeline,
-        view_nonneg_countdown_timer, view_simple_countdown_timer, view_simple_timer,
+        view_nonneg_countdown_timer, view_simple_timer,
     },
     display_control::DisplayControl,
     ui_elements::DataProUiElements,

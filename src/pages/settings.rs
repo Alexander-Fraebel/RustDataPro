@@ -45,8 +45,8 @@ impl Settings {
                     RichText::new("⚠ Debug build ⚠")
                         .small()
                         .color(ui.visuals().warn_fg_color),
-                )
-                .on_hover_text("egui was compiled with debug assertions enabled.");
+                );
+
                 egui::ScrollArea::vertical()
                     .min_scrolled_height(400.0)
                     .content_margin(15.0)
