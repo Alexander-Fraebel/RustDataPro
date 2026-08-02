@@ -36,7 +36,7 @@ pub struct DataPro {
     pub timers: Timers,
 
     pub prep_session: PrepareSession,
-    pub session_page: SessionPage,
+    pub session: SessionPage,
 
     pub ioa_page: IoaPage,
     pub new_client_page: NewClient,
@@ -76,7 +76,7 @@ impl Default for DataPro {
             timers: Timers::default(),
 
             prep_session: PrepareSession::default(),
-            session_page: SessionPage::default(),
+            session: SessionPage::default(),
 
             ioa_page: IoaPage::default(),
             new_client_page: NewClient::default(),
@@ -198,7 +198,7 @@ impl DataPro {
 
     pub fn time_limit_set(&self) -> bool {
         // It is false that: session length is limited and the maximum session length is zero
-        !(self.session_page.limit_session_length && self.session_page.maximum_session_length == 0.0)
+        !(self.prep_session.limit_session_length && self.prep_session.maximum_session_length == 0.0)
     }
 
     /// Search inside the top of the active client folder for a file or folder name

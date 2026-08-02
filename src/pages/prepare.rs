@@ -11,6 +11,8 @@ pub struct PrepareSession {
     pub edit_case_manager: bool,
     pub edit_client_id: bool,
     pub edit_doa: bool,
+    pub limit_session_length: bool,
+    pub maximum_session_length: f32,
 }
 
 impl Default for PrepareSession {
@@ -22,6 +24,8 @@ impl Default for PrepareSession {
             edit_case_manager: false,
             edit_client_id: false,
             edit_doa: false,
+            limit_session_length: false,
+            maximum_session_length: 0.0,
         }
     }
 }
@@ -333,14 +337,20 @@ impl PrepareSession {
                     ui.add_space(5.0);
                     PrepareSession::client_and_session_information(app, ui);
                     ui.horizontal(|ui| {
-                        ui.add_enabled(
-                            app.session_page.limit_session_length,
-                            egui::DragValue::new(&mut app.session_page.maximum_session_length)
-                                .suffix("  secs")
-                                .range(0.0..=100_000.0),
-                        );
+                        if ui
+                            .add_enabled(
+                                app.prep_session.limit_session_length,
+                                egui::DragValue::new(&mut app.prep_session.maximum_session_length)
+                                    .suffix("  secs")
+                                    .range(0.0..=100_000.0),
+                            )
+                            .changed()
+                        {
+                            app.session.timer.countdown_from =
+                                app.prep_session.maximum_session_length;
+                        }
                         ui.checkbox(
-                            &mut app.session_page.limit_session_length,
+                            &mut app.prep_session.limit_session_length,
                             "Limit Session Length",
                         );
                     });
@@ -357,7 +367,7 @@ impl PrepareSession {
                                 // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
                                 // If they do anything else the file will update when they switch selections
                                 // Load the data and switch pages.
-                                app.session_page.load_ksf(&app.data);
+                                app.session.load_ksf(&app.data);
                                 app.timers.pause_all_timers();
                                 app.display_info.go_to_run_session();
                             }

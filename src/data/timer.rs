@@ -282,3 +282,28 @@ pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
         }
     }
 }
+
+// Special timer for session page which counts down to zero and not below.
+pub fn view_nonneg_countdown_timer(ui: &mut Ui, timer: &Timer) {
+    match timer.status {
+        TimerStatus::Active => {
+            ui.request_repaint();
+            let t = timer.remaining_time().max(0.0);
+            timer_display!(ui, (t / 60.0).trunc(), t % 60.0, ACTIVE_COLOR);
+        }
+        // Currently Stopped is not possible for a countdown timer via any interface
+        // Unsure if this is correct
+        TimerStatus::Stopped => {
+            let t = (timer.countdown_from - timer.saved_time()).max(0.0);
+            timer_display!(ui, (t / 60.0).trunc(), t % 60.0, ACTIVE_COLOR);
+        }
+        TimerStatus::Paused => {
+            let t = (timer.countdown_from - timer.stashed_time()).max(0.0);
+            timer_display!(ui, (t / 60.0).trunc(), t % 60.0, ACTIVE_COLOR);
+        }
+        TimerStatus::NotStarted => {
+            let t = timer.countdown_from;
+            timer_display!(ui, (t / 60.0).trunc(), t % 60.0);
+        }
+    }
+}
