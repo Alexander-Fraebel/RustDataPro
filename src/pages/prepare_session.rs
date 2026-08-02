@@ -265,7 +265,7 @@ impl PrepareSession {
     }
 
     fn ksf_display(app: &mut DataPro, ui: &mut egui::Ui) {
-        ui.spacing_mut().item_spacing = (0.0, -1.0).into();
+        ui.spacing_mut().item_spacing = (0.0, 0.0).into();
 
         let ksf_text = match app.data.ksf_loaded() {
             true => egui::RichText::new(app.data.chosen_ksf().clone()),
@@ -282,39 +282,41 @@ impl PrepareSession {
         ui.add_space(10.0);
         if app.data.ksf_loaded() {
             ui.group(|ui| {
-                if let Some(ksf) = app.data.ksfs.get(app.data.chosen_ksf()) {
-                    let (freq, dura) = ksf.pairs();
-                    ui.strong("Frequency Keys");
-                    ui.add_space(2.0);
-                    for (key, desc) in freq {
-                        ui.add(egui::Label::new(
-                            RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
-                                .monospace()
-                                .size(11.0),
-                        ));
+                ui.horizontal(|ui| {
+                    if let Some(ksf) = app.data.ksfs.get(app.data.chosen_ksf()) {
+                        let (freq, dura) = ksf.pairs();
+                        ui.vertical(|ui| {
+                            ui.strong("Frequency Keys");
+                            ui.add_space(2.0);
+                            for (key, desc) in freq {
+                                ui.add(egui::Label::new(
+                                    RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
+                                        .monospace()
+                                        .size(12.0),
+                                ));
+                            }
+                        });
+                        ui.add_space(10.0);
+                        ui.separator();
+                        ui.add_space(10.0);
+                        ui.vertical(|ui| {
+                            ui.strong("Duration Keys");
+                            ui.add_space(2.0);
+                            for (key, desc) in dura {
+                                ui.add(egui::Label::new(
+                                    RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
+                                        .monospace()
+                                        .size(12.0),
+                                ));
+                            }
+                        });
+                    } else {
+                        ui.monospace(
+                            egui::RichText::new("ERROR INVALID KSF NAME")
+                                .color(ui.visuals().error_fg_color),
+                        );
                     }
-                    ui.add_space(10.0);
-                    ui.strong("Duration Keys");
-                    ui.add_space(2.0);
-                    for (key, desc) in dura {
-                        ui.add(egui::Label::new(
-                            RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
-                                .monospace()
-                                .size(11.0),
-                        ));
-                    }
-                } else {
-                    ui.monospace(
-                        egui::RichText::new("ERROR INVALID KSF NAME")
-                            .color(ui.visuals().error_fg_color),
-                    );
-                }
-            });
-        } else {
-            ui.group(|ui| {
-                ui.strong("Frequency Keys");
-                ui.add_space(10.0);
-                ui.strong("Duration Keys");
+                });
             });
         }
     }

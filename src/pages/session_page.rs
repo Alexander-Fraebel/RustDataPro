@@ -21,6 +21,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+const DESCRIPTION_WIDTH: f32 = 100.0;
+const KEY_WIDTH: f32 = 30.0;
+const ROW_HEIGHT: f32 = 18.0;
+const ROW_FONT_SIZE: f32 = 12.0;
+const ACTIVE_COLOR: Color32 = Color32::YELLOW;
+
 macro_rules! record_keypress {
     ($self:expr, $key:expr, $time:expr) => {
         $self.timeline.push(($key, rounded_f32($time)));
@@ -41,7 +47,8 @@ macro_rules! active_text {
     ($format:expr, $text:expr) => {
         RichText::new(format!($format, $text))
             .monospace()
-            .color(Color32::YELLOW)
+            .size(ROW_FONT_SIZE)
+            .color(ACTIVE_COLOR)
     };
     ($text:expr) => {
         active_text!("{}", $text)
@@ -63,7 +70,9 @@ macro_rules! active_cell {
 
 macro_rules! passive_text {
     ($format:expr, $text:expr) => {
-        RichText::new(format!($format, $text)).monospace()
+        RichText::new(format!($format, $text))
+            .size(ROW_FONT_SIZE)
+            .monospace()
     };
     ($text:expr) => {
         passive_text!("{}", $text)
@@ -84,27 +93,23 @@ macro_rules! passive_cell {
 }
 
 macro_rules! timer_display {
-    (bright, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
+    (active, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
         // when this is set alter the bg fill when selected
         // $row.set_selected(true);
         active_cell!($row, $desc);
         active_cell!($row, $key.name());
-        active_cell!($row, $bouts);
         active_cell!($row, timer_format!(), $time1);
         active_cell!($row, timer_format!(), $time2);
+        active_cell!($row, $bouts);
     };
-    (dim, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
+    (passive, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
         passive_cell!($row, $desc);
         passive_cell!($row, $key.name());
-        passive_cell!($row, $bouts);
         passive_cell!($row, timer_format!(), $time1);
         passive_cell!($row, timer_format!(), $time2);
+        passive_cell!($row, $bouts);
     };
 }
-
-const DESCRIPTION_WIDTH: f32 = 100.0;
-const KEY_WIDTH: f32 = 30.0;
-const ROW_HEIGHT: f32 = 20.0;
 
 pub struct SessionPage {
     pub freq_keys: Vec<(u32, Key, String)>,
@@ -414,6 +419,34 @@ impl SessionPage {
             }
         }
 
+        let session_was_started = app.session_page.session_timer.was_started();
+        if app.session_page.save_discard_open {
+            egui::Window::new("Confirm Exit").show(ui, |ui| {
+                ui.columns(2, |columns| {
+                    columns[0].set_height(50.0);
+                    columns[0].add_enabled_ui(session_was_started, |ui| {
+                        if ui
+                            .large_green_button("SAVE")
+                            .on_disabled_hover_text("no data to save")
+                            .clicked()
+                        {
+                            if let Err(e) = app
+                                .session_page
+                                .finalize_session(&mut app.data, &app.root_directory)
+                            {
+                                windows_error_dialog(e) // application will not leave session until error dialog is closed
+                            }
+                            app.session_page.leave_session(&mut app.display_info);
+                        }
+                    });
+                    columns[1].set_height(50.0);
+                    if columns[1].large_red_button("DISCARD").clicked() {
+                        app.session_page.leave_session(&mut app.display_info);
+                    }
+                });
+            });
+        }
+
         egui::CentralPanel::default().show(ui, |ui| {
             // ui.visuals_mut().selection.bg_fill = Color32::GOLD;
             ui.horizontal(|ui| {
@@ -453,39 +486,45 @@ impl SessionPage {
                         ui.label("");
                     });
                 });
-            });
-            ui.add_space(10.0);
+                ui.vertical(|ui| {
+                    ui.label("TAB to start.\nESC return to end session.\nSPACE to pause/unpause.");
+                    ui.horizontal(|ui| {
+                        if app.session_page.session_timer.was_started() {
+                            ui.label(RichText::new("Session Time:").color(ACTIVE_COLOR));
+                        } else {
+                            ui.label("Session Time:");
+                        }
 
-            ui.label("TAB to start. ESC return to end session. SPACE to pause/unpause.");
-            match app.session_page.session_timer.status() {
-                TimerStatus::Active => {
-                    ui.label(RichText::new("ACTIVE").color(Color32::GREEN).monospace())
-                }
-                TimerStatus::Stopped => {
-                    ui.label(RichText::new("STOPPED").monospace().color(Color32::RED))
-                }
-                TimerStatus::Paused => {
-                    ui.label(RichText::new("PAUSED").monospace().color(Color32::YELLOW))
-                }
-                TimerStatus::NotStarted => {
-                    ui.label(RichText::new("NOT STARTED").monospace().color(Color32::RED))
-                }
-            };
-            ui.add_space(10.0);
-
-            ui.horizontal(|ui| {
-                ui.label("Session Time:");
-                view_simple_timer(ui, &mut app.session_page.session_timer);
-                if app.session_page.limit_session_length {
-                    ui.monospace(format!(
-                        "[{:.0}:{:05.2}]",
-                        app.session_page.maximum_session_length / 60.0,
-                        app.session_page.maximum_session_length % 60.0
-                    ));
-                }
+                        view_simple_timer(ui, &mut app.session_page.session_timer);
+                        if app.session_page.limit_session_length {
+                            ui.monospace(format!(
+                                "[{:.0}:{:05.2}]",
+                                app.session_page.maximum_session_length / 60.0,
+                                app.session_page.maximum_session_length % 60.0
+                            ));
+                        }
+                    });
+                });
             });
-            ui.add_space(10.0);
+            ui.add_space(5.0);
+
+            // match app.session_page.session_timer.status() {
+            //     TimerStatus::Active => {
+            //         ui.label(RichText::new("ACTIVE").color(Color32::GREEN).monospace())
+            //     }
+            //     TimerStatus::Stopped => {
+            //         ui.label(RichText::new("STOPPED").monospace().color(Color32::RED))
+            //     }
+            //     TimerStatus::Paused => {
+            //         ui.label(RichText::new("PAUSED").monospace().color(Color32::YELLOW))
+            //     }
+            //     TimerStatus::NotStarted => {
+            //         ui.label(RichText::new("NOT STARTED").monospace().color(Color32::RED))
+            //     }
+            // };
+
             ui.add_enabled_ui(app.session_page.session_timer.is_active(), |ui| {
+                ui.spacing_mut().item_spacing = (5.0, 0.0).into();
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
                         ui.group(|ui| {
@@ -496,6 +535,7 @@ impl SessionPage {
                                 .column(Column::exact(KEY_WIDTH))
                                 .column(Column::exact(40.0))
                                 .striped(true)
+                                .min_scrolled_height(500.0)
                                 .cell_layout(
                                     Layout::default()
                                         .with_cross_align(egui::Align::RIGHT)
@@ -516,15 +556,9 @@ impl SessionPage {
                                     });
                                     for (counter, key, desc) in app.session_page.freq_keys.iter() {
                                         body.row(ROW_HEIGHT, |mut row| {
-                                            row.col(|ui| {
-                                                ui.monospace(desc);
-                                            });
-                                            row.col(|ui| {
-                                                ui.monospace(key.name());
-                                            });
-                                            row.col(|ui| {
-                                                ui.monospace(counter.to_string());
-                                            });
+                                            passive_cell!(row, desc);
+                                            passive_cell!(row, key.name());
+                                            passive_cell!(row, counter.to_string());
                                         });
                                     }
                                 });
@@ -537,10 +571,11 @@ impl SessionPage {
                                 .id_salt("durationkeys")
                                 .column(Column::exact(DESCRIPTION_WIDTH))
                                 .column(Column::exact(KEY_WIDTH))
+                                .column(Column::exact(60.0))
+                                .column(Column::exact(60.0))
                                 .column(Column::exact(40.0))
-                                .column(Column::exact(60.0))
-                                .column(Column::exact(60.0))
                                 .striped(true)
+                                .min_scrolled_height(500.0)
                                 .cell_layout(
                                     Layout::default()
                                         .with_cross_align(egui::Align::RIGHT)
@@ -556,13 +591,13 @@ impl SessionPage {
                                             ui.strong("Key");
                                         });
                                         row.col(|ui| {
-                                            ui.strong("Bouts");
+                                            ui.strong("Current");
                                         });
                                         row.col(|ui| {
                                             ui.strong("Total");
                                         });
                                         row.col(|ui| {
-                                            ui.strong("Current");
+                                            ui.strong("Bouts");
                                         });
                                     });
                                     for (timer, bouts, key, desc) in
@@ -571,7 +606,7 @@ impl SessionPage {
                                         body.row(ROW_HEIGHT, |mut row| match timer.status() {
                                             TimerStatus::Active | TimerStatus::Paused => {
                                                 timer_display!(
-                                                    bright,
+                                                    active,
                                                     row,
                                                     desc,
                                                     key,
@@ -582,7 +617,7 @@ impl SessionPage {
                                             }
                                             TimerStatus::Stopped | TimerStatus::NotStarted => {
                                                 timer_display!(
-                                                    dim,
+                                                    passive,
                                                     row,
                                                     desc,
                                                     key,
@@ -598,7 +633,7 @@ impl SessionPage {
                     });
                 });
             });
-            ui.add_space(10.0);
+            ui.add_space(5.0);
 
             ui.group(|ui| {
                 ui.horizontal(|ui| {
@@ -608,34 +643,6 @@ impl SessionPage {
                 });
             });
             ui.label("BACKSPACE to undo last entry.");
-
-            let session_was_stared = app.session_page.session_timer.was_started();
-            if app.session_page.save_discard_open {
-                egui::Window::new("Confirm Exit").show(ui, |ui| {
-                    ui.columns(2, |columns| {
-                        columns[0].set_height(50.0);
-                        columns[0].add_enabled_ui(session_was_stared, |ui| {
-                            if ui
-                                .large_green_button("SAVE")
-                                .on_disabled_hover_text("no data to save")
-                                .clicked()
-                            {
-                                if let Err(e) = app
-                                    .session_page
-                                    .finalize_session(&mut app.data, &app.root_directory)
-                                {
-                                    windows_error_dialog(e) // application will not leave session until error dialog is closed
-                                }
-                                app.session_page.leave_session(&mut app.display_info);
-                            }
-                        });
-                        columns[1].set_height(50.0);
-                        if columns[1].large_red_button("DISCARD").clicked() {
-                            app.session_page.leave_session(&mut app.display_info);
-                        }
-                    });
-                });
-            }
         });
     }
 }

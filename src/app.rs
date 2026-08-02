@@ -133,8 +133,8 @@ impl DataPro {
 
     pub fn client_picker(&mut self, ui: &mut egui::Ui) {
         let client_picker_text = match self.data.client_loaded() {
-            true => self.data.client.id.clone(),
-            false => String::from("Choose Client"),
+            true => format!("{:>11}", self.data.client.id),
+            false => String::from("Pick Client"),
         };
 
         egui::ComboBox::from_id_salt("client picker")
