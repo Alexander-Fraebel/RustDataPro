@@ -1,11 +1,12 @@
 use crate::{
     app::DataPro,
     data::{Timer, view_simple_countdown_timer, view_simple_timer},
+    ui_elements::DataProUiElements,
     utils::ClickedKeys,
 };
 use egui::{
     Key::{self},
-    RichText, TextStyle, Ui,
+    TextStyle, Ui,
 };
 use std::fmt::Display;
 
@@ -84,17 +85,7 @@ impl Timers {
         egui::Window::new("Timers").open(open).show(ui, |ui| {
             ui.add_space(10.0);
 
-            if cfg!(debug_assertions) {
-                ui.label(
-                    RichText::new("⚠ Debug build ⚠")
-                        .small()
-                        .color(ui.visuals().warn_fg_color),
-                );
-                let udt = ui.ctx().input(|reader| reader.unstable_dt);
-                let fps = if udt > 0.0 { 1.0 / udt } else { 0.0 };
-                ui.label(format!("fps: {}", fps.trunc()));
-                ui.add_space(10.0);
-            };
+            ui.debug_fps_viewer();
 
             ui.strong("Controls:");
             ui.label(

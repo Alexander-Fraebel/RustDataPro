@@ -491,25 +491,11 @@ impl SessionPage {
                         } else {
                             view_simple_timer(ui, &mut app.session.timer);
                         }
+                        ui.debug_fps_viewer();
                     });
                 });
             });
             ui.add_space(5.0);
-
-            // match app.session_page.session_timer.status() {
-            //     TimerStatus::Active => {
-            //         ui.label(RichText::new("ACTIVE").color(Color32::GREEN).monospace())
-            //     }
-            //     TimerStatus::Stopped => {
-            //         ui.label(RichText::new("STOPPED").monospace().color(Color32::RED))
-            //     }
-            //     TimerStatus::Paused => {
-            //         ui.label(RichText::new("PAUSED").monospace().color(Color32::YELLOW))
-            //     }
-            //     TimerStatus::NotStarted => {
-            //         ui.label(RichText::new("NOT STARTED").monospace().color(Color32::RED))
-            //     }
-            // };
 
             ui.add_enabled_ui(app.session.timer.is_active(), |ui| {
                 ui.spacing_mut().item_spacing = (5.0, 0.0).into();

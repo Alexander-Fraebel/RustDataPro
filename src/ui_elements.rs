@@ -24,6 +24,7 @@ pub trait DataProUiElements {
     fn return_button<F>(&mut self, app: &mut DataPro, closure: F)
     where
         F: FnMut(&mut DataPro);
+    fn debug_fps_viewer(&mut self);
 }
 
 impl DataProUiElements for Ui {
@@ -82,5 +83,18 @@ impl DataProUiElements for Ui {
             closure(app);
             app.display_info.go_to_prep_session();
         }
+    }
+
+    fn debug_fps_viewer(&mut self) {
+        if cfg!(debug_assertions) {
+            self.label(
+                RichText::new("⚠ Debug build ⚠")
+                    .small()
+                    .color(self.visuals().warn_fg_color),
+            );
+            let udt = self.ctx().input(|reader| reader.unstable_dt);
+            let fps = if udt > 0.0 { 1.0 / udt } else { 0.0 };
+            self.label(format!("fps: {}", fps.trunc()));
+        };
     }
 }
