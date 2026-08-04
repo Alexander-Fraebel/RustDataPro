@@ -58,7 +58,7 @@ impl PrepareSession {
                     // ui.lock_unlock_button(&mut app.prep_session.edit_client_id);
                     // ui.end_row();
 
-                    ui.monospace("Location");
+                    ui.label("Location");
                     if ui
                         .text_edit_singleline(&mut app.data.client.location)
                         .lost_focus()
@@ -69,13 +69,12 @@ impl PrepareSession {
                     }
                     ui.end_row();
 
-                    ui.monospace("Date of Admission");
+                    ui.label("Date of Admission");
                     if app.prep_session.edit_doa {
                         if ui
-                            .add(
-                                egui::TextEdit::singleline(&mut app.data.client.date_of_admission)
-                                    .font(TextStyle::Monospace),
-                            )
+                            .add(egui::TextEdit::singleline(
+                                &mut app.data.client.date_of_admission,
+                            ))
                             .on_hover_text("format date as YYYY-MM-DD")
                             .lost_focus()
                         {
@@ -90,7 +89,6 @@ impl PrepareSession {
                                 if n.is_negative() {
                                     ui.add(
                                         egui::TextEdit::singleline(&mut format!("{n} days ago"))
-                                            .font(TextStyle::Monospace)
                                             .text_color(ui.visuals().error_fg_color)
                                             .interactive(false),
                                     )
@@ -100,7 +98,6 @@ impl PrepareSession {
                                     // normal DOA information
                                     ui.add(
                                         egui::TextEdit::singleline(&mut format!("{n} days ago"))
-                                            .font(TextStyle::Monospace)
                                             .interactive(false),
                                     )
                                     .on_hover_text(&app.data.client.date_of_admission);
@@ -110,7 +107,6 @@ impl PrepareSession {
                                 // indicate invalid date with ERROR, red text, and hover text explanation
                                 ui.add(
                                     egui::TextEdit::singleline(&mut format!("ERROR"))
-                                        .font(TextStyle::Monospace)
                                         .text_color(ui.visuals().error_fg_color)
                                         .interactive(false),
                                 )
@@ -125,7 +121,7 @@ impl PrepareSession {
                     ui.lock_unlock_button(&mut app.prep_session.edit_doa);
                     ui.end_row();
 
-                    ui.monospace("Session Number");
+                    ui.label("Session Number");
                     if ui
                         .add(egui::DragValue::new(&mut app.data.client.current_session))
                         .lost_focus()
@@ -136,11 +132,10 @@ impl PrepareSession {
                     }
                     ui.end_row();
 
-                    ui.monospace("Case Manager");
+                    ui.label("Case Manager");
                     if ui
                         .add(
                             egui::TextEdit::singleline(&mut app.data.client.case_manager)
-                                .font(TextStyle::Monospace)
                                 .interactive(app.prep_session.edit_case_manager),
                         )
                         .lost_focus()
@@ -152,11 +147,10 @@ impl PrepareSession {
                     ui.lock_unlock_button(&mut app.prep_session.edit_case_manager);
                     ui.end_row();
 
-                    ui.monospace("Primary Therapist");
+                    ui.label("Primary Therapist");
                     if ui
                         .add(
                             egui::TextEdit::singleline(&mut app.data.client.primary_therapist)
-                                .font(TextStyle::Monospace)
                                 .interactive(app.prep_session.edit_primary_therapist),
                         )
                         .lost_focus()
@@ -169,15 +163,15 @@ impl PrepareSession {
 
                     ui.end_row();
 
-                    ui.monospace("Session Therapist");
+                    ui.label("Session Therapist");
                     ui.text_edit_singleline(&mut app.data.session.therapist);
                     ui.end_row();
 
-                    ui.monospace("Data Collector");
+                    ui.label("Data Collector");
                     ui.text_edit_singleline(&mut app.data.session.data_collector);
                     ui.end_row();
 
-                    ui.monospace("Primary/Reliability");
+                    ui.label("Primary/Reliability");
                     egui::ComboBox::from_id_salt("datatype")
                         .selected_text(app.data.session.data_type.to_string())
                         .show_ui(ui, |ui| {
@@ -194,7 +188,7 @@ impl PrepareSession {
                         });
                     ui.end_row();
 
-                    ui.monospace("Assessment");
+                    ui.label("Assessment");
                     let assessment_text = match app.data.assessment_chosen() {
                         true => egui::RichText::new(&app.data.session.chosen_assessment),
                         false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
@@ -230,7 +224,7 @@ impl PrepareSession {
 
                     ui.end_row();
 
-                    ui.monospace("Condition");
+                    ui.label("Condition");
                     let condition_text = match app.data.condition_chosen() {
                         true => egui::RichText::new(&app.data.session.chosen_condition),
                         false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
@@ -333,9 +327,11 @@ impl PrepareSession {
                 ui.vertical(|ui| {
                     ui.add_space(15.0);
                     app.client_picker(ui);
-
                     ui.add_space(5.0);
+
                     PrepareSession::client_and_session_information(app, ui);
+                    ui.add_space(5.0);
+
                     ui.horizontal(|ui| {
                         if ui
                             .add_enabled(
@@ -354,6 +350,8 @@ impl PrepareSession {
                             "Limit Session Length",
                         );
                     });
+                    ui.add_space(5.0);
+
                     ui.add_enabled_ui(app.prep_session.can_start_session, |ui| {
                         if ui
                             .large_green_button("BEGIN SESSION")

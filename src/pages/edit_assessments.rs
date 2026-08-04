@@ -4,7 +4,7 @@ use crate::{
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
 };
-use egui::{Color32, RichText};
+use egui::{Color32, RichText, TextStyle};
 use egui_file_dialog::FileDialog;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -32,6 +32,7 @@ fn assessment_scroller(
                         .add_sized(
                             (220.0, 18.0),
                             egui::TextEdit::singleline(assessment)
+                                .font(TextStyle::Monospace)
                                 .prefix(format!("{}) ", n + 1))
                                 .hint_text("Assessment Name"),
                         )
@@ -47,6 +48,7 @@ fn assessment_scroller(
                 if ui
                     .add(
                         egui::TextEdit::multiline(conditions)
+                            .font(TextStyle::Monospace)
                             .hint_text("Condition1, Condition2, Condition3..."),
                     )
                     .changed()

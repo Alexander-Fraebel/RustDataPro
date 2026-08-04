@@ -107,26 +107,26 @@ impl DataPro {
                 )),
             ),
         );
-        // font_defs.font_data.insert(
-        //     "AtkinsonNext".into(),
-        //     std::sync::Arc::new(
-        //         // .ttf and .otf supported
-        //         egui::FontData::from_static(include_bytes!(
-        //             "..\\AtkinsonHyperlegibleNext-VariableFont_wght.ttf"
-        //         )),
-        //     ),
-        // );
+        font_defs.font_data.insert(
+            "AtkinsonNext".into(),
+            std::sync::Arc::new(
+                // .ttf and .otf supported
+                egui::FontData::from_static(include_bytes!(
+                    "..\\AtkinsonHyperlegibleNext-VariableFont_wght.ttf"
+                )),
+            ),
+        );
         font_defs
             .families
             .get_mut(&egui::FontFamily::Monospace)
             .unwrap()
             .insert(0, "AtkinsonMono".to_owned());
 
-        // font_defs
-        //     .families
-        //     .get_mut(&egui::FontFamily::Proportional)
-        //     .unwrap()
-        //     .insert(0, "AtkinsonNext".to_owned());
+        font_defs
+            .families
+            .get_mut(&egui::FontFamily::Proportional)
+            .unwrap()
+            .insert(0, "AtkinsonNext".to_owned());
         cc.egui_ctx.set_fonts(font_defs);
         Default::default()
     }

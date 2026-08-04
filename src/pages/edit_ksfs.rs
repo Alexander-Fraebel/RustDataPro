@@ -5,7 +5,7 @@ use crate::{
     utils::{overwrite_file, windows_error_dialog},
 };
 use anyhow::Result;
-use egui::{Color32, Key, RichText};
+use egui::{Color32, Key, RichText, TextStyle};
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
 use std::path::PathBuf;
@@ -42,9 +42,16 @@ fn parse_line(s: &str) -> Result<(Key, String)> {
     Ok((key, desc))
 }
 
-fn entry_row(ui: &mut egui::Ui, string: &mut String, save_finished: &mut bool, hint: &str) {
-    ui.label(hint);
-    if ui.add(egui::TextEdit::multiline(string)).changed() {
+fn entry_row(ui: &mut egui::Ui, string: &mut String, save_finished: &mut bool, label: &str) {
+    ui.label(label);
+    if ui
+        .add(
+            egui::TextEdit::multiline(string)
+                .hint_text(RichText::from("A, Description\nB, Description\n...").monospace())
+                .font(TextStyle::Monospace),
+        )
+        .changed()
+    {
         *save_finished = false;
     }
 }
@@ -135,6 +142,7 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                         .add_sized(
                             (220.0, 18.0),
                             egui::TextEdit::singleline(name)
+                                .font(TextStyle::Monospace)
                                 .prefix(format!("{}) ", n + 1))
                                 .hint_text("KSF Name"),
                         )
