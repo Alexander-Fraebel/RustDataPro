@@ -321,23 +321,14 @@ impl DataPro {
 
     pub fn unload_client(&mut self) {
         self.data.clear();
-        self.edit_assessments.prepare(
-            &self.data,
-            DEFAULT_DIRECTORY
-                .get_or_init(|| HARDCODED_ROOT_DIR.into())
-                .clone(),
-        );
-        self.edit_ksfs.prepare(
-            &self.data,
-            DEFAULT_DIRECTORY
-                .get_or_init(|| HARDCODED_ROOT_DIR.into())
-                .clone(),
-        );
-        self.ioa_page.prepare(
-            DEFAULT_DIRECTORY
-                .get_or_init(|| HARDCODED_ROOT_DIR.into())
-                .clone(),
-        );
+        let default_dir = DEFAULT_DIRECTORY
+            .get_or_init(|| HARDCODED_ROOT_DIR.into())
+            .clone();
+        self.edit_assessments
+            .prepare(&self.data, default_dir.clone());
+        self.edit_ksfs.prepare(&self.data, default_dir.clone());
+        self.ioa_page
+            .prepare(default_dir.clone(), default_dir.clone());
     }
 
     pub fn load_client(&mut self, path: &PathBuf) {
@@ -387,6 +378,9 @@ impl DataPro {
                     ),
                 }
                 self.choose_first_assessment_and_condition();
+
+                self.ioa_page
+                    .prepare(self.path_to_session_records(), self.path_to_ioa_data());
             }
             Err(e) => {
                 self.unload_client();

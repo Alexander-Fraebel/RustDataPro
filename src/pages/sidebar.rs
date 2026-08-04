@@ -68,7 +68,8 @@ impl Sidebar {
                             .clicked()
                         {
                             app.display_info.go_to_ioa();
-                            app.ioa_page.prepare(app.path_to_ioa_data());
+                            app.ioa_page
+                                .prepare(app.path_to_session_records(), app.path_to_ioa_data());
                         }
                         ui.add_space(5.0);
 

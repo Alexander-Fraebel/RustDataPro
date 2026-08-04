@@ -46,15 +46,12 @@ impl Default for IoaPage {
 }
 
 impl IoaPage {
-    // pub fn reset(&mut self) {
-    //     *self = Self::default()
-    // }
-
-    pub fn prepare(&mut self, path_to_file: PathBuf) {
-        self.select_path = path_to_file.clone();
-        self.select_file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
-        self.save_new_path = path_to_file.clone();
-        self.save_file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
+    pub fn prepare(&mut self, select_path: PathBuf, save_new_path: PathBuf) {
+        *self = Self::default();
+        self.select_path = select_path.clone();
+        self.select_file_dialog = FileDialog::new().initial_directory(select_path.clone());
+        self.save_new_path = save_new_path.clone();
+        self.save_file_dialog = FileDialog::new().initial_directory(save_new_path.clone());
     }
 
     fn interval_ioa(&self, ioa_data: &mut IoaData) {
@@ -152,7 +149,8 @@ impl IoaPage {
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
         app.ioa_page.select_file_dialog.update(ui.ctx());
         if let Some(bufs) = app.ioa_page.select_file_dialog.take_picked_multiple() {
-            app.ioa_page.prepare(app.path_to_ioa_data());
+            app.ioa_page
+                .prepare(app.path_to_session_records(), app.path_to_ioa_data());
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match OutputData::from_file(buf.as_path()) {
@@ -171,12 +169,21 @@ impl IoaPage {
             ui.add_space(10.0);
 
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
-                ui.label("Save File To:");
+                ui.label("Select Files From:");
+                ui.directory_picker(
+                    &mut app.ioa_page.save_file_dialog,
+                    &app.ioa_page.select_path,
+                );
+            });
+            ui.add_space(10.0);
+            ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
+                ui.label("Save IOA To:");
                 ui.directory_picker(
                     &mut app.ioa_page.save_file_dialog,
                     &app.ioa_page.save_new_path,
                 );
             });
+            ui.add_space(15.0);
 
             if ui.large_button("Select Data").clicked() {
                 app.ioa_page.select_file_dialog.pick_multiple();
