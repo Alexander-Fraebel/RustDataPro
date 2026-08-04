@@ -11,9 +11,8 @@ impl Sidebar {
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
         app.pick_root_directory.update(ui.ctx());
         if let Some(pathbuf) = app.pick_root_directory.take_picked() {
-            // If we change root directory immedately reset all data files, otherwise we have dirty data selections that refer to things not in the root
+            // If we change root directory immedately reset all data files, otherwise we have dirty data selections that refers to things which may not exist
             app.data.clear();
-            // Then we set the client picker to look there and reset the ksf picker entirely
             app.root_directory = pathbuf.clone();
         }
         egui::Panel::left("welcome_panel")
@@ -102,7 +101,7 @@ impl Sidebar {
                         ui.separator();
                         ui.add_space(10.0);
 
-                        if ui.large_button("Randomness").clicked() {
+                        if ui.large_button("Shuffle List").clicked() {
                             app.display_info.toggle_random_display();
                         }
                         ui.add_space(5.0);
