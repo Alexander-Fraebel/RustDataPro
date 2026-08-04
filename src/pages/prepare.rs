@@ -1,7 +1,7 @@
 use crate::{
     app::DataPro, data::DataType, ui_elements::DataProUiElements, utils::windows_error_dialog,
 };
-use egui::{RichText, TextStyle};
+use egui::RichText;
 use indexmap::IndexSet;
 
 pub struct PrepareSession {
@@ -34,28 +34,12 @@ impl PrepareSession {
     fn client_and_session_information(app: &mut DataPro, ui: &mut egui::Ui) {
         ui.add_enabled_ui(app.data.client_loaded(), |ui| {
             egui::Grid::new("client_and_session_info_grid")
-                .min_col_width(150.0)
+                .min_col_width(120.0)
                 .min_row_height(22.0)
                 .show(ui, |ui| {
                     // For reasons of client privacy this is probably best not to display
                     // ui.monospace("Client Name");
                     // ui.monospace(&app.data.client.name);
-                    // ui.end_row();
-
-                    // ui.monospace("Client ID");
-                    // if ui
-                    //     .add(
-                    //         egui::TextEdit::singleline(&mut app.data.client.id.to_string())
-                    //             .font(TextStyle::Monospace)
-                    //             .interactive(app.prep_session.edit_client_id),
-                    //     )
-                    //     .lost_focus()
-                    // {
-                    //     if let Err(e) = app.overwrite_client_data() {
-                    //         windows_error_dialog(e);
-                    //     }
-                    // }
-                    // ui.lock_unlock_button(&mut app.prep_session.edit_client_id);
                     // ui.end_row();
 
                     ui.label("Location");
