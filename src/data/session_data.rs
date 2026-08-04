@@ -38,21 +38,6 @@ pub struct SessionData {
     pub data_type: DataType,
 }
 
-// impl Display for SessionData {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(
-//             f,
-//             "Assessment: {}\nCondition: {}\nKSF: {}\nTherapist: {}\nData Collector: {}\nData Type: {}",
-//             self.chosen_assessment,
-//             self.chosen_condition,
-//             self.chosen_ksf,
-//             self.therapist,
-//             self.data_collector,
-//             self.data_type,
-//         )
-//     }
-// }
-
 impl SessionData {
     pub fn from_file(file_path: &Path) -> Result<Self> {
         let mut file = File::open(&file_path)?;

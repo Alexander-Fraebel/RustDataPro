@@ -35,18 +35,18 @@ impl AssessmentsData {
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self).context("unable to convert assessments to json")
+        serde_json::to_string_pretty(&self).context("unable to convert AssessmentsData to json")
     }
 
     pub fn fa_conditions() -> Self {
         serde_json::from_str(
             r#"{
                 "FA": [
-                    "Ignore",
+                    "Ignore/Alone",
                     "Tangible",
                     "Demand",
                     "Attention",
-                    "ToyPlay"
+                    "Toy Play"
                 ]
             }"#,
         )

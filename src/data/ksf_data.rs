@@ -19,21 +19,12 @@ const LEAF_PAIR_REPLACE: &'static str = "\n        [$1, $2]";
 const NUM_NAME_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"Num([0123456789])").unwrap());
 const NUM_NAME_REPLACE: &'static str = "$1";
 
-/// Renames Egui number key names to just the number. Makes the representation more compact.
+/// Renames Egui number key names to just the number (which is easier to read) and makes the representation more compact.
 fn prettier_json(text: String) -> String {
     let pass1 = LEAF_PAIR_FIND.replace_all(&text, LEAF_PAIR_REPLACE);
     let pass2 = NUM_NAME_FIND.replace_all(&pass1, NUM_NAME_REPLACE);
     pass2.to_string()
 }
-
-// // Must run before trailing comma as this will add trailing commas
-// const MISSING_COMMA_FIND: LazyCell<Regex> =
-//     LazyCell::new(|| Regex::new(r#"(\[\".+\", \".+\"\])\r?\n"#).unwrap());
-// const MISSING_COMMA_REPLACE: &'static str = "$1,\n";
-
-// const TRAILING_COMMA_FIND: LazyCell<Regex> =
-//     LazyCell::new(|| Regex::new(r",(\r?\n *[\]\}])").unwrap());
-// const TRAILING_COMMA_REPLACE: &'static str = "$1";
 
 const NUM_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r#""([0123456789])""#).unwrap());
 const NUM_REPLACE: &'static str = "\"Num$1\"";
@@ -131,7 +122,7 @@ impl Ksf {
         f.chain(d).all_unique()
     }
 
-    pub fn template_ksf() -> Ksf {
+    pub fn example_ksf() -> Ksf {
         serde_json::from_str(
             r#"{
                 "frequency": [
@@ -211,13 +202,13 @@ impl KsfData {
 
     pub fn to_json(&self) -> Result<String> {
         let raw_json =
-            serde_json::to_string_pretty(&self).context("unable to convert ksf to json")?;
+            serde_json::to_string_pretty(&self).context("unable to convert KsfData to json")?;
         Ok(prettier_json(raw_json))
     }
 
     pub fn initial_file() -> KsfData {
         let mut data = KsfData::default();
-        data.insert(String::from("Template"), Ksf::template_ksf());
+        data.insert(String::from("Example"), Ksf::example_ksf());
         data
     }
 }

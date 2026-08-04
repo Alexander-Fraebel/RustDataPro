@@ -63,6 +63,6 @@ impl ClientData {
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self).context("unable to convert client data to json")
+        serde_json::to_string_pretty(&self).context("unable to convert ClientData to json")
     }
 }

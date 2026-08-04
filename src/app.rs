@@ -6,7 +6,7 @@ use crate::{
     },
     data::{AssessmentsData, ClientData, Data, KsfData},
     display_control::{DisplayControl, Page},
-    ioa::IoaPage,
+    ioa::{IoaPage, validate_files::validate_files},
     pages::{
         EditAssessments, EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage,
         Settings, Sidebar, Timers,
@@ -216,29 +216,62 @@ impl DataPro {
         }
     }
 
-    /// Path to client_data.txt if a client has been chosen.
-    pub fn path_to_client_data(&self) -> Result<PathBuf> {
-        self.path_to(CLIENT_DATA_FILE_NAME)
+    /// Path to client_data.txt if a client has been chosen or the default directory otherwise.
+    pub fn path_to_client_data(&self) -> PathBuf {
+        self.path_to(CLIENT_DATA_FILE_NAME).unwrap_or_else(|_| {
+            DEFAULT_DIRECTORY
+                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                .clone()
+        })
     }
 
-    /// Path to assessments.txt if a client has been chosen.
-    pub fn path_to_assessments(&self) -> Result<PathBuf> {
-        self.path_to(ASSESSMENTS_FILE_NAME)
+    /// Path to assessments.txt if a client has been chosen or the default directory otherwise.
+    pub fn path_to_assessments(&self) -> PathBuf {
+        self.path_to(ASSESSMENTS_FILE_NAME).unwrap_or_else(|_| {
+            DEFAULT_DIRECTORY
+                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                .clone()
+        })
     }
 
-    /// Path to ksf_data.txt if a client has been chose.
-    pub fn path_to_ksf_data(&self) -> Result<PathBuf> {
-        self.path_to(KSF_FILE_NAME)
+    /// Path to ksf_data.txt if a client has been chosen or the default directory otherwise.
+    pub fn path_to_ksf_data(&self) -> PathBuf {
+        self.path_to(KSF_FILE_NAME).unwrap_or_else(|_| {
+            DEFAULT_DIRECTORY
+                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                .clone()
+        })
     }
 
-    /// Path to Session Records if a client has been chose.
-    pub fn path_to_sessions_data(&self) -> Result<PathBuf> {
-        self.path_to(SESSION_DATA_FOLDER_NAME)
+    /// Path to Session Records if a client has been chosen or the default directory otherwise.
+    pub fn path_to_session_records(&self) -> PathBuf {
+        self.path_to(SESSION_DATA_FOLDER_NAME).unwrap_or_else(|_| {
+            DEFAULT_DIRECTORY
+                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                .clone()
+        })
     }
 
-    /// Path to IOA Data if a client has been chose.
-    pub fn path_to_ioa_data(&self) -> Result<PathBuf> {
-        self.path_to(IOA_DATA_FOLDER_NAME)
+    /// Path to IOA Data if a client has been chosen or the default directory otherwise.
+    pub fn path_to_ioa_data(&self) -> PathBuf {
+        self.path_to(IOA_DATA_FOLDER_NAME).unwrap_or_else(|_| {
+            DEFAULT_DIRECTORY
+                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                .clone()
+        })
+    }
+
+    pub fn save_ioa_data(&mut self) -> Result<()> {
+        let path = self.path_to_ioa_data();
+        let ioa_page = &mut self.ioa_page;
+        if !ioa_page.ioa_finished {
+            validate_files(&ioa_page.prim_data, &ioa_page.reli_data)?;
+            ioa_page.calculate_ioa(&path)?;
+            ioa_page.ioa_finished = true;
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("IoaData already saved"))
+        }
     }
 
     pub fn overwrite_file(&self, name: &str, data: &str) -> Result<()> {
@@ -300,7 +333,11 @@ impl DataPro {
                 .get_or_init(|| HARDCODED_ROOT_DIR.into())
                 .clone(),
         );
-        self.ioa_page.reset();
+        self.ioa_page.prepare(
+            DEFAULT_DIRECTORY
+                .get_or_init(|| HARDCODED_ROOT_DIR.into())
+                .clone(),
+        );
     }
 
     pub fn load_client(&mut self, path: &PathBuf) {
@@ -350,11 +387,6 @@ impl DataPro {
                     ),
                 }
                 self.choose_first_assessment_and_condition();
-
-                // Update the IOA page
-                self.ioa_page.reset();
-                self.ioa_page.file_dialog =
-                    FileDialog::new().initial_directory(path.join(SESSION_DATA_FOLDER_NAME));
             }
             Err(e) => {
                 self.unload_client();

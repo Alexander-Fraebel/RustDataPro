@@ -4,7 +4,6 @@ use crate::{
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
         excel_output::save_excel_workbook,
-        validate_files::validate_files,
     },
     ui_elements::DataProUiElements,
     utils::{quick_file_name, time_stamp, windows_error_dialog},
@@ -19,30 +18,43 @@ use std::{
 };
 
 pub struct IoaPage {
-    pub file_dialog: FileDialog,
     pub prim_data: Vec<(OutputData, PathBuf)>,
     pub reli_data: Vec<(OutputData, PathBuf)>,
     pub ioa_finished: bool,
     pub strict: bool,
     pub none_val: f32,
+    pub select_file_dialog: FileDialog,
+    pub select_path: PathBuf,
+    pub save_file_dialog: FileDialog,
+    pub save_new_path: PathBuf,
 }
 
 impl Default for IoaPage {
     fn default() -> Self {
         Self {
-            file_dialog: FileDialog::new(),
             prim_data: Vec::new(),
             reli_data: Vec::new(),
             ioa_finished: false,
             strict: true,
             none_val: f32::NAN,
+            select_file_dialog: FileDialog::new(),
+            select_path: PathBuf::default(),
+            save_file_dialog: FileDialog::new(),
+            save_new_path: PathBuf::default(),
         }
     }
 }
 
 impl IoaPage {
-    pub fn reset(&mut self) {
-        *self = Self::default()
+    // pub fn reset(&mut self) {
+    //     *self = Self::default()
+    // }
+
+    pub fn prepare(&mut self, path_to_file: PathBuf) {
+        self.select_path = path_to_file.clone();
+        self.select_file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
+        self.save_new_path = path_to_file.clone();
+        self.save_file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
     }
 
     fn interval_ioa(&self, ioa_data: &mut IoaData) {
@@ -115,14 +127,14 @@ impl IoaPage {
         Ok(())
     }
 
-    fn calculate_ioa(&mut self, ioa_directory: &PathBuf) -> Result<()> {
+    pub fn calculate_ioa(&mut self, ioa_directory: &PathBuf) -> Result<()> {
         let mut ioa_data = IoaData::from_ksf(&self.prim_data[0].0.ksf);
 
         self.interval_ioa(&mut ioa_data);
         self.frequency_ioa(&mut ioa_data)?;
         self.duration_ioa(&mut ioa_data)?;
 
-        ioa_data.finalize(self.prim_data.len() as f32);
+        ioa_data.normalize(self.prim_data.len() as f32)?;
         let path = Path::new(ioa_directory)
             .join(format!("reliability_{}", time_stamp()))
             .to_string_lossy()
@@ -138,9 +150,9 @@ impl IoaPage {
     }
 
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
-        app.ioa_page.file_dialog.update(ui.ctx());
-        if let Some(bufs) = app.ioa_page.file_dialog.take_picked_multiple() {
-            app.ioa_page.reset();
+        app.ioa_page.select_file_dialog.update(ui.ctx());
+        if let Some(bufs) = app.ioa_page.select_file_dialog.take_picked_multiple() {
+            app.ioa_page.prepare(app.path_to_ioa_data());
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match OutputData::from_file(buf.as_path()) {
@@ -154,14 +166,20 @@ impl IoaPage {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading("Calculate IOA for ");
-                app.client_picker(ui);
-            });
+            ui.heading("Calculate IOA for ");
+            app.client_picker(ui);
             ui.add_space(10.0);
 
+            ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
+                ui.label("Save File To:");
+                ui.directory_picker(
+                    &mut app.ioa_page.save_file_dialog,
+                    &app.ioa_page.save_new_path,
+                );
+            });
+
             if ui.large_button("Select Data").clicked() {
-                app.ioa_page.file_dialog.pick_multiple();
+                app.ioa_page.select_file_dialog.pick_multiple();
             }
             ui.add_space(5.0);
             ui.horizontal(|ui| {
@@ -193,28 +211,13 @@ impl IoaPage {
             ui.add_space(20.0);
 
             if ui.large_green_button("Calculate IOA").clicked() {
-                if !app.ioa_page.ioa_finished {
-                    app.ioa_page.ioa_finished = false;
-                    match app.path_to_ioa_data() {
-                        Ok(path) => {
-                            match validate_files(&app.ioa_page.prim_data, &app.ioa_page.reli_data) {
-                                Ok(_) => match app.ioa_page.calculate_ioa(&path) {
-                                    Ok(_) => {
-                                        app.ioa_page.ioa_finished = true;
-                                    }
-                                    Err(e) => windows_error_dialog(e),
-                                },
-                                Err(e) => windows_error_dialog(e),
-                            }
-                        }
-                        Err(e) => windows_error_dialog(e),
-                    };
-                }
+                app.save_ioa_data()
+                    .unwrap_or_else(|e| windows_error_dialog(e))
             }
 
             ui.add_space(5.0);
 
-            ui.return_button(app, |app| app.ioa_page.reset());
+            ui.return_button(app, |_app| ());
             ui.add_space(5.0);
 
             if app.ioa_page.ioa_finished {
