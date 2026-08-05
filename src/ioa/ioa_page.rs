@@ -26,7 +26,7 @@ pub struct IoaPage {
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
-    pub save_new_path: PathBuf,
+    pub save_path: PathBuf,
 }
 
 impl Default for IoaPage {
@@ -40,7 +40,7 @@ impl Default for IoaPage {
             select_file_dialog: FileDialog::new(),
             select_path: PathBuf::default(),
             save_file_dialog: FileDialog::new(),
-            save_new_path: PathBuf::default(),
+            save_path: PathBuf::default(),
         }
     }
 }
@@ -50,7 +50,7 @@ impl IoaPage {
         *self = Self::default();
         self.select_path = select_path.clone();
         self.select_file_dialog = FileDialog::new().initial_directory(select_path.clone());
-        self.save_new_path = save_new_path.clone();
+        self.save_path = save_new_path.clone();
         self.save_file_dialog = FileDialog::new().initial_directory(save_new_path.clone());
     }
 
@@ -148,6 +148,16 @@ impl IoaPage {
 
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
         app.ioa_page.select_file_dialog.update(ui.ctx());
+        if let Some(pathbuf) = app.ioa_page.select_file_dialog.take_picked() {
+            app.ioa_page
+                .prepare(pathbuf, app.ioa_page.save_path.clone());
+        }
+
+        app.ioa_page.save_file_dialog.update(ui.ctx());
+        if let Some(pathbuf) = app.ioa_page.save_file_dialog.take_picked() {
+            app.ioa_page
+                .prepare(app.ioa_page.select_path.clone(), pathbuf);
+        }
         if let Some(bufs) = app.ioa_page.select_file_dialog.take_picked_multiple() {
             app.ioa_page
                 .prepare(app.path_to_session_records(), app.path_to_ioa_data());
@@ -171,17 +181,14 @@ impl IoaPage {
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Select Files From:");
                 ui.directory_picker(
-                    &mut app.ioa_page.save_file_dialog,
+                    &mut app.ioa_page.select_file_dialog,
                     &app.ioa_page.select_path,
                 );
             });
             ui.add_space(10.0);
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save IOA To:");
-                ui.directory_picker(
-                    &mut app.ioa_page.save_file_dialog,
-                    &app.ioa_page.save_new_path,
-                );
+                ui.directory_picker(&mut app.ioa_page.save_file_dialog, &app.ioa_page.save_path);
             });
             ui.add_space(15.0);
 

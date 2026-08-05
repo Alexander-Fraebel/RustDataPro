@@ -109,7 +109,7 @@ fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
         }
         // Write the file
         if write_succeeded {
-            match overwrite_file(Ok(app.edit_ksfs.save_new_path.clone()), &output_json) {
+            match overwrite_file(Ok(app.edit_ksfs.save_path.clone()), &output_json) {
                 Ok(_) => {
                     app.edit_ksfs.save_finished = true;
                     app.data.ksfs = temp_ksf_data
@@ -227,14 +227,14 @@ pub struct EditKsfData {
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
-    pub save_new_path: PathBuf,
+    pub save_path: PathBuf,
 }
 
 impl EditKsfData {
     pub fn prepare(&mut self, data: &Data, path_to_file: PathBuf) {
         *self = Self::default();
 
-        self.save_new_path = path_to_file.clone();
+        self.save_path = path_to_file.clone();
         self.file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
 
         // If there is a client loaded rebuild the UI with the client information
@@ -258,7 +258,7 @@ impl EditKsfData {
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         app.edit_ksfs.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = app.edit_ksfs.file_dialog.take_picked() {
-            app.edit_ksfs.save_new_path = pathbuf;
+            app.edit_ksfs.save_path = pathbuf;
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
@@ -271,7 +271,7 @@ impl EditKsfData {
 
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
-                ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.save_new_path);
+                ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.save_path);
             });
             ui.add_space(10.0);
 

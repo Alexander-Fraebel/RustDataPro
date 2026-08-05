@@ -146,7 +146,7 @@ fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
                 match temp_assessments_data.to_json() {
                     Ok(json) => {
                         if let Err(e) =
-                            overwrite_file(Ok(app.edit_assessments.save_new_path.clone()), &json)
+                            overwrite_file(Ok(app.edit_assessments.save_path.clone()), &json)
                         {
                             windows_error_dialog(e)
                         } else {
@@ -173,20 +173,20 @@ fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
     });
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct EditAssessments {
     pub user_input: Vec<(String, String)>,
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
-    pub save_new_path: PathBuf,
+    pub save_path: PathBuf,
 }
 
 impl EditAssessments {
     pub fn prepare(&mut self, data: &Data, path_to_file: PathBuf) {
-        self.user_input.clear();
+        *self = Self::default();
 
-        self.save_new_path = path_to_file.clone();
+        self.save_path = path_to_file.clone();
         self.file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
 
         // If there is a client loaded rebuild the UI with the client information
@@ -195,11 +195,7 @@ impl EditAssessments {
                 self.user_input
                     .push((assessment.clone(), conds.iter().join(", ")));
             }
-        } else {
-            self.file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
-            self.save_new_path = path_to_file.clone();
         }
-
         if self.user_input.is_empty() {
             self.user_input.push(Default::default());
         }
@@ -208,7 +204,7 @@ impl EditAssessments {
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         app.edit_assessments.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = app.edit_assessments.file_dialog.take_picked() {
-            app.edit_assessments.save_new_path = pathbuf;
+            app.edit_assessments.save_path = pathbuf;
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
@@ -221,7 +217,7 @@ impl EditAssessments {
 
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
-                ui.directory_picker(&mut app.edit_assessments.file_dialog, &app.edit_assessments.save_new_path);
+                ui.directory_picker(&mut app.edit_assessments.file_dialog, &app.edit_assessments.save_path);
             });
             ui.add_space(10.0);
             if app.data.client_loaded() {

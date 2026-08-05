@@ -49,7 +49,7 @@ impl Default for DataPro {
         // provided directory should always be valid on Windows and we are not handling any other OS
         let root_directory = DEFAULT_DIRECTORY.get_or_init(|| HARDCODED_ROOT_DIR.into());
 
-        // If the default directory doesn't exist crate it.
+        // If the default directory doesn't exist create it.
         if !root_directory.exists() {
             if let Err(e) =
                 std::fs::create_dir(&root_directory).context("cannot create root directory")
@@ -58,7 +58,7 @@ impl Default for DataPro {
             };
         }
 
-        Self {
+        let mut app = Self {
             data: Data::default(),
 
             display_info: DisplayControl {
@@ -82,7 +82,11 @@ impl Default for DataPro {
             new_client_page: NewClient::default(),
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
-        }
+        };
+
+        // Initialize pages by unloading
+        app.unload_client();
+        app
     }
 }
 
@@ -351,7 +355,7 @@ impl DataPro {
                     Ok(ksf_data) => {
                         self.data.ksfs = ksf_data;
                         self.edit_ksfs.prepare(&self.data, ksf_path.clone());
-                        self.edit_ksfs.save_new_path = ksf_path.clone();
+                        self.edit_ksfs.save_path = ksf_path.clone();
                         self.edit_ksfs.file_dialog = FileDialog::new().initial_directory(ksf_path)
                     }
                     Err(e) => {
@@ -369,7 +373,7 @@ impl DataPro {
                         self.data.assessments = assessments_data;
                         self.edit_assessments
                             .prepare(&self.data, assessments_path.clone());
-                        self.edit_assessments.save_new_path = assessments_path.clone();
+                        self.edit_assessments.save_path = assessments_path.clone();
                         self.edit_assessments.file_dialog =
                             FileDialog::new().initial_directory(assessments_path)
                     }
