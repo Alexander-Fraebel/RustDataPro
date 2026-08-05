@@ -60,62 +60,7 @@ fn assessment_scroller(
         })
 }
 
-fn edit_client_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
-    ui.add_space(10.0);
-
-    ui.horizontal(|ui| {
-        ui.vertical(|ui| assessment_scroller(app, ui));
-        ui.add_space(30.0);
-        ui.vertical(|ui| {
-            ui.add_space(30.0);
-            if ui.button("Add Assessment").clicked() {
-                app.edit_assessments
-                    .user_input
-                    .push((String::new(), String::new()));
-            }
-            ui.add_space(10.0);
-
-            if ui.large_green_button("Save").clicked() {
-                // Update AssessmentsData
-                app.data.assessments.clear();
-                for (assessment, conditions) in app.edit_assessments.user_input.iter() {
-                    if !assessment.trim().is_empty() {
-                        let conditions_vec: IndexSet<String> = conditions
-                            .split(",")
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty())
-                            .collect();
-                        app.data
-                            .assessments
-                            .insert(assessment.clone(), conditions_vec);
-                    }
-                }
-                app.choose_first_assessment_and_condition();
-                if let Err(e) = app.overwrite_assessments() {
-                    windows_error_dialog(e)
-                } else {
-                    app.edit_assessments.save_finished = true;
-                }
-            }
-
-            if ui.large_red_button("Return").clicked() {
-                app.display_info.go_to_prep_session();
-                app.edit_assessments.save_finished = false;
-            }
-
-            ui.add_space(10.0);
-            if app.edit_assessments.save_finished {
-                ui.monospace(
-                    RichText::new("Assessments Updated!")
-                        .heading()
-                        .color(Color32::GREEN),
-                );
-            }
-        });
-    });
-}
-
-fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
+fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
     ui.add_space(10.0);
 
     ui.horizontal(|ui| {
@@ -163,11 +108,19 @@ fn new_assessments(app: &mut DataPro, ui: &mut egui::Ui) {
 
             ui.add_space(10.0);
             if app.edit_assessments.save_finished {
-                ui.monospace(
-                    RichText::new("Assessments Created!")
-                        .heading()
-                        .color(Color32::GREEN),
-                );
+                if app.data.client_loaded() {
+                    ui.monospace(
+                        RichText::new("Assessments Updated!")
+                            .heading()
+                            .color(Color32::GREEN),
+                    );
+                } else {
+                    ui.monospace(
+                        RichText::new("Assessments Created!")
+                            .heading()
+                            .color(Color32::GREEN),
+                    );
+                }
             }
         });
     });
@@ -220,11 +173,8 @@ impl EditAssessments {
                 ui.directory_picker(&mut app.edit_assessments.file_dialog, &app.edit_assessments.save_path);
             });
             ui.add_space(10.0);
-            if app.data.client_loaded() {
-                edit_client_assessments(app, ui)
-            } else {
-                new_assessments(app, ui)
-            }
+
+            assessments_controller(app, ui)
         });
     }
 }

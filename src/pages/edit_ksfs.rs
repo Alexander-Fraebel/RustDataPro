@@ -165,7 +165,7 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
         })
 }
 
-fn edit_client_ksf(app: &mut DataPro, ui: &mut egui::Ui) {
+fn ksf_controller(app: &mut DataPro, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ksf_scroller(app, ui);
@@ -184,38 +184,19 @@ fn edit_client_ksf(app: &mut DataPro, ui: &mut egui::Ui) {
             ui.add_space(10.0);
 
             if app.edit_ksfs.save_finished {
-                ui.monospace(
-                    RichText::new("KSF Updated!")
-                        .heading()
-                        .color(Color32::GREEN),
-                );
-            }
-        });
-    });
-}
-
-fn new_ksf_creator(app: &mut DataPro, ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.vertical(|ui| {
-            ksf_scroller(app, ui);
-        });
-        ui.add_space(30.0);
-        ui.vertical(|ui| {
-            ui.add_space(30.0);
-            if ui.button("Add KSF").clicked() {
-                app.edit_ksfs.user_input.push(Default::default());
-            }
-            ui.add_space(10.0);
-
-            save_button(app, ui);
-            ui.add_space(10.0);
-
-            if app.edit_ksfs.save_finished {
-                ui.monospace(
-                    RichText::new("KSF Created!")
-                        .heading()
-                        .color(Color32::GREEN),
-                );
+                if app.data.client_loaded() {
+                    ui.monospace(
+                        RichText::new("KSF Updated!")
+                            .heading()
+                            .color(Color32::GREEN),
+                    );
+                } else {
+                    ui.monospace(
+                        RichText::new("KSF Created!")
+                            .heading()
+                            .color(Color32::GREEN),
+                    );
+                }
             }
         });
     });
@@ -275,11 +256,7 @@ impl EditKsfData {
             });
             ui.add_space(10.0);
 
-            if app.data.client_loaded() {
-                edit_client_ksf(app, ui)
-            } else {
-                new_ksf_creator(app, ui)
-            }
+            ksf_controller(app,ui)
         });
     }
 }
