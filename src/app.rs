@@ -137,15 +137,15 @@ impl DataPro {
 
     pub fn client_picker(&mut self, ui: &mut egui::Ui) {
         let client_picker_text = match self.data.client_loaded() {
-            true => format!("{:>11}", self.data.client.id),
-            false => String::from("Pick Client"),
+            true => &self.data.client.id,
+            false => "Select Client",
         };
 
         egui::ComboBox::from_id_salt("client picker")
+            .width(200.0)
             .selected_text(
                 RichText::new(client_picker_text)
                     .size(ui.text_style_height(&egui::TextStyle::Heading))
-                    .monospace()
                     .strong(),
             )
             .show_ui(ui, |ui| {
@@ -343,10 +343,9 @@ impl DataPro {
             Ok(client) => {
                 // Clear all data
                 self.data.clear();
-
-                // Load the client
-                // We are always one session ahead of the last saved value
+                // Load the client data into ClientData
                 self.data.client = client;
+                // We are always one session ahead of the last saved value
                 self.data.client.current_session += 1;
 
                 // Load the KSF Data

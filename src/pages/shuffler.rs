@@ -25,7 +25,7 @@ fn view_shuffler(page: &mut RandomServices, ui: &mut Ui) {
 }
 
 pub struct RandomServices {
-    prng: StdRng, // ChaCha12 is more than enough for our purposes, initalized from SysRng
+    prng: StdRng, // StdRng is currently ChaCha12 initalized from SysRng, any similar rng is more than sufficient
     csv_list: String,
 }
 

@@ -1,7 +1,4 @@
-use crate::{
-    app::{DataPro, NO_CLIENT},
-    ui_elements::DataProUiElements,
-};
+use crate::{app::DataPro, ui_elements::DataProUiElements};
 use egui::{Ui, warn_if_debug_build};
 
 pub struct Sidebar {}
@@ -62,14 +59,8 @@ impl Sidebar {
                         ui.separator();
                         ui.add_space(10.0);
 
-                        if ui
-                            .large_button("Calculate IOA")
-                            .on_disabled_hover_text(NO_CLIENT)
-                            .clicked()
-                        {
+                        if ui.large_button("Calculate IOA").clicked() {
                             app.display_info.go_to_ioa();
-                            app.ioa_page
-                                .prepare(app.path_to_session_records(), app.path_to_ioa_data());
                         }
                         ui.add_space(5.0);
 

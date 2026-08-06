@@ -142,7 +142,6 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                         .add_sized(
                             (220.0, 18.0),
                             egui::TextEdit::singleline(name)
-                                .font(TextStyle::Monospace)
                                 .prefix(format!("{}) ", n + 1))
                                 .hint_text("KSF Name"),
                         )
@@ -213,8 +212,11 @@ pub struct EditKsfData {
 
 impl EditKsfData {
     pub fn prepare(&mut self, data: &Data, path_to_file: PathBuf) {
+        // Reset
         *self = Self::default();
 
+        // Load the path information
+        // This will be default information automatically if anything has gone wrong
         self.save_path = path_to_file.clone();
         self.file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
 
@@ -231,6 +233,7 @@ impl EditKsfData {
                 ));
             }
         }
+        // Ensure the UI is not empty
         if self.user_input.is_empty() {
             self.user_input.push(Default::default());
         }

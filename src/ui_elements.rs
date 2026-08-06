@@ -63,10 +63,7 @@ impl DataProUiElements for Ui {
     fn directory_picker(&mut self, file_dialog: &mut FileDialog, directory_name: &PathBuf) {
         if self
             .add(
-                egui::Button::new(
-                    egui::RichText::new(directory_name.to_string_lossy()).monospace(),
-                )
-                .truncate(),
+                egui::Button::new(egui::RichText::new(directory_name.to_string_lossy())).truncate(),
             )
             .on_hover_text(directory_name.to_string_lossy())
             .clicked()

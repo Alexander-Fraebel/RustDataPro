@@ -168,28 +168,25 @@ impl IoaPage {
                         DataType::Primary => app.ioa_page.prim_data.push((data, buf)),
                         DataType::Reliability => app.ioa_page.reli_data.push((data, buf)),
                     },
-                    Err(_) => (), //app.ioa_page.push_error(&e.to_string()),
+                    Err(_) => (),
                 }
             }
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading("Calculate IOA for ");
+            ui.heading("Calculate IOA");
             app.client_picker(ui);
+            ui.add_space(15.0);
+
+            ui.label("Select Files From:");
+            ui.directory_picker(
+                &mut app.ioa_page.select_file_dialog,
+                &app.ioa_page.select_path,
+            );
             ui.add_space(10.0);
 
-            ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
-                ui.label("Select Files From:");
-                ui.directory_picker(
-                    &mut app.ioa_page.select_file_dialog,
-                    &app.ioa_page.select_path,
-                );
-            });
-            ui.add_space(10.0);
-            ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
-                ui.label("Save IOA To:");
-                ui.directory_picker(&mut app.ioa_page.save_file_dialog, &app.ioa_page.save_path);
-            });
+            ui.label("Save IOA To:");
+            ui.directory_picker(&mut app.ioa_page.save_file_dialog, &app.ioa_page.save_path);
             ui.add_space(15.0);
 
             if ui.large_button("Select Data").clicked() {
@@ -199,8 +196,9 @@ impl IoaPage {
             ui.horizontal(|ui| {
                 ui.group(|ui| {
                     ui.vertical(|ui| {
-                        ui.label("Primary Data");
+                        ui.add_sized([110.0, 20.0], egui::Label::new("Primary Data"));
                         egui::containers::ScrollArea::vertical()
+                            .content_margin(10.0)
                             .id_salt("prim_info_area")
                             .show(ui, |ui| {
                                 for (_, path) in app.ioa_page.prim_data.iter() {
@@ -211,9 +209,10 @@ impl IoaPage {
                 });
                 ui.group(|ui| {
                     ui.vertical(|ui| {
-                        ui.label("Reliability Data");
+                        ui.add_sized([110.0, 20.0], egui::Label::new("Reliability Data"));
                         egui::containers::ScrollArea::vertical()
                             .id_salt("reli_info_area")
+                            .content_margin(10.0)
                             .show(ui, |ui| {
                                 for (_, path) in app.ioa_page.reli_data.iter() {
                                     ui.strong(format!("{}", quick_file_name(&path)));
