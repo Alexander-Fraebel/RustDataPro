@@ -1,5 +1,6 @@
 #[rustfmt::skip]
 pub mod edit_assessments;
+pub mod credits;
 pub mod edit_ksfs;
 pub mod new_client;
 pub mod prepare;

@@ -19,7 +19,7 @@ fn default_zoom() -> f32 {
     HARDCODED_ZOOM
 }
 
-fn default_root() -> PathBuf {
+fn default_root_dir() -> PathBuf {
     HARDCODED_ROOT_DIR.into()
 }
 
@@ -27,7 +27,7 @@ fn default_root() -> PathBuf {
 pub struct Config {
     #[serde(default = "default_zoom")]
     pub zoom: f32,
-    #[serde(default = "default_root")]
+    #[serde(default = "default_root_dir")]
     pub root_dir: PathBuf,
 }
 

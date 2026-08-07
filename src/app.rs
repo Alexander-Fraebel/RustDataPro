@@ -9,7 +9,7 @@ use crate::{
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         EditAssessments, EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage,
-        Settings, Sidebar, Timers,
+        Settings, Sidebar, Timers, credits::Credits,
     },
     utils::{date_time_string, overwrite_file, windows_error_dialog},
 };
@@ -425,6 +425,7 @@ impl eframe::App for DataPro {
             Page::CreateKsf => EditKsfData::view(self, ui),
             Page::CreateAssessments => EditAssessments::view(self, ui),
             Page::Settings => Settings::view(self, ui),
+            Page::Credits => Credits::view(self, ui),
         }
     }
 }

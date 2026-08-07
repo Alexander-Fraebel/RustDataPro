@@ -15,6 +15,7 @@ pub enum Page {
     CreateKsf,
     CreateAssessments,
     Settings,
+    Credits,
 }
 
 impl DisplayControl {
@@ -52,6 +53,11 @@ impl DisplayControl {
 
     pub fn go_to_settings(&mut self) {
         self.active_page = Page::Settings;
+        self.sidebar_open = false;
+    }
+
+    pub fn go_to_credits(&mut self) {
+        self.active_page = Page::Credits;
         self.sidebar_open = false;
     }
 
