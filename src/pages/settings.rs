@@ -1,4 +1,8 @@
-use crate::{app::DataPro, config::Config, ui_elements::DataProUiElements};
+use crate::{
+    app::DataPro,
+    config::{CONFIG_FILE_NAME, Config},
+    ui_elements::DataProUiElements,
+};
 use std::fs::File;
 
 pub struct Settings {}
@@ -36,6 +40,13 @@ impl Settings {
                 .unwrap();
                 std::io::Write::flush(&mut writer).unwrap();
             }
+            ui.label(format!(
+                "saves to:\n{}.{}",
+                std::env::current_dir()
+                    .unwrap_or_else(|_| "DIRECTORY_NOT_FOUND".into())
+                    .to_string_lossy(),
+                CONFIG_FILE_NAME
+            ));
             ui.add_space(10.0);
 
             ui.separator();
