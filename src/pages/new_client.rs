@@ -114,7 +114,7 @@ impl NewClient {
 
             ui.add_enabled_ui(!app.new_client_page.client.id.is_empty(), |ui| {
                 if ui
-                    .large_green_button("Save")
+                    .large_green_button("SAVE")
                     .on_disabled_hover_text("client must have an ID assigned")
                     .clicked()
                 {
@@ -127,10 +127,10 @@ impl NewClient {
                     }
                 }
             });
+            ui.add_space(5.0);
 
-            if ui.large_red_button("Return").clicked() {
-                app.display_info.go_to_prep_session();
-            }
+            ui.return_button(app, |_| {});
+            ui.add_space(5.0);
 
             if app.new_client_page.created {
                 ui.monospace(

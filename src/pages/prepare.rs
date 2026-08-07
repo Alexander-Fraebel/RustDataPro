@@ -37,11 +37,6 @@ impl PrepareSession {
                 .min_col_width(120.0)
                 .min_row_height(22.0)
                 .show(ui, |ui| {
-                    // For reasons of client privacy this is probably best not to display
-                    // ui.monospace("Client Name");
-                    // ui.monospace(&app.data.client.name);
-                    // ui.end_row();
-
                     ui.label("Location");
                     if ui
                         .text_edit_singleline(&mut app.data.client.location)
@@ -94,10 +89,7 @@ impl PrepareSession {
                                         .text_color(ui.visuals().error_fg_color)
                                         .interactive(false),
                                 )
-                                .on_hover_text(format!(
-                                    "{} is an invalid date\nformat date as YYYY-MM-DD",
-                                    app.data.client.date_of_admission
-                                ));
+                                .on_hover_text(&app.data.client.date_of_admission);
                                 app.prep_session.can_start_session = false;
                             }
                         }

@@ -66,12 +66,3 @@ impl Config {
             .context(format!("unable to create {}", CONFIG_FILE_NAME))
     }
 }
-
-// #[test]
-// fn create_config_file() {
-//     let config_file = File::create(&format!("config.json",)).unwrap();
-//     let mut writer = std::io::BufWriter::new(config_file);
-//     std::io::Write::write_all(&mut writer, Config::default().to_json().unwrap().as_bytes())
-//         .unwrap();
-//     std::io::Write::flush(&mut writer).unwrap();
-// }

@@ -121,8 +121,6 @@ fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
             }
         }
     }
-
-    ui.return_button(app, |app| app.edit_ksfs.save_finished = false);
 }
 
 fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::ScrollAreaOutput<()> {
@@ -180,6 +178,9 @@ fn ksf_controller(app: &mut DataPro, ui: &mut egui::Ui) {
             ui.add_space(10.0);
 
             save_button(app, ui);
+            ui.add_space(5.0);
+
+            ui.return_button(app, |app| app.edit_ksfs.save_finished = false);
             ui.add_space(10.0);
 
             if app.edit_ksfs.save_finished {

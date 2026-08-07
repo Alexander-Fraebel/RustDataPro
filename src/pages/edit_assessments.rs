@@ -103,10 +103,11 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
                     }
                 }
             }
+            ui.add_space(5.0);
 
             ui.return_button(app, |app| app.edit_assessments.save_finished = false);
-
             ui.add_space(10.0);
+
             if app.edit_assessments.save_finished {
                 if app.data.client_loaded() {
                     ui.monospace(

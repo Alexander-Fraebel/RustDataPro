@@ -227,11 +227,10 @@ impl IoaPage {
                 app.save_ioa_data()
                     .unwrap_or_else(|e| windows_error_dialog(e))
             }
-
             ui.add_space(5.0);
 
-            ui.return_button(app, |_app| ());
-            ui.add_space(5.0);
+            ui.return_button(app, |_| ());
+            ui.add_space(10.0);
 
             if app.ioa_page.ioa_finished {
                 ui.monospace(
