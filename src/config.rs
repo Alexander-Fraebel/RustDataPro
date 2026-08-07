@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read, path::PathBuf, sync::OnceLock};
 
-pub const HARDCODED_ZOOM: f32 = 1.5;
+pub const HARDCODED_ZOOM: f32 = 1.0;
 pub const HARDCODED_ROOT_DIR: &'static str = "C:\\DataProClients";
 
 pub static DEFAULT_DIRECTORY: OnceLock<PathBuf> = OnceLock::new();
