@@ -42,18 +42,25 @@ pub struct DataPro {
     pub new_client_page: NewClient,
     pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
+    pub settings: Settings,
 }
 
 impl Default for DataPro {
     fn default() -> Self {
         // provided directory should always be valid on Windows and we are not handling any other OS
-        let root_directory = DEFAULT_DIRECTORY.get_or_init(|| HARDCODED_ROOT_DIR.into());
+
+        let root_dir = DEFAULT_DIRECTORY
+            .get_or_init(|| HARDCODED_ROOT_DIR.into())
+            .clone();
+
+        let config = Config {
+            zoom: *DEFAULT_ZOOM.get_or_init(|| HARDCODED_ZOOM),
+            root_dir: root_dir.clone(),
+        };
 
         // If the default directory doesn't exist create it.
-        if !root_directory.exists() {
-            if let Err(e) =
-                std::fs::create_dir(&root_directory).context("cannot create root directory")
-            {
+        if !root_dir.exists() {
+            if let Err(e) = std::fs::create_dir(&root_dir).context("cannot create root directory") {
                 windows_error_dialog(e);
             };
         }
@@ -66,11 +73,10 @@ impl Default for DataPro {
                 timers_open: false,
                 random_open: false,
                 sidebar_open: true,
-                zoom: *DEFAULT_ZOOM.get_or_init(|| HARDCODED_ZOOM),
             },
 
-            pick_root_directory: FileDialog::default().initial_directory(root_directory.clone()),
-            root_directory: root_directory.clone(),
+            pick_root_directory: FileDialog::default().initial_directory(root_dir.clone()),
+            root_directory: root_dir.clone(),
 
             randomness_page: RandomServices::default(),
             timers: Timers::default(),
@@ -82,6 +88,10 @@ impl Default for DataPro {
             new_client_page: NewClient::default(),
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
+            settings: Settings {
+                config,
+                default_root_dir_string: root_dir.clone().to_string_lossy().to_string(),
+            },
         };
 
         // Initialize pages by unloading
@@ -92,12 +102,12 @@ impl Default for DataPro {
 
 impl DataPro {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Load the config file information before the application loads
         let configs = Config::from_current_dir();
-        DEFAULT_DIRECTORY
-            .set(configs.root_dir)
-            .expect("failed to set default directory");
+        DEFAULT_DIRECTORY.get_or_init(|| configs.root_dir);
         cc.egui_ctx
             .set_pixels_per_point(*DEFAULT_ZOOM.get_or_init(|| configs.zoom));
+
         cc.egui_ctx.set_visuals(Visuals::dark());
 
         // Custom monospace font

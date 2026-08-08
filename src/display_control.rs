@@ -3,7 +3,6 @@ pub struct DisplayControl {
     pub timers_open: bool,
     pub random_open: bool,
     pub sidebar_open: bool,
-    pub zoom: f32,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

@@ -1,13 +1,23 @@
 use crate::{
     app::DataPro,
-    config::{CONFIG_FILE_NAME, Config},
+    config::{CONFIG_FILE_NAME, Config, path_to_config_file},
     ui_elements::DataProUiElements,
+    utils::{overwrite_file, windows_error_dialog},
 };
-use std::fs::File;
+use anyhow::Result;
 
-pub struct Settings {}
+#[derive(Default)]
+pub struct Settings {
+    pub config: Config,
+    pub default_root_dir_string: String,
+}
 
 impl Settings {
+    pub fn update_config_file(&mut self) -> Result<()> {
+        self.config.root_dir = self.default_root_dir_string.clone().into();
+        overwrite_file(path_to_config_file(), &self.config.to_json()?)
+    }
+
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
@@ -15,36 +25,30 @@ impl Settings {
                 ui.label("UI Scaling");
                 if ui
                     .add(
-                        egui::DragValue::new(&mut app.display_info.zoom)
+                        egui::DragValue::new(&mut app.settings.config.zoom)
                             .range(1.0..=2.0)
                             .speed(0.1)
                             .fixed_decimals(1),
                     )
                     .lost_focus()
                 {
-                    ui.ctx().set_pixels_per_point(app.display_info.zoom);
+                    ui.ctx().set_pixels_per_point(app.settings.config.zoom);
                 }
             });
             ui.add_space(10.0);
 
-            ui.separator();
-            ui.add_space(10.0);
+            ui.label("Default Root Directory");
+            ui.text_edit_singleline(&mut app.settings.default_root_dir_string);
 
             if ui.large_blue_button("Create Config File").clicked() {
-                let config_file = File::create("config.json").unwrap();
-                let mut writer = std::io::BufWriter::new(config_file);
-                std::io::Write::write_all(
-                    &mut writer,
-                    Config::default().to_json().unwrap().as_bytes(),
-                )
-                .unwrap();
-                std::io::Write::flush(&mut writer).unwrap();
+                app.settings
+                    .update_config_file()
+                    .unwrap_or_else(|e| windows_error_dialog(e))
             }
             ui.label(format!(
                 "saves to:\n{}.{}",
-                std::env::current_dir()
-                    .unwrap_or_else(|_| "DIRECTORY_NOT_FOUND".into())
-                    .to_string_lossy(),
+                path_to_config_file()
+                    .map_or("NOT FOUND".into(), |pb| pb.to_string_lossy().to_string()),
                 CONFIG_FILE_NAME
             ));
             ui.add_space(10.0);
@@ -52,7 +56,11 @@ impl Settings {
             ui.separator();
             ui.add_space(10.0);
 
-            ui.return_button(app, |_| ());
+            ui.return_button(app, |app| {
+                app.settings
+                    .update_config_file()
+                    .unwrap_or_else(|e| windows_error_dialog(e))
+            });
         });
     }
 }
