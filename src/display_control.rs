@@ -3,6 +3,7 @@ pub struct DisplayControl {
     pub timers_open: bool,
     pub random_open: bool,
     pub sidebar_open: bool,
+    pub debug_open: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -15,7 +16,6 @@ pub enum Page {
     CreateAssessments,
     Settings,
     Credits,
-    Debug,
 }
 
 impl DisplayControl {
@@ -61,9 +61,8 @@ impl DisplayControl {
         self.sidebar_open = false;
     }
 
-    pub fn go_to_debug(&mut self) {
-        self.active_page = Page::Debug;
-        self.sidebar_open = false;
+    pub fn toggle_debug_display(&mut self) {
+        self.debug_open = !self.debug_open;
     }
 
     pub fn toggle_timer_display(&mut self) {

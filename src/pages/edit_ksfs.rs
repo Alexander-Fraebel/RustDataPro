@@ -90,10 +90,8 @@ fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
             }
         }
         // Check if each KSF is valid
-        if let Err(name) = temp_ksf_data.all_keys_unique() {
-            windows_error_dialog(anyhow::anyhow!(
-                "the KSF named {name} does not have unique keys",
-            ));
+        if let Err(e) = temp_ksf_data.all_keys_unique() {
+            windows_error_dialog(e);
             write_succeeded = false;
             app.edit_ksfs.save_finished = false;
         }
@@ -115,7 +113,7 @@ fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
                     app.data.ksfs = temp_ksf_data
                 }
                 Err(e) => {
-                    windows_error_dialog(e.context("error while saving"));
+                    windows_error_dialog(e.context("error while saving KsfData"));
                     app.edit_ksfs.save_finished = false;
                 }
             }

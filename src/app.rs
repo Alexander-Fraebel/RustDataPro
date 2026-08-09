@@ -48,7 +48,6 @@ pub struct DataPro {
 impl Default for DataPro {
     fn default() -> Self {
         // provided directory should always be valid on Windows and we are not handling any other OS
-
         let root_dir = DEFAULT_DIRECTORY
             .get_or_init(|| HARDCODED_ROOT_DIR.into())
             .clone();
@@ -73,6 +72,7 @@ impl Default for DataPro {
                 timers_open: false,
                 random_open: false,
                 sidebar_open: true,
+                debug_open: false,
             },
 
             pick_root_directory: FileDialog::default().initial_directory(root_dir.clone()),
@@ -403,6 +403,7 @@ impl eframe::App for DataPro {
         // ### Windows ###
         Timers::view(self, ui);
         RandomServices::view(self, ui);
+        DebugPage::view(self, ui);
 
         // ### Top Bar ###
         // To go fully across it must be specified before any other panel
@@ -431,7 +432,6 @@ impl eframe::App for DataPro {
             Page::CreateAssessments => EditAssessments::view(self, ui),
             Page::Settings => Settings::view(self, ui),
             Page::Credits => Credits::view(self, ui),
-            Page::Debug => DebugPage::view(self, ui),
         }
     }
 }

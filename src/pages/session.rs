@@ -185,15 +185,17 @@ impl SessionPage {
                         } else {
                             timer.unstop();
                         }
+                        self.unpress_available = false;
+                        return;
                     }
                 }
                 for (counter, key, _) in self.freq_keys.iter_mut() {
                     if key == &removed_key {
                         *counter = counter.saturating_sub(1);
+                        return;
                     }
                 }
             };
-            self.unpress_available = false;
         }
     }
 
@@ -233,49 +235,6 @@ impl SessionPage {
         self.increment_current_session(data, root_directory)?;
         Ok(())
     }
-
-    // /// Write the output data into a human readable format.
-    // fn write_output_pretty(&self, data: &Data) -> String {
-    //     let mut output = String::new();
-
-    //     output.push_str("---Session---\n");
-    //     output.push_str(&data.client.to_string());
-    //     output.push('\n');
-    //     output.push_str(&format!(
-    //         "\nStart {}\nDuration {:.1}\n",
-    //         date_time_string(&self.session_start),
-    //         self.session_timer.total_time()
-    //     ));
-    //     output.push('\n');
-    //     output.push_str(&data.session.to_string());
-
-    //     output.push_str("\n\n--Duration--\n");
-
-    //     for (timer, bouts, _key, desc) in self.dura_keys.iter() {
-    //         output.push_str(&format!(
-    //             "{} {:.1} ({} bouts)\n",
-    //             desc,
-    //             timer.saved_time(),
-    //             bouts
-    //         ));
-    //     }
-
-    //     output.push_str("\n--Frequency--\n");
-    //     for (counter, _, desc) in self.freq_keys.iter() {
-    //         output.push_str(&format!("{} {}\n", desc, counter));
-    //     }
-
-    //     output.push_str("\n--Raw Inputs--\n");
-    //     output.push_str(
-    //         &self
-    //             .timeline
-    //             .iter()
-    //             .map(|(k, t)| format!("{} {:.1}", k.name(), t))
-    //             .join("\n"),
-    //     );
-
-    //     output
-    // }
 
     /// Write the output data into a JSON format. Not especially human readable.
     fn write_output_json(&self, data: &Data) -> Result<String> {
@@ -491,7 +450,6 @@ impl SessionPage {
                         } else {
                             view_simple_timer(ui, &mut app.session.timer);
                         }
-                        ui.debug_fps_viewer();
                     });
                 });
             });

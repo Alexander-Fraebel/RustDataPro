@@ -43,7 +43,7 @@ impl Sidebar {
                                 )
                                 .clicked()
                             {
-                                app.display_info.go_to_debug();
+                                app.display_info.toggle_debug_display();
                             }
                             ui.add_space(5.0);
                         }

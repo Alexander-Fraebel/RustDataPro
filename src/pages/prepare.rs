@@ -296,6 +296,7 @@ impl PrepareSession {
     }
 
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
+        // TODO: This probably doesn't need to run every frame
         app.prep_session.can_start_session = app.ready_to_start_session();
 
         egui::CentralPanel::default().show(ui, |ui| {

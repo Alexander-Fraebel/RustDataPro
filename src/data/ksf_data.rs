@@ -110,7 +110,7 @@ impl Ksf {
         )
     }
 
-    /// Create an cloned IndexMap from the contents.
+    /// Create an IndexMap by cloning the contents.
     pub fn create_map(&self) -> IndexMap<Key, String> {
         let (f, d) = self.pairs();
         IndexMap::from_iter(f.chain(d).cloned())
@@ -185,7 +185,9 @@ impl KsfData {
     pub fn all_keys_unique(&self) -> Result<()> {
         for (name, ksf) in self.iter() {
             if !ksf.keys_unique() {
-                return Err(anyhow::anyhow!("{}", name));
+                return Err(anyhow::anyhow!(
+                    "the KSF named `{name}` uses a key more than once"
+                ));
             }
         }
         Ok(())

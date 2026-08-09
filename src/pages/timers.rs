@@ -1,7 +1,6 @@
 use crate::{
     app::DataPro,
     data::{Timer, view_simple_countdown_timer, view_simple_timer},
-    ui_elements::DataProUiElements,
     utils::ClickedKeys,
 };
 use egui::{
@@ -84,8 +83,6 @@ impl Timers {
 
         egui::Window::new("Timers").open(open).show(ui, |ui| {
             ui.add_space(10.0);
-
-            ui.debug_fps_viewer();
 
             ui.strong("Controls:");
             ui.label(
