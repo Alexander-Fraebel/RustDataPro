@@ -220,7 +220,7 @@ impl PrepareSession {
                         .selected_text(condition_text)
                         .show_ui(ui, |ui| {
                             if let Some(conds) =
-                                app.data.assessments.get(app.data.chosen_assessment())
+                                app.data.assessments.get(app.data.active_assessment())
                             {
                                 for cond in conds {
                                     ui.selectable_value(

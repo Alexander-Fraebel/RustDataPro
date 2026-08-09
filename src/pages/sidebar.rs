@@ -31,6 +31,23 @@ impl Sidebar {
                         ui.separator();
                         ui.add_space(10.0);
 
+                        #[cfg(debug_assertions)]
+                        {
+                            if ui
+                                .add_sized(
+                                    crate::ui_elements::DEFAULT_LARGE_BUTTOM_DIMS,
+                                    egui::Button::new(
+                                        egui::RichText::new("DEBUG")
+                                            .color(ui.visuals().warn_fg_color),
+                                    ),
+                                )
+                                .clicked()
+                            {
+                                app.display_info.go_to_debug();
+                            }
+                            ui.add_space(5.0);
+                        }
+
                         if ui.large_button("Settings").clicked() {
                             app.display_info.go_to_settings();
                         }

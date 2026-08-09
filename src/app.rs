@@ -9,7 +9,7 @@ use crate::{
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         EditAssessments, EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage,
-        Settings, Sidebar, Timers, credits::Credits,
+        Settings, Sidebar, Timers, credits::Credits, debug_page::DebugPage,
     },
     utils::{date_time_string, overwrite_file, windows_error_dialog},
 };
@@ -19,10 +19,10 @@ use egui::{FontDefinitions, RichText, TextBuffer, Visuals};
 use egui_file_dialog::FileDialog;
 use std::path::{Path, PathBuf};
 
-pub const NO_CLIENT: &'static str = "no client loaded";
+pub const NO_CLIENT: &'static str = "no Client loaded";
 pub const NO_KSF: &'static str = "no KSF loaded";
-pub const NO_ASSESSMENT: &'static str = "no assessment chosen";
-pub const NO_CONDITION: &'static str = "no condition chosen";
+pub const NO_ASSESSMENT: &'static str = "no Assessment chosen";
+pub const NO_CONDITION: &'static str = "no Condition chosen";
 pub const INVALID_DATE: &'static str = "Date of Admission is not valid";
 
 pub struct DataPro {
@@ -364,16 +364,14 @@ impl DataPro {
                     Ok(ksf_data) => {
                         self.data.ksfs = ksf_data;
                         self.edit_ksfs.prepare(&self.data, ksf_path.clone());
-                        self.edit_ksfs.save_path = ksf_path.clone();
-                        self.edit_ksfs.file_dialog = FileDialog::new().initial_directory(ksf_path)
+                        if let Some((name, _)) = self.data.ksfs.first() {
+                            self.data.session.chosen_ksf = name.clone()
+                        }
                     }
                     Err(e) => {
                         windows_error_dialog(e.context(format!("unable to read {}", KSF_FILE_NAME)))
                     }
                 };
-                if let Some((name, _)) = self.data.ksfs.first() {
-                    self.data.session.chosen_ksf = name.clone()
-                }
 
                 // Load the Assessments Data
                 let assessments_path = Path::new(path).join(ASSESSMENTS_FILE_NAME);
@@ -382,15 +380,12 @@ impl DataPro {
                         self.data.assessments = assessments_data;
                         self.edit_assessments
                             .prepare(&self.data, assessments_path.clone());
-                        self.edit_assessments.save_path = assessments_path.clone();
-                        self.edit_assessments.file_dialog =
-                            FileDialog::new().initial_directory(assessments_path)
+                        self.choose_first_assessment_and_condition();
                     }
                     Err(e) => windows_error_dialog(
                         e.context(format!("unable to read {}", ASSESSMENTS_FILE_NAME)),
                     ),
                 }
-                self.choose_first_assessment_and_condition();
 
                 self.ioa_page
                     .prepare(self.path_to_session_records(), self.path_to_ioa_data());
@@ -436,6 +431,7 @@ impl eframe::App for DataPro {
             Page::CreateAssessments => EditAssessments::view(self, ui),
             Page::Settings => Settings::view(self, ui),
             Page::Credits => Credits::view(self, ui),
+            Page::Debug => DebugPage::view(self, ui),
         }
     }
 }

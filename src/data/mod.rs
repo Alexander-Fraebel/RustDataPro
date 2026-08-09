@@ -28,13 +28,33 @@ impl Data {
     pub fn clear(&mut self) {
         *self = Self::default()
     }
+    pub fn active_assessment(&self) -> &String {
+        &self.session.chosen_assessment
+    }
+
+    pub fn active_condition(&self) -> &String {
+        &self.session.chosen_condition
+    }
+
+    pub fn chosen_ksf(&self) -> &String {
+        &self.session.chosen_ksf
+    }
 
     pub fn client_loaded(&self) -> bool {
         !self.client.id.is_empty()
     }
 
     pub fn client_admission_valid(&self) -> bool {
-        self.client.days_since_admission().is_ok()
+        match self.client.days_since_admission() {
+            Ok(n) => {
+                if n.is_negative() {
+                    false
+                } else {
+                    true
+                }
+            }
+            Err(_) => false,
+        }
     }
 
     pub fn ksf_loaded(&self) -> bool {
@@ -42,22 +62,10 @@ impl Data {
     }
 
     pub fn assessment_chosen(&self) -> bool {
-        !self.session.chosen_assessment.is_empty()
+        !self.active_assessment().is_empty()
     }
 
     pub fn condition_chosen(&self) -> bool {
-        !self.session.chosen_condition.is_empty()
-    }
-
-    pub fn chosen_condition(&self) -> &String {
-        &self.session.chosen_condition
-    }
-
-    pub fn chosen_assessment(&self) -> &String {
-        &self.session.chosen_assessment
-    }
-
-    pub fn chosen_ksf(&self) -> &String {
-        &self.session.chosen_ksf
+        !self.active_condition().is_empty()
     }
 }

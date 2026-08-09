@@ -15,6 +15,7 @@ pub enum Page {
     CreateAssessments,
     Settings,
     Credits,
+    Debug,
 }
 
 impl DisplayControl {
@@ -57,6 +58,11 @@ impl DisplayControl {
 
     pub fn go_to_credits(&mut self) {
         self.active_page = Page::Credits;
+        self.sidebar_open = false;
+    }
+
+    pub fn go_to_debug(&mut self) {
+        self.active_page = Page::Debug;
         self.sidebar_open = false;
     }
 
