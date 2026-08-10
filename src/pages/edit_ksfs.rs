@@ -249,8 +249,8 @@ impl EditKsfData {
             app.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("If a client is selected this page will automatically udpate\nthe KSF for that client. If no client is selected you may\nsave this KSF created here to the directory below.");
-            ui.add_space(10.0);
+            // ui.label("If a client is selected this page will automatically udpate\nthe KSF for that client. If no client is selected you may\nsave the KSF created here to the directory below.");
+            // ui.add_space(10.0);
 
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
@@ -258,7 +258,7 @@ impl EditKsfData {
             });
             ui.add_space(10.0);
 
-            ksf_controller(app,ui)
+            ksf_controller(app, ui)
         });
     }
 }
