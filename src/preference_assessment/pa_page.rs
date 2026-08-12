@@ -1,5 +1,6 @@
 use crate::{app::DataPro, ui_elements::DataProUiElements};
 use egui::Ui;
+use itertools::Itertools;
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -21,9 +22,16 @@ impl Display for PaType {
 #[derive(Default)]
 pub struct PreferenceAssessment {
     pub patype: PaType,
+    pub conditions: Vec<String>,
 }
 
 impl PreferenceAssessment {
+    pub fn all_pairs(&self) -> Vec<(String, String)> {
+        let a = self.conditions.clone();
+        let b = self.conditions.clone();
+        a.into_iter().cartesian_product(b.into_iter()).collect()
+    }
+
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
             egui::ComboBox::from_id_salt("preference_assessment")
