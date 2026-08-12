@@ -11,6 +11,7 @@ use crate::{
         EditAssessments, EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage,
         Settings, Sidebar, Timers, credits::Credits, debug_page::DebugPage,
     },
+    preference_assessment::PreferenceAssessment,
     utils::{date_time_string, overwrite_file, windows_error_dialog},
 };
 use anyhow::{Context, Result};
@@ -43,6 +44,7 @@ pub struct DataPro {
     pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
     pub settings: Settings,
+    pub preference_assessment: PreferenceAssessment,
 }
 
 impl Default for DataPro {
@@ -92,6 +94,7 @@ impl Default for DataPro {
                 config,
                 default_root_dir_string: root_dir.clone().to_string_lossy().to_string(),
             },
+            preference_assessment: PreferenceAssessment::default(),
         };
 
         // Initialize pages by unloading

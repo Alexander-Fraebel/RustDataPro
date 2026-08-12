@@ -1,7 +1,6 @@
-#[rustfmt::skip]
-pub mod edit_assessments;
 pub mod credits;
 pub mod debug_page;
+pub mod edit_assessments;
 pub mod edit_ksfs;
 pub mod new_client;
 pub mod prepare;
@@ -11,6 +10,8 @@ pub mod shuffler;
 pub mod sidebar;
 pub mod timers;
 
+pub use credits::*;
+pub use debug_page::*;
 pub use edit_assessments::*;
 pub use edit_ksfs::*;
 pub use new_client::*;
