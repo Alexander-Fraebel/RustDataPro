@@ -18,6 +18,7 @@ use anyhow::{Context, Result};
 use chrono::Local;
 use egui::{FontDefinitions, RichText, TextBuffer, Visuals};
 use egui_file_dialog::FileDialog;
+use rand::{make_rng, rngs::StdRng};
 use std::path::{Path, PathBuf};
 
 pub const NO_CLIENT: &'static str = "no Client loaded";
@@ -29,6 +30,8 @@ pub const INVALID_DATE: &'static str = "Date of Admission is not valid";
 pub struct DataPro {
     pub pick_root_directory: FileDialog,
     pub root_directory: PathBuf,
+
+    pub rng: StdRng, // StdRng is currently ChaCha12 initalized from SysRng, any similar rng is more than sufficient
 
     pub data: Data,
     pub display_info: DisplayControl,
@@ -68,6 +71,8 @@ impl Default for DataPro {
 
         let mut app = Self {
             data: Data::default(),
+
+            rng: make_rng(),
 
             display_info: DisplayControl {
                 active_page: Page::PrepareSession,
@@ -435,6 +440,7 @@ impl eframe::App for DataPro {
             Page::CreateAssessments => EditAssessments::view(self, ui),
             Page::Settings => Settings::view(self, ui),
             Page::Credits => Credits::view(self, ui),
+            Page::PreferenceAssessment => PreferenceAssessment::view(self, ui),
         }
     }
 }

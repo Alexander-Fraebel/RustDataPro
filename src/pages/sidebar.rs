@@ -92,6 +92,11 @@ impl Sidebar {
                         if ui.large_button("Timers").clicked() {
                             app.display_info.toggle_timer_display();
                         }
+                        ui.add_space(5.0);
+
+                        if ui.large_button("Preference Assessment").clicked() {
+                            app.display_info.go_to_preference_assessment();
+                        }
                         ui.add_space(10.0);
                     });
             });
