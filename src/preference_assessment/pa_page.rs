@@ -9,7 +9,13 @@ use egui_extras::Column;
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
 use rand::{rngs::StdRng, seq::SliceRandom};
-use std::{collections::HashSet, fmt::Display, fs::File, io::Read, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    fs::File,
+    io::Read,
+    path::PathBuf,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub enum PaType {
@@ -39,7 +45,7 @@ impl Display for PaType {
 
 pub struct PreferenceAssessment {
     pub conditions_string: String,
-    pub conditions: Vec<String>,
+    pub conditions: Vec<(String, i32)>,
     pub all_pairs: Vec<(String, String, bool, bool)>,
     pub ordered: bool,
     pub import_dialog: FileDialog,
@@ -67,6 +73,9 @@ impl PreferenceAssessment {
         let mut s = String::new();
         file.read_to_string(&mut s)?;
 
+        self.all_pairs.clear();
+        self.conditions_string.clear();
+
         let mut set = HashSet::new();
         for line in s.lines() {
             if let Some((a, b)) = line.split_once(',') {
@@ -78,32 +87,43 @@ impl PreferenceAssessment {
                 set.insert(b.to_string());
             }
         }
-        self.conditions = set.into_iter().collect();
+        self.conditions = set.into_iter().map(|s| (s, 0)).collect();
         self.conditions.sort();
-        self.conditions_string.clear();
-        self.conditions_string = self.conditions.join("\n");
+        self.conditions_string = self.conditions.iter().map(|(s, _)| s).join("\n");
 
         Ok(())
     }
 
-    pub fn update(&mut self) {
-        self.update_conditions();
-        self.update_pairs();
+    pub fn update_counts(&mut self) {
+        let mut counts = HashMap::new();
+        for condition in self.conditions.iter().map(|(s, _count)| s) {
+            counts.insert(condition, 0);
+        }
+        for (a, b, abool, bbool) in self.all_pairs.iter() {
+            if *abool {
+                counts.entry(a).and_modify(|e| *e += 1);
+            }
+            if *bbool {
+                counts.entry(b).and_modify(|e| *e += 1);
+            }
+        }
+        self.conditions = counts
+            .iter()
+            .sorted()
+            .map(|(s, c)| (s.to_string(), *c))
+            .collect();
     }
 
     pub fn update_conditions(&mut self) {
         self.conditions = self
             .conditions_string
             .split("\n")
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect()
-    }
-
-    pub fn update_pairs(&mut self) {
+            .map(|s| (s.trim().to_string(), 0))
+            .filter(|(s, _count)| !s.is_empty())
+            .collect();
         self.all_pairs.clear();
-        for (i, a) in self.conditions.iter().enumerate() {
-            for (j, b) in self.conditions.iter().enumerate() {
+        for (i, (a, _counta)) in self.conditions.iter().enumerate() {
+            for (j, (b, _countb)) in self.conditions.iter().enumerate() {
                 if !self.ordered {
                     if i > j {
                         continue;
@@ -168,7 +188,7 @@ impl PreferenceAssessment {
                         )
                         .changed()
                     {
-                        app.preference_assessment.update();
+                        app.preference_assessment.update_conditions();
                     }
                     ui.add_space(5.0);
 
@@ -203,16 +223,27 @@ impl PreferenceAssessment {
                                     {
                                         body.row(20.0, |mut row| {
                                             row.col(|ui| {
-                                                ui.checkbox(abool, a.as_str());
+                                                if ui.checkbox(abool, a.as_str()).clicked() {
+                                                    *bbool = !*abool;
+                                                }
                                             });
                                             row.col(|ui| {
-                                                ui.checkbox(bbool, b.as_str());
+                                                if ui.checkbox(bbool, b.as_str()).clicked() {
+                                                    *abool = !*bbool;
+                                                }
                                             });
                                         });
                                     }
                                 });
                         });
-                })
+                });
+
+                ui.vertical(|ui| {
+                    app.preference_assessment.update_counts();
+                    for (item, count) in app.preference_assessment.conditions.iter() {
+                        ui.label(format!("{}: {}", item, count));
+                    }
+                });
             });
         });
     }
