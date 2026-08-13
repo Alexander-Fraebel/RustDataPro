@@ -49,20 +49,20 @@ pub struct PreferenceAssessment {
     pub all_pairs: Vec<(String, String, bool, bool)>,
     pub ordered: bool,
     pub import_dialog: FileDialog,
-    pub export_dialog: FileDialog,
+    pub save_pairs_dialog: FileDialog,
+    pub save_results_dialog: FileDialog,
 }
 
 impl Default for PreferenceAssessment {
     fn default() -> Self {
-        let fd = FileDialog::default().default_file_name("preferences.txt");
-
         Self {
             conditions_string: Default::default(),
             conditions: Default::default(),
             all_pairs: Default::default(),
             ordered: true,
             import_dialog: FileDialog::default(),
-            export_dialog: fd,
+            save_pairs_dialog: FileDialog::default().default_file_name("preference_pairs.txt"),
+            save_results_dialog: FileDialog::default().default_file_name("preferences.txt"),
         }
     }
 }
@@ -148,14 +148,27 @@ impl PreferenceAssessment {
             };
         }
 
-        self.export_dialog.update(ui.ctx());
-        if let Some(path) = self.export_dialog.take_picked() {
+        self.save_pairs_dialog.update(ui.ctx());
+        if let Some(path) = self.save_pairs_dialog.take_picked() {
             let data = self
                 .all_pairs
                 .iter()
                 .map(|(a, b, _, _)| format!("{a}, {b}"))
                 .join("\n");
 
+            if let Err(e) = overwrite_file(Ok(path), &data) {
+                windows_error_dialog(e)
+            }
+        }
+
+        self.save_results_dialog.update(ui.ctx());
+        if let Some(path) = self.save_results_dialog.take_picked() {
+            let total_picks: f32 = self.conditions.iter().map(|(_, c)| *c as f32).sum();
+            let data = self
+                .conditions
+                .iter()
+                .map(|(s, count)| format!("{s}: {:.1}", ((*count as f32) / total_picks) * 100.0))
+                .join("\n");
             if let Err(e) = overwrite_file(Ok(path), &data) {
                 windows_error_dialog(e)
             }
@@ -175,7 +188,7 @@ impl PreferenceAssessment {
                             app.preference_assessment.import_dialog.pick_file();
                         }
                         if ui.button("Export").clicked() {
-                            app.preference_assessment.export_dialog.save_file();
+                            app.preference_assessment.save_pairs_dialog.save_file();
                         }
                     });
                     ui.label("Put each condition on a new line.");
@@ -245,6 +258,9 @@ impl PreferenceAssessment {
                 });
 
                 ui.vertical(|ui| {
+                    if ui.button("Save Results").clicked() {
+                        app.preference_assessment.save_results_dialog.save_file();
+                    }
                     for (item, count) in app.preference_assessment.conditions.iter() {
                         ui.label(format!("{}: {}", item, count));
                     }

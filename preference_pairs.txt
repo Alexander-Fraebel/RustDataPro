@@ -1,0 +1,56 @@
+animal toys, ball
+trampoline, ball
+teddy bear, animal toys
+teddy bear, ball
+book, ball
+teddy bear, book
+animal toys, teddy bear
+animal toys, rattle
+drum kit, iPad
+animal toys, book
+rattle, teddy bear
+ball, drum kit
+drum kit, teddy bear
+animal toys, iPad
+teddy bear, drum kit
+ball, iPad
+teddy bear, trampoline
+ball, rattle
+iPad, ball
+drum kit, animal toys
+teddy bear, rattle
+iPad, trampoline
+iPad, rattle
+teddy bear, iPad
+trampoline, rattle
+ball, book
+ball, teddy bear
+trampoline, teddy bear
+book, rattle
+iPad, teddy bear
+rattle, book
+book, teddy bear
+drum kit, ball
+trampoline, drum kit
+rattle, ball
+book, animal toys
+iPad, animal toys
+rattle, drum kit
+animal toys, trampoline
+rattle, trampoline
+iPad, drum kit
+ball, animal toys
+drum kit, book
+book, trampoline
+drum kit, trampoline
+book, iPad
+iPad, book
+rattle, iPad
+rattle, animal toys
+trampoline, animal toys
+animal toys, drum kit
+trampoline, book
+drum kit, rattle
+book, drum kit
+ball, trampoline
+trampoline, iPad
