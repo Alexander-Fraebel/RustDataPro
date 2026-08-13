@@ -8,8 +8,8 @@ use crate::{
     display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
-        EditAssessments, EditKsfData, NewClient, PrepareSession, RandomServices, SessionPage,
-        Settings, Sidebar, Timers, credits::Credits, debug_page::DebugPage,
+        EditAssessments, EditKsfData, NewClient, PrepareSession, SessionPage, Settings, Shuffler,
+        Sidebar, Timers, credits::Credits, debug_page::DebugPage,
     },
     preference_assessment::PreferenceAssessment,
     utils::{date_time_string, overwrite_file, windows_error_dialog},
@@ -36,7 +36,7 @@ pub struct DataPro {
     pub data: Data,
     pub display_info: DisplayControl,
 
-    pub randomness_page: RandomServices,
+    pub randomness_page: Shuffler,
     pub timers: Timers,
 
     pub prep_session: PrepareSession,
@@ -85,7 +85,7 @@ impl Default for DataPro {
             pick_root_directory: FileDialog::default().initial_directory(root_dir.clone()),
             root_directory: root_dir.clone(),
 
-            randomness_page: RandomServices::default(),
+            randomness_page: Shuffler::default(),
             timers: Timers::default(),
 
             prep_session: PrepareSession::default(),
@@ -410,7 +410,7 @@ impl eframe::App for DataPro {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // ### Windows ###
         Timers::view(self, ui);
-        RandomServices::view(self, ui);
+        Shuffler::view(self, ui);
         DebugPage::view(self, ui);
 
         // ### Top Bar ###

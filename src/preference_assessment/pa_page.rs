@@ -3,12 +3,13 @@ use crate::{
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
 };
+use anyhow::Result;
 use egui::{RichText, Ui};
 use egui_extras::Column;
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
 use rand::{rngs::StdRng, seq::SliceRandom};
-use std::fmt::Display;
+use std::{collections::HashSet, fmt::Display, fs::File, io::Read, path::PathBuf};
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub enum PaType {
@@ -39,9 +40,10 @@ impl Display for PaType {
 pub struct PreferenceAssessment {
     pub conditions_string: String,
     pub conditions: Vec<String>,
-    pub all_pairs: Vec<(String, String)>,
+    pub all_pairs: Vec<(String, String, bool, bool)>,
     pub ordered: bool,
-    pub file_dialog: FileDialog,
+    pub import_dialog: FileDialog,
+    pub export_dialog: FileDialog,
 }
 
 impl Default for PreferenceAssessment {
@@ -53,12 +55,37 @@ impl Default for PreferenceAssessment {
             conditions: Default::default(),
             all_pairs: Default::default(),
             ordered: true,
-            file_dialog: fd,
+            import_dialog: FileDialog::default(),
+            export_dialog: fd,
         }
     }
 }
 
 impl PreferenceAssessment {
+    pub fn load_file(&mut self, file_path: PathBuf) -> Result<()> {
+        let mut file = File::open(&file_path)?;
+        let mut s = String::new();
+        file.read_to_string(&mut s)?;
+
+        let mut set = HashSet::new();
+        for line in s.lines() {
+            if let Some((a, b)) = line.split_once(',') {
+                let a = a.trim();
+                let b = b.trim();
+                self.all_pairs
+                    .push((a.to_string(), b.to_string(), false, false));
+                set.insert(a.to_string());
+                set.insert(b.to_string());
+            }
+        }
+        self.conditions = set.into_iter().collect();
+        self.conditions.sort();
+        self.conditions_string.clear();
+        self.conditions_string = self.conditions.join("\n");
+
+        Ok(())
+    }
+
     pub fn update(&mut self) {
         self.update_conditions();
         self.update_pairs();
@@ -83,7 +110,7 @@ impl PreferenceAssessment {
                     }
                 }
                 if a != b {
-                    self.all_pairs.push((a.clone(), b.clone()));
+                    self.all_pairs.push((a.clone(), b.clone(), false, false));
                 }
             }
         }
@@ -93,20 +120,30 @@ impl PreferenceAssessment {
         self.all_pairs.shuffle(rng);
     }
 
-    pub fn view(app: &mut DataPro, ui: &mut Ui) {
-        app.preference_assessment.file_dialog.update(ui.ctx());
-        if let Some(path) = app.preference_assessment.file_dialog.take_picked() {
-            let data = app
-                .preference_assessment
+    pub fn import_export(&mut self, ui: &mut Ui) {
+        self.import_dialog.update(ui.ctx());
+        if let Some(path) = self.import_dialog.take_picked() {
+            if let Err(e) = self.load_file(path) {
+                windows_error_dialog(e)
+            };
+        }
+
+        self.export_dialog.update(ui.ctx());
+        if let Some(path) = self.export_dialog.take_picked() {
+            let data = self
                 .all_pairs
                 .iter()
-                .map(|(a, b)| format!("{a}, {b}"))
+                .map(|(a, b, _, _)| format!("{a}, {b}"))
                 .join("\n");
 
             if let Err(e) = overwrite_file(Ok(path), &data) {
                 windows_error_dialog(e)
             }
         }
+    }
+
+    pub fn view(app: &mut DataPro, ui: &mut Ui) {
+        app.preference_assessment.import_export(ui);
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
@@ -114,11 +151,11 @@ impl PreferenceAssessment {
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
                         ui.heading("Paired Choice");
-                        if ui.button("Shuffle").clicked() {
-                            app.preference_assessment.shuffle_pairs(&mut app.rng);
+                        if ui.button("Import").clicked() {
+                            app.preference_assessment.import_dialog.pick_file();
                         }
                         if ui.button("Export").clicked() {
-                            app.preference_assessment.file_dialog.save_file();
+                            app.preference_assessment.export_dialog.save_file();
                         }
                     });
                     ui.label("Put each condition on a new line.");
@@ -142,6 +179,11 @@ impl PreferenceAssessment {
                     ));
                     ui.add_space(10.0);
 
+                    if ui.button("Shuffle").clicked() {
+                        app.preference_assessment.shuffle_pairs(&mut app.rng);
+                    }
+                    ui.add_space(10.0);
+
                     ui.return_button(app, |_| {});
                 });
 
@@ -152,17 +194,19 @@ impl PreferenceAssessment {
                         .show(ui, |ui| {
                             egui_extras::TableBuilder::new(ui)
                                 .id_salt("frequency")
-                                .column(Column::exact(125.0))
-                                .column(Column::exact(125.0))
+                                .column(Column::exact(150.0))
+                                .column(Column::exact(150.0))
                                 .striped(true)
                                 .body(|mut body| {
-                                    for (a, b) in app.preference_assessment.all_pairs.iter() {
+                                    for (a, b, abool, bbool) in
+                                        app.preference_assessment.all_pairs.iter_mut()
+                                    {
                                         body.row(20.0, |mut row| {
                                             row.col(|ui| {
-                                                ui.label(a);
+                                                ui.checkbox(abool, a.as_str());
                                             });
                                             row.col(|ui| {
-                                                ui.label(b);
+                                                ui.checkbox(bbool, b.as_str());
                                             });
                                         });
                                     }

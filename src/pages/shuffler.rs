@@ -3,11 +3,11 @@ use egui::{TextEdit, Ui};
 use itertools::Itertools;
 use rand::seq::SliceRandom;
 
-pub struct RandomServices {
+pub struct Shuffler {
     csv_list: String,
 }
 
-impl Default for RandomServices {
+impl Default for Shuffler {
     fn default() -> Self {
         Self {
             csv_list: String::from("a, b, c, 1, 2, 3"),
@@ -15,7 +15,7 @@ impl Default for RandomServices {
     }
 }
 
-impl RandomServices {
+impl Shuffler {
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
         egui::Window::new("Shuffler")
             .open(&mut app.display_info.random_open)
