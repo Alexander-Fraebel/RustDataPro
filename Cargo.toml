@@ -11,15 +11,15 @@ all-features = true
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 
 [dependencies]
-egui = "0.35"
-eframe = { version = "0.35", features = ["persistence"] }
-egui_extras = "0.35.0"
+egui = "0.36.0"
+eframe = { version = "0.36.0", features = ["persistence"] }
+egui_extras = {version = "0.36.0", features = ["image", "all_loaders"] }
+egui-file-dialog = "0.15"
 log = "0.4.27"
 chrono = "0.4.45"
 itertools = "0.15.0"
 csv = "1.4.0"
 anyhow = "1.0.103"
-egui-file-dialog = "0.14.1"
 serde = "1.0.228"
 serde_json = { version = "1.0.150", features = ["preserve_order"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
@@ -27,6 +27,7 @@ rust_xlsxwriter = "0.96.0"
 rand = "0.10.2"
 win-msgbox = "0.2.2"
 regex = "1.13.1"
+#plotpy = "1.23.0"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

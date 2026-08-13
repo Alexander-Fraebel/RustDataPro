@@ -17,6 +17,7 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::Local;
 use egui::{FontDefinitions, RichText, TextBuffer, Visuals};
+// use egui_extras::loaders::image_loader::ImageCrateLoader;
 use egui_file_dialog::FileDialog;
 use rand::{make_rng, rngs::StdRng};
 use std::path::{Path, PathBuf};
@@ -117,6 +118,9 @@ impl DataPro {
             .set_pixels_per_point(*DEFAULT_ZOOM.get_or_init(|| configs.zoom));
 
         cc.egui_ctx.set_visuals(Visuals::dark());
+
+        // cc.egui_ctx
+        //     .add_image_loader(std::sync::Arc::new(ImageCrateLoader::default()));
 
         // Custom monospace font
         let mut font_defs = FontDefinitions::default();

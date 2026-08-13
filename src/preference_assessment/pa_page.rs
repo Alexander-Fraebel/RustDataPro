@@ -218,6 +218,7 @@ impl PreferenceAssessment {
                                 .column(Column::exact(150.0))
                                 .striped(true)
                                 .body(|mut body| {
+                                    let mut changes = false;
                                     for (a, b, abool, bbool) in
                                         app.preference_assessment.all_pairs.iter_mut()
                                     {
@@ -225,21 +226,25 @@ impl PreferenceAssessment {
                                             row.col(|ui| {
                                                 if ui.checkbox(abool, a.as_str()).clicked() {
                                                     *bbool = !*abool;
+                                                    changes = true;
                                                 }
                                             });
                                             row.col(|ui| {
                                                 if ui.checkbox(bbool, b.as_str()).clicked() {
                                                     *abool = !*bbool;
+                                                    changes = true;
                                                 }
                                             });
                                         });
+                                    }
+                                    if changes {
+                                        app.preference_assessment.update_counts();
                                     }
                                 });
                         });
                 });
 
                 ui.vertical(|ui| {
-                    app.preference_assessment.update_counts();
                     for (item, count) in app.preference_assessment.conditions.iter() {
                         ui.label(format!("{}: {}", item, count));
                     }
