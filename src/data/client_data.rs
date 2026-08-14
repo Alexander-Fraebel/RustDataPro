@@ -11,7 +11,7 @@ pub struct ClientData {
     pub id: String,
     pub case_manager: String,
     pub primary_therapist: String,
-    pub current_session: u32,
+    // pub current_session: u32,
     pub date_of_admission: String,
     pub location: String,
 }
@@ -23,7 +23,7 @@ impl Default for ClientData {
             id: Default::default(),
             case_manager: Default::default(),
             primary_therapist: Default::default(),
-            current_session: Default::default(),
+            // current_session: Default::default(),
             date_of_admission: Local::now().date_naive().format("%Y-%m-%d").to_string(),
             location: Default::default(),
         }

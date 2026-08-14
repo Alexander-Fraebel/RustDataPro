@@ -69,7 +69,7 @@ fn create_test_data() {
     client.name = String::from("BW");
 
     for session in 11..16 {
-        client.current_session = session;
+        // client.current_session = session;
         let mut session_data = SessionData::default();
         session_data.data_type = DataType::Primary;
 
@@ -122,7 +122,7 @@ fn create_test_data() {
             client_id: client.id.clone(),
             case_manager: client.case_manager.clone(),
             primary_therapist: client.primary_therapist.clone(),
-            session_number: client.current_session,
+            session_number: session,
             days_since_admissions: client.days_since_admission().unwrap_or(-99999),
             location: client.location.clone(),
         };
@@ -171,7 +171,7 @@ fn create_test_data() {
             client_id: client.id.clone(),
             case_manager: client.case_manager.clone(),
             primary_therapist: client.primary_therapist.clone(),
-            session_number: client.current_session,
+            session_number: session,
             days_since_admissions: client.days_since_admission().unwrap_or(-99999),
             location: client.location.clone(),
         };

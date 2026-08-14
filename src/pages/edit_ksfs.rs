@@ -2,7 +2,7 @@ use crate::{
     app::DataPro,
     data::{ALLOWED_KSF_KEYS, Data, Ksf, KsfData},
     ui_elements::DataProUiElements,
-    utils::{overwrite_file, windows_error_dialog},
+    utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
 use anyhow::Result;
 use egui::{Color32, Key, RichText, TextStyle};
@@ -146,7 +146,9 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                         app.edit_ksfs.save_finished = false;
                     }
                     if ui.small_button("delete").clicked() {
-                        app.edit_ksfs.deleted_row = Some(n)
+                        if are_you_sure_dialog("Delete this KSF?") {
+                            app.edit_ksfs.deleted_row = Some(n)
+                        }
                     };
                 });
                 ui.add_space(5.0);

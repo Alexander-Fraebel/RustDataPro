@@ -10,7 +10,7 @@ use std::{
     io::{BufWriter, Write},
     path::{Path, PathBuf},
 };
-use win_msgbox::Okay;
+use win_msgbox::{Okay, YesNo};
 
 /// Round an f32 to one decimal. To be used for rounding times only.
 pub fn rounded_f32(n: f32) -> f32 {
@@ -112,4 +112,13 @@ pub fn windows_error_dialog(message: anyhow::Error) {
         .set_foreground()
         .show()
         .expect("unable to create error dialog box");
+}
+
+pub fn are_you_sure_dialog(message: &str) -> bool {
+    win_msgbox::question::<YesNo>(message)
+        .title("Are you sure?")
+        .set_foreground()
+        .show()
+        .expect("unable to create question dialog box")
+        == win_msgbox::YesNo::Yes
 }

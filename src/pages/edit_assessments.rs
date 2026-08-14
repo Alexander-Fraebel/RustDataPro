@@ -1,12 +1,11 @@
 use crate::{
     app::DataPro,
-    data::{AssessmentsData, Data},
+    data::{AssessmentsData, Conditions, Data},
     ui_elements::DataProUiElements,
-    utils::{overwrite_file, windows_error_dialog},
+    utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
 use egui::{Color32, RichText, TextStyle};
 use egui_file_dialog::FileDialog;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use std::path::PathBuf;
 
@@ -41,7 +40,9 @@ fn assessment_scroller(
                         app.edit_assessments.save_finished = false;
                     }
                     if ui.small_button("delete").clicked() {
-                        app.edit_assessments.deleted_row = Some(n)
+                        if are_you_sure_dialog("Delete this Assessment?") {
+                            app.edit_assessments.deleted_row = Some(n)
+                        }
                     };
                 });
 
@@ -79,12 +80,13 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
                 let mut temp_assessments_data = AssessmentsData::default();
                 for (assessment, conditions) in app.edit_assessments.user_input.iter() {
                     if !assessment.trim().is_empty() {
-                        let conditions_vec: IndexSet<String> = conditions
+                        let conditions_vec: Vec<String> = conditions
                             .split(",")
                             .map(|s| s.trim().to_string())
                             .filter(|s| !s.is_empty())
                             .collect();
-                        temp_assessments_data.insert(assessment.clone(), conditions_vec);
+                        temp_assessments_data
+                            .insert(assessment.clone(), Conditions::new(conditions_vec));
                     }
                 }
 
@@ -150,7 +152,7 @@ impl EditAssessments {
         if data.client_loaded() {
             for (assessment, conds) in data.assessments.iter() {
                 self.user_input
-                    .push((assessment.clone(), conds.iter().join(", ")));
+                    .push((assessment.clone(), conds.conditions.iter().join(", ")));
             }
         }
         // Ensure the UI is not empty

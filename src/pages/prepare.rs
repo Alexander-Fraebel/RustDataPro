@@ -1,8 +1,10 @@
 use crate::{
-    app::DataPro, data::DataType, ui_elements::DataProUiElements, utils::windows_error_dialog,
+    app::DataPro,
+    data::{Conditions, DataType},
+    ui_elements::DataProUiElements,
+    utils::windows_error_dialog,
 };
 use egui::RichText;
-use indexmap::IndexSet;
 
 pub struct PrepareSession {
     pub can_start_session: bool,
@@ -99,10 +101,14 @@ impl PrepareSession {
 
                     ui.label("Session Number");
                     if ui
-                        .add(egui::DragValue::new(&mut app.data.client.current_session))
+                        .add(egui::DragValue::new(&mut app.data.current_session))
                         .lost_focus()
                     {
-                        if let Err(e) = app.overwrite_client_data() {
+                        let current_session = app.data.current_session;
+                        if let Some(condtions) = app.data.active_assessment_data() {
+                            condtions.session = current_session;
+                        }
+                        if let Err(e) = app.overwrite_assessments() {
                             windows_error_dialog(e)
                         }
                     }
@@ -178,7 +184,7 @@ impl PrepareSession {
                         app.data
                             .assessments
                             .entry(app.data.session.chosen_assessment.clone())
-                            .or_insert(IndexSet::new());
+                            .or_insert(Conditions::default());
                     }
                     egui::ComboBox::from_id_salt("assessment")
                         .selected_text(assessment_text)
@@ -194,6 +200,7 @@ impl PrepareSession {
                                 {
                                     app.data.session.chosen_condition =
                                         conditions.first().unwrap_or(&String::new()).clone();
+                                    app.data.current_session = conditions.session;
                                 }
                             }
                         });
@@ -213,16 +220,18 @@ impl PrepareSession {
                             .assessments
                             .get_mut(&app.data.session.chosen_assessment)
                         {
-                            conds.insert(app.data.session.chosen_condition.clone());
+                            conds
+                                .conditions
+                                .insert(app.data.session.chosen_condition.clone());
                         }
                     }
                     egui::ComboBox::from_id_salt("condition")
                         .selected_text(condition_text)
                         .show_ui(ui, |ui| {
                             if let Some(conds) =
-                                app.data.assessments.get(app.data.active_assessment())
+                                app.data.assessments.get(app.data.active_assessment_name())
                             {
-                                for cond in conds {
+                                for cond in conds.conditions.iter() {
                                     ui.selectable_value(
                                         &mut app.data.session.chosen_condition,
                                         cond.to_string(),
@@ -342,6 +351,11 @@ impl PrepareSession {
                                 // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
                                 // If they do anything else the file will update when they switch selections
                                 // Load the data and switch pages.
+                                if let Some(conditions) =
+                                    app.data.assessments.get(app.data.active_assessment_name())
+                                {
+                                    app.data.current_session = conditions.session;
+                                }
                                 app.session.load_ksf(&app.data);
                                 app.timers.pause_all_timers();
                                 app.display_info.go_to_run_session();

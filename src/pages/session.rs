@@ -1,25 +1,19 @@
 use crate::{
     app::DataPro,
-    config::{CLIENT_DATA_FILE_NAME, SESSION_DATA_FOLDER_NAME},
     data::{
         Data, Ksf, Timer, TimerStatus, output_data::OutputData, timeline::Timeline,
         view_nonneg_countdown_timer, view_simple_timer,
     },
     display_control::DisplayControl,
     ui_elements::DataProUiElements,
-    utils::{ClickedKeys, date_time_string, rounded_f32, windows_error_dialog},
+    utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 use egui::{Color32, Key, Layout, RichText, Ui};
 use egui_extras::Column;
 use indexmap::IndexMap;
-use std::{
-    collections::VecDeque,
-    fs::File,
-    io::{BufWriter, Write},
-    path::{Path, PathBuf},
-};
+use std::collections::VecDeque;
 
 const DESCRIPTION_WIDTH: f32 = 100.0;
 const KEY_WIDTH: f32 = 30.0;
@@ -109,6 +103,66 @@ macro_rules! timer_display {
         passive_cell!($row, timer_format!(), $time2);
         passive_cell!($row, $bouts);
     };
+}
+
+impl DataPro {
+    pub fn save_new_output_data(&mut self) -> Result<()> {
+        let file_name = self.path_to_session_records().join(format!(
+            "{}-{}_{}{}.txt",
+            self.data.active_assessment_name(),
+            self.data.active_condition_name(),
+            self.data.current_session,
+            self.data.session.data_type.abbrev()
+        ));
+        overwrite_file(Ok(file_name), &self.write_output_json()?)?;
+        self.increment_current_session()
+    }
+
+    /// This assumes that data collectors use INDEPENDENT files
+    pub fn increment_current_session(&mut self) -> Result<()> {
+        let path = self.path_to_assessments();
+        std::fs::write(path, &self.data.assessments.to_json()?)?;
+        let name = self.data.active_assessment_name().clone();
+        if let Some(conditions) = self.data.assessments.get_mut(&name) {
+            conditions.session += 1;
+        }
+        Ok(())
+    }
+
+    /// Write the output data into a JSON format. Not especially human readable.
+    pub fn write_output_json(&self) -> Result<String> {
+        let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
+        for (t, k, _d) in self.session.freq_keys.iter() {
+            fre_map.insert(*k, *t);
+        }
+        let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
+        for (t, bouts, k, _d) in self.session.dura_keys.iter() {
+            dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
+        }
+
+        serde_json::to_string(&OutputData {
+            datetime: date_time_string(&self.session.start_time),
+            session_duration: rounded_f32(self.session.timer.total_time()),
+            session: self.data.session.clone(),
+            duration: dur_map,
+            frequency: fre_map,
+            timeline: self.session.timeline.clone(),
+            ksf: self
+                .data
+                .ksfs
+                .get(self.data.chosen_ksf())
+                .unwrap_or(&Ksf::default())
+                .clone(),
+            client_name: self.data.client.name.clone(),
+            client_id: self.data.client.id.clone(),
+            case_manager: self.data.client.case_manager.clone(),
+            primary_therapist: self.data.client.primary_therapist.clone(),
+            session_number: self.data.current_session,
+            days_since_admissions: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this should always be valid but avoid crash by giving default
+            location: self.data.client.location.clone(),
+        })
+        .context("failure to create json")
+    }
 }
 
 pub struct SessionPage {
@@ -214,7 +268,7 @@ impl SessionPage {
         }
     }
 
-    /// Start the session time and ecord the initial keypress.
+    /// Start the session time and record the initial keypress.
     fn start_session(&mut self) {
         self.timer.start();
         self.start_time = Local::now();
@@ -227,81 +281,6 @@ impl SessionPage {
     fn leave_session(&mut self, display_info: &mut DisplayControl) {
         self.reset();
         display_info.go_to_prep_session();
-    }
-
-    /// Save the output data and increment the session number.
-    fn finalize_session(&mut self, data: &mut Data, root_directory: &PathBuf) -> Result<()> {
-        self.save_output(data, root_directory)?;
-        self.increment_current_session(data, root_directory)?;
-        Ok(())
-    }
-
-    /// Write the output data into a JSON format. Not especially human readable.
-    fn write_output_json(&self, data: &Data) -> Result<String> {
-        let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
-        for (t, k, _d) in self.freq_keys.iter() {
-            fre_map.insert(*k, *t);
-        }
-        let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
-        for (t, bouts, k, _d) in self.dura_keys.iter() {
-            dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
-        }
-
-        serde_json::to_string(&OutputData {
-            datetime: date_time_string(&self.start_time),
-            session_duration: rounded_f32(self.timer.total_time()),
-            session: data.session.clone(),
-            duration: dur_map,
-            frequency: fre_map,
-            timeline: self.timeline.clone(),
-            ksf: data
-                .ksfs
-                .get(data.chosen_ksf())
-                .unwrap_or(&Ksf::default())
-                .clone(),
-            client_name: data.client.name.clone(),
-            client_id: data.client.id.clone(),
-            case_manager: data.client.case_manager.clone(),
-            primary_therapist: data.client.primary_therapist.clone(),
-            session_number: data.client.current_session,
-            days_since_admissions: data.client.days_since_admission().unwrap_or(i32::MIN), // this should always be valid but avoid crash by giving default
-            location: data.client.location.clone(),
-        })
-        .context("failure to create json")
-    }
-
-    /// Write the output to a file.
-    fn save_output(&mut self, data: &Data, root_directory: &PathBuf) -> Result<()> {
-        let path_to_folder = Path::new(root_directory)
-            .join(data.client.id.to_string())
-            .join(SESSION_DATA_FOLDER_NAME);
-
-        let mut file_name_raw = path_to_folder.clone();
-        file_name_raw.push(format!(
-            "{}{}_{}.txt",
-            data.client.initials(),
-            data.client.current_session,
-            data.session.data_type.abbrev()
-        ));
-        let mut writer = BufWriter::new(File::create(file_name_raw)?);
-        writer.write_all(self.write_output_json(data)?.as_bytes())?;
-        writer.flush()?;
-
-        Ok(())
-    }
-
-    /// This assumes that both data collectors use INDEPENDENT files
-    fn increment_current_session(
-        &mut self,
-        data: &mut Data,
-        root_directory: &PathBuf,
-    ) -> Result<()> {
-        let mut path = root_directory.clone();
-        path.push(&data.client.id);
-        path.push(CLIENT_DATA_FILE_NAME);
-        std::fs::write(path, &data.client.to_json()?)?;
-        data.client.current_session += 1;
-        Ok(())
     }
 
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
@@ -371,10 +350,7 @@ impl SessionPage {
                             .on_disabled_hover_text("no data to save")
                             .clicked()
                         {
-                            if let Err(e) = app
-                                .session
-                                .finalize_session(&mut app.data, &app.root_directory)
-                            {
+                            if let Err(e) = app.save_new_output_data() {
                                 windows_error_dialog(e) // application will not leave session until error dialog is closed
                             }
                             app.session.leave_session(&mut app.display_info);
@@ -394,10 +370,7 @@ impl SessionPage {
                 ui.group(|ui| {
                     ui.vertical(|ui| {
                         ui.label(format!("Client ID: {}", app.data.client.id));
-                        ui.label(format!(
-                            "Session Number: {}",
-                            app.data.client.current_session
-                        ));
+                        ui.label(format!("Session Number: {}", app.data.current_session));
                         ui.label(format!(
                             "DOA: {}",
                             app.data.client.days_since_admission().unwrap_or(i32::MIN) //this should always be valid but avoid crash by giving default

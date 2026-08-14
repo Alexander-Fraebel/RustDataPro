@@ -21,8 +21,8 @@ impl Display for DataType {
 impl DataType {
     pub fn abbrev(&self) -> &'static str {
         match self {
-            DataType::Primary => "Prim",
-            DataType::Reliability => "Reli",
+            DataType::Primary => "P",
+            DataType::Reliability => "R",
         }
     }
 }

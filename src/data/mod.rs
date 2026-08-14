@@ -22,18 +22,23 @@ pub struct Data {
     pub session: SessionData,
     pub assessments: AssessmentsData,
     pub ksfs: KsfData,
+    pub current_session: u32,
 }
 
 impl Data {
     pub fn clear(&mut self) {
         *self = Self::default()
     }
-    pub fn active_assessment(&self) -> &String {
+    pub fn active_assessment_name(&self) -> &String {
         &self.session.chosen_assessment
     }
 
-    pub fn active_condition(&self) -> &String {
+    pub fn active_condition_name(&self) -> &String {
         &self.session.chosen_condition
+    }
+
+    pub fn active_assessment_data(&mut self) -> Option<&mut Conditions> {
+        self.assessments.get_mut(&self.session.chosen_assessment)
     }
 
     pub fn chosen_ksf(&self) -> &String {
@@ -62,10 +67,10 @@ impl Data {
     }
 
     pub fn assessment_chosen(&self) -> bool {
-        !self.active_assessment().is_empty()
+        !self.active_assessment_name().is_empty()
     }
 
     pub fn condition_chosen(&self) -> bool {
-        !self.active_condition().is_empty()
+        !self.active_condition_name().is_empty()
     }
 }

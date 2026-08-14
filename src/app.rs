@@ -337,6 +337,7 @@ impl DataPro {
                     Some(cond) => self.data.session.chosen_condition = cond.clone(),
                     None => self.data.session.chosen_condition.clear(),
                 }
+                self.data.current_session = conds.session;
             }
             None => {
                 self.data.session.chosen_assessment.clear();
@@ -367,8 +368,6 @@ impl DataPro {
                 self.data.clear();
                 // Load the client data into ClientData
                 self.data.client = client;
-                // We are always one session ahead of the last saved value
-                self.data.client.current_session += 1;
 
                 // Load the KSF Data
                 let ksf_path = Path::new(path).join(KSF_FILE_NAME);
