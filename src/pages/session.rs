@@ -5,6 +5,7 @@ use crate::{
         view_nonneg_countdown_timer, view_simple_timer,
     },
     display_control::DisplayControl,
+    quick_error,
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
 };
@@ -350,9 +351,7 @@ impl SessionPage {
                             .on_disabled_hover_text("no data to save")
                             .clicked()
                         {
-                            if let Err(e) = app.save_new_output_data() {
-                                windows_error_dialog(e) // application will not leave session until error dialog is closed
-                            }
+                            quick_error!(app.save_new_output_data());
                             app.session.leave_session(&mut app.display_info);
                         }
                     });

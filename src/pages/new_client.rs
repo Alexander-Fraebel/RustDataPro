@@ -5,6 +5,7 @@ use crate::{
         SESSION_DATA_FOLDER_NAME,
     },
     data::{AssessmentsData, ClientData, KsfData},
+    quick_error,
     ui_elements::DataProUiElements,
     utils::windows_error_dialog,
 };
@@ -119,12 +120,10 @@ impl NewClient {
                     .clicked()
                 {
                     app.new_client_page.client.trim_all_fields();
-                    if let Err(e) = app
-                        .new_client_page
-                        .create_new_client_folder(&app.root_directory)
-                    {
-                        windows_error_dialog(e);
-                    }
+                    quick_error!(
+                        app.new_client_page
+                            .create_new_client_folder(&app.root_directory)
+                    );
                 }
             });
             ui.add_space(5.0);

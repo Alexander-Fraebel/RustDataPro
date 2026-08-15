@@ -12,6 +12,7 @@ use crate::{
         Sidebar, Timers, credits::Credits, debug_page::DebugPage,
     },
     preference_assessment::PreferenceAssessment,
+    quick_error,
     utils::{date_time_string, overwrite_file, windows_error_dialog},
 };
 use anyhow::{Context, Result};
@@ -65,9 +66,7 @@ impl Default for DataPro {
 
         // If the default directory doesn't exist create it.
         if !root_dir.exists() {
-            if let Err(e) = std::fs::create_dir(&root_dir).context("cannot create root directory") {
-                windows_error_dialog(e);
-            };
+            quick_error!(std::fs::create_dir(&root_dir).context("cannot create root directory"));
         }
 
         let mut app = Self {
@@ -326,6 +325,22 @@ impl DataPro {
                 windows_error_dialog(e);
             }
         };
+    }
+
+    pub fn load_assessments(&mut self) -> Result<()> {
+        let assessments_path = self.path_to(ASSESSMENTS_FILE_NAME)?;
+        match AssessmentsData::from_file(&assessments_path) {
+            Ok(assessments_data) => {
+                self.data.assessments = assessments_data;
+                self.edit_assessments
+                    .prepare(&self.data, assessments_path.clone());
+                self.choose_first_assessment_and_condition();
+            }
+            Err(e) => {
+                windows_error_dialog(e.context(format!("unable to read {}", ASSESSMENTS_FILE_NAME)))
+            }
+        }
+        Ok(())
     }
 
     /// Attempt to load the first assessment and its first condition

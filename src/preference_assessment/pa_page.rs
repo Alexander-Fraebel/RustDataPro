@@ -1,5 +1,6 @@
 use crate::{
     app::DataPro,
+    quick_error,
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
 };
@@ -143,9 +144,7 @@ impl PreferenceAssessment {
     pub fn import_export(&mut self, ui: &mut Ui) {
         self.import_dialog.update(ui.ctx());
         if let Some(path) = self.import_dialog.take_picked() {
-            if let Err(e) = self.load_file(path) {
-                windows_error_dialog(e)
-            };
+            quick_error!(self.load_file(path));
         }
 
         self.save_pairs_dialog.update(ui.ctx());
@@ -156,9 +155,7 @@ impl PreferenceAssessment {
                 .map(|(a, b, _, _)| format!("{a}, {b}"))
                 .join("\n");
 
-            if let Err(e) = overwrite_file(Ok(path), &data) {
-                windows_error_dialog(e)
-            }
+            quick_error!(overwrite_file(Ok(path), &data));
         }
 
         self.save_results_dialog.update(ui.ctx());
@@ -169,9 +166,7 @@ impl PreferenceAssessment {
                 .iter()
                 .map(|(s, count)| format!("{s}: {:.1}", ((*count as f32) / total_picks) * 100.0))
                 .join("\n");
-            if let Err(e) = overwrite_file(Ok(path), &data) {
-                windows_error_dialog(e)
-            }
+            quick_error!(overwrite_file(Ok(path), &data));
         }
     }
 

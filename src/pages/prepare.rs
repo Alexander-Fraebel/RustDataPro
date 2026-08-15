@@ -1,6 +1,7 @@
 use crate::{
     app::DataPro,
     data::{Conditions, DataType},
+    quick_error,
     ui_elements::DataProUiElements,
     utils::windows_error_dialog,
 };
@@ -44,9 +45,7 @@ impl PrepareSession {
                         .text_edit_singleline(&mut app.data.client.location)
                         .lost_focus()
                     {
-                        if let Err(e) = app.overwrite_client_data() {
-                            windows_error_dialog(e)
-                        }
+                        quick_error!(app.overwrite_client_data());
                     }
                     ui.end_row();
 
@@ -59,9 +58,7 @@ impl PrepareSession {
                             .on_hover_text("format date as YYYY-MM-DD")
                             .lost_focus()
                         {
-                            if let Err(e) = app.overwrite_client_data() {
-                                windows_error_dialog(e);
-                            }
+                            quick_error!(app.overwrite_client_data());
                         }
                     } else {
                         match app.data.client.days_since_admission() {
@@ -108,9 +105,7 @@ impl PrepareSession {
                         if let Some(condtions) = app.data.active_assessment_data() {
                             condtions.session = current_session;
                         }
-                        if let Err(e) = app.overwrite_assessments() {
-                            windows_error_dialog(e)
-                        }
+                        quick_error!(app.overwrite_assessments());
                     }
                     ui.end_row();
 
@@ -122,9 +117,7 @@ impl PrepareSession {
                         )
                         .lost_focus()
                     {
-                        if let Err(e) = app.overwrite_client_data() {
-                            windows_error_dialog(e);
-                        }
+                        quick_error!(app.overwrite_client_data());
                     }
                     ui.lock_unlock_button(&mut app.prep_session.edit_case_manager);
                     ui.end_row();
@@ -137,9 +130,7 @@ impl PrepareSession {
                         )
                         .lost_focus()
                     {
-                        if let Err(e) = app.overwrite_client_data() {
-                            windows_error_dialog(e);
-                        }
+                        quick_error!(app.overwrite_client_data());
                     }
                     ui.lock_unlock_button(&mut app.prep_session.edit_primary_therapist);
 

@@ -1,6 +1,7 @@
 use crate::{
     app::DataPro,
     data::{AssessmentsData, Conditions, Data},
+    quick_error,
     ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
@@ -23,7 +24,7 @@ fn assessment_scroller(
         .min_scrolled_height(400.0)
         .id_salt("assessment_scroller")
         .show(ui, |ui| {
-            for (n, (assessment, conditions)) in
+            for (n, (assessment, conditions, session)) in
                 app.edit_assessments.user_input.iter_mut().enumerate()
             {
                 ui.horizontal(|ui| {
@@ -45,7 +46,10 @@ fn assessment_scroller(
                         }
                     };
                 });
-
+                ui.horizontal(|ui| {
+                    ui.label("Current Session:");
+                    ui.add(egui::DragValue::new(session));
+                });
                 if ui
                     .add(
                         egui::TextEdit::multiline(conditions)
@@ -72,21 +76,23 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
             if ui.button("Add Assessment").clicked() {
                 app.edit_assessments
                     .user_input
-                    .push((String::new(), String::new()));
+                    .push((String::new(), String::new(), 0));
             }
             ui.add_space(10.0);
 
             if ui.large_green_button("SAVE").clicked() {
                 let mut temp_assessments_data = AssessmentsData::default();
-                for (assessment, conditions) in app.edit_assessments.user_input.iter() {
+                for (assessment, conditions, session) in app.edit_assessments.user_input.iter() {
                     if !assessment.trim().is_empty() {
                         let conditions_vec: Vec<String> = conditions
                             .split(",")
                             .map(|s| s.trim().to_string())
                             .filter(|s| !s.is_empty())
                             .collect();
-                        temp_assessments_data
-                            .insert(assessment.clone(), Conditions::new(conditions_vec));
+                        temp_assessments_data.insert(
+                            assessment.clone(),
+                            Conditions::new_with_session(*session, conditions_vec),
+                        );
                     }
                 }
 
@@ -97,6 +103,8 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
                         {
                             windows_error_dialog(e)
                         } else {
+                            quick_error!(app.load_assessments());
+
                             app.edit_assessments.save_finished = true;
                         }
                     }
@@ -131,7 +139,7 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
 
 #[derive(Default)]
 pub struct EditAssessments {
-    pub user_input: Vec<(String, String)>,
+    pub user_input: Vec<(String, String, u32)>,
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
@@ -151,8 +159,11 @@ impl EditAssessments {
         // If there is a client loaded rebuild the UI with the client information
         if data.client_loaded() {
             for (assessment, conds) in data.assessments.iter() {
-                self.user_input
-                    .push((assessment.clone(), conds.conditions.iter().join(", ")));
+                self.user_input.push((
+                    assessment.clone(),
+                    conds.conditions.iter().join(", "),
+                    conds.session,
+                ));
             }
         }
         // Ensure the UI is not empty

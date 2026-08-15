@@ -23,6 +23,13 @@ impl Conditions {
         }
     }
 
+    pub fn new_with_session(session: u32, conditions: Vec<String>) -> Self {
+        Self {
+            session,
+            conditions: IndexSet::from_iter(conditions.into_iter()),
+        }
+    }
+
     pub fn first(&self) -> Option<&String> {
         self.conditions.first()
     }

@@ -111,14 +111,25 @@ pub fn windows_error_dialog(message: anyhow::Error) {
         .title("Error")
         .set_foreground()
         .show()
-        .expect("unable to create error dialog box");
+        .expect("unable to create dialog box");
 }
 
+// Ask if the user is sure. Return true if they click Yes and return false if they click No.
 pub fn are_you_sure_dialog(message: &str) -> bool {
-    win_msgbox::question::<YesNo>(message)
+    win_msgbox::warning::<YesNo>(message)
         .title("Are you sure?")
         .set_foreground()
         .show()
-        .expect("unable to create question dialog box")
+        .expect("unable to create dialog box")
         == win_msgbox::YesNo::Yes
+}
+
+/// Pop up an error dialog if an error occurs.
+#[macro_export]
+macro_rules! quick_error {
+    ($result:expr) => {
+        if let Err(e) = $result {
+            windows_error_dialog(e)
+        }
+    };
 }
