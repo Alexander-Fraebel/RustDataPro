@@ -1,5 +1,4 @@
 use egui::{Color32, RichText, Ui};
-use serde::{Deserialize, Serialize};
 use std::{fmt::Display, time::Instant};
 
 /// Need to use a macro to pass around a string literal
@@ -24,7 +23,7 @@ macro_rules! timer_display {
 const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 const NEGATIVE_COLOR: Color32 = Color32::RED;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TimerStatus {
     #[default]
     NotStarted,

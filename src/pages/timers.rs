@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{Timer, view_simple_countdown_timer, view_simple_timer},
+    timer::{Timer, view_simple_countdown_timer, view_simple_timer},
     utils::ClickedKeys,
 };
 use egui::{

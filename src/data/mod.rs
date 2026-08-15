@@ -5,7 +5,6 @@ pub mod ksf_data;
 pub mod output_data;
 pub mod session_data;
 pub mod timeline;
-pub mod timer;
 
 pub use assessment_data::*;
 pub use client_data::*;
@@ -14,7 +13,6 @@ pub use ksf_data::*;
 pub use output_data::*;
 pub use session_data::*;
 pub use timeline::*;
-pub use timer::*;
 
 #[derive(Debug, Default)]
 pub struct Data {

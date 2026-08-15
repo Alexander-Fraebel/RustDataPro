@@ -1,11 +1,9 @@
 use crate::{
     app::DataPro,
-    data::{
-        Data, Ksf, Timer, TimerStatus, output_data::OutputData, timeline::Timeline,
-        view_nonneg_countdown_timer, view_simple_timer,
-    },
+    data::{Data, Ksf, output_data::OutputData, timeline::Timeline},
     display_control::DisplayControl,
     quick_error,
+    timer::{Timer, TimerStatus, view_nonneg_countdown_timer, view_simple_timer},
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
 };
