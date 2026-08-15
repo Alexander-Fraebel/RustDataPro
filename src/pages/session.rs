@@ -3,7 +3,7 @@ use crate::{
     data::{Data, Ksf, output_data::OutputData, timeline::Timeline},
     display_control::DisplayControl,
     quick_error,
-    timer::{Timer, view_nonneg_countdown_timer, view_simple_timer},
+    timer::{Timer, TimerStatus, view_nonneg_countdown_timer, view_simple_timer},
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
 };
@@ -87,8 +87,6 @@ macro_rules! passive_cell {
 
 macro_rules! timer_display {
     (active, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
-        // when this is set alter the bg fill when selected
-        // $row.set_selected(true);
         active_cell!($row, $desc);
         active_cell!($row, $key.name());
         active_cell!($row, timer_format!(), $time1);
@@ -127,12 +125,12 @@ impl DataPro {
         }
         let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
         for (t, bouts, k, _d) in self.session.dura_keys.iter() {
-            dur_map.insert(*k, (*bouts, rounded_f32(t.running_time())));
+            dur_map.insert(*k, (*bouts, rounded_f32(t.active_time())));
         }
 
         serde_json::to_string(&OutputData {
             datetime: date_time_string(&self.session.start_time),
-            session_duration: rounded_f32(self.session.timer.running_time()),
+            session_duration: rounded_f32(self.session.timer.active_time()),
             session: self.data.session.clone(),
             duration: dur_map,
             frequency: fre_map,
@@ -197,7 +195,7 @@ impl SessionPage {
             }
             self.timer.stop();
             self.timeline
-                .push((Key::Escape, rounded_f32(self.timer.running_time())));
+                .push((Key::Escape, rounded_f32(self.timer.active_time())));
             self.keypresses_display.pop_front();
             self.keypresses_display.push_back("e");
         }
@@ -209,10 +207,10 @@ impl SessionPage {
     fn pause_unpause_all_timers(&mut self) {
         for (timer, _, _, _) in self.dura_keys.iter_mut() {
             if timer.was_started() {
-                timer.toggle();
+                timer.toggle_pause();
             }
         }
-        self.timer.toggle();
+        self.timer.toggle_pause();
     }
 
     /// Decrement a key's counter and rewind the recorded time if necessary.
@@ -280,7 +278,7 @@ impl SessionPage {
 
     pub fn view(app: &mut DataPro, ui: &mut Ui) {
         if app.prep_session.limit_session_length && app.session.timer.is_active() {
-            if app.session.timer.current_time() >= app.prep_session.maximum_session_length {
+            if app.session.timer.current_active_time() >= app.prep_session.maximum_session_length {
                 app.session.save_discard_open = true;
                 app.session.stop_all_timers();
             }
@@ -323,13 +321,18 @@ impl SessionPage {
                     if timer.is_active() {
                         *bouts += 1;
                     }
-                    record_keypress!(app.session, *key, app.session.timer.running_time());
+                    record_keypress!(app.session, *key, app.session.timer.active_time());
+                    println!("\ntoggling {:?}", key);
+                    println!("timer is active: {}", timer.is_active());
+                    println!("timer is paused: {}", timer.is_paused());
+                    println!("timer is stopped: {}", timer.is_stopped());
+                    println!("timer is was started: {}", timer.was_started());
                 }
             }
             for (counter, key, _) in app.session.freq_keys.iter_mut() {
                 if app.session.clicked_keys.contains(key) {
                     *counter += 1;
-                    record_keypress!(app.session, *key, app.session.timer.running_time());
+                    record_keypress!(app.session, *key, app.session.timer.active_time());
                 }
             }
         }
@@ -500,26 +503,42 @@ impl SessionPage {
                                     });
                                     for (timer, bouts, key, desc) in app.session.dura_keys.iter() {
                                         body.row(ROW_HEIGHT, |mut row| {
-                                            if !timer.was_started() {
-                                                timer_display!(
-                                                    passive,
-                                                    row,
-                                                    desc,
-                                                    key,
-                                                    timer.cached_time,
-                                                    timer.current_time(),
-                                                    bouts
-                                                );
-                                            } else {
-                                                timer_display!(
-                                                    active,
-                                                    row,
-                                                    desc,
-                                                    key,
-                                                    timer.cached_time,
-                                                    timer.current_time(),
-                                                    bouts
-                                                );
+                                            match timer.timestamps.last() {
+                                                Some(status) => match status {
+                                                    TimerStatus::Active(_) => {
+                                                        timer_display!(
+                                                            active,
+                                                            row,
+                                                            desc,
+                                                            key,
+                                                            timer.cached_active_time,
+                                                            timer.current_active_time(),
+                                                            bouts
+                                                        );
+                                                    }
+                                                    _ => {
+                                                        timer_display!(
+                                                            passive,
+                                                            row,
+                                                            desc,
+                                                            key,
+                                                            timer.cached_active_time,
+                                                            timer.current_active_time(),
+                                                            bouts
+                                                        );
+                                                    }
+                                                },
+                                                None => {
+                                                    timer_display!(
+                                                        passive,
+                                                        row,
+                                                        desc,
+                                                        key,
+                                                        timer.cached_active_time,
+                                                        timer.current_active_time(),
+                                                        bouts
+                                                    );
+                                                }
                                             }
                                         });
                                     }

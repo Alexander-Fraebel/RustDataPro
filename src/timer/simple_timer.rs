@@ -20,159 +20,253 @@ macro_rules! timer_display {
     };
 }
 
-fn mins_secs(n: f32) -> (f32, f32) {
+pub fn mins_secs(n: f32) -> (f32, f32) {
     ((n / 60.0).trunc(), n % 60.0)
 }
 
 const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 const NEGATIVE_COLOR: Color32 = Color32::RED;
 
-#[derive(Default)]
-pub struct SimpleTimer {
-    pub time_stamps: Vec<Instant>,
+#[derive(Clone, Copy)]
+pub enum TimerStatus {
+    Active(Instant),
+    Stopped(Instant),
+    Paused(Instant),
 }
 
-impl SimpleTimer {
-    /// Pause or unpause.
-    pub fn toggle(&mut self) {
-        self.time_stamps.push(Instant::now());
-    }
-
-    /// If the time is paused, start it. Otherwise do nothing.
-    pub fn start(&mut self) {
-        if self.is_paused() {
-            self.toggle();
+impl TimerStatus {
+    pub fn instant(&self) -> &Instant {
+        match self {
+            Self::Active(instant) => instant,
+            Self::Stopped(instant) => instant,
+            Self::Paused(instant) => instant,
         }
     }
 
-    /// If the timer is active, pause it. Otherwise do nothing.
-    pub fn pause(&mut self) {
-        if self.is_active() {
-            self.toggle();
-        }
-    }
-
-    /// Remove the last added time stamp
-    pub fn undo(&mut self) -> Option<Instant> {
-        self.time_stamps.pop()
-    }
-
-    /// Remove all time stamps
-    pub fn reset(&mut self) {
-        *self = Self::default();
-    }
-
-    /// Has the timer been started since it was last reset?
-    pub fn was_started(&self) -> bool {
-        !self.time_stamps.is_empty()
-    }
-
-    /// Is the timer currently active?
     pub fn is_active(&self) -> bool {
-        !self.time_stamps.len().is_multiple_of(2)
+        match self {
+            Self::Active(_) => true,
+            _ => false,
+        }
     }
 
-    /// Is the timer currently paused?
+    pub fn is_stopped(&self) -> bool {
+        match self {
+            Self::Stopped(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_paused(&self) -> bool {
-        self.time_stamps.len().is_multiple_of(2)
-    }
-
-    /// How long the timer has been running since it was last started.
-    pub fn current_time(&self) -> f32 {
-        if self.is_paused() {
-            0.0
-        } else {
-            (Instant::now() - *self.time_stamps.last().unwrap()).as_secs_f32()
-        }
-    }
-
-    /// How long the time has been running in total, ignoring time paused.
-    pub fn running_time(&self) -> f32 {
-        let mut total = 0.0;
-        let (chunks, _) = self.time_stamps.as_chunks::<2>();
-        for i in chunks {
-            total += (i[1] - i[0]).as_secs_f32();
-        }
-        total += self.current_time();
-        total
-    }
-
-    /// Time spent paused since the time was first started.
-    pub fn paused_time(&self) -> f32 {
-        if self.time_stamps.len() < 2 {
-            0.0
-        } else {
-            let mut total = 0.0;
-            let (chunks, _) = self.time_stamps[1..].as_chunks::<2>();
-            for i in chunks {
-                total += (i[1] - i[0]).as_secs_f32();
-            }
-            total += self.current_time();
-            total
-        }
-    }
-
-    /// Time since the timer was first started including time paused.
-    pub fn total_time(&self) -> f32 {
-        if self.time_stamps.is_empty() {
-            0.0
-        } else {
-            (self.time_stamps[0] - Instant::now()).as_secs_f32()
+        match self {
+            Self::Paused(_) => true,
+            _ => false,
         }
     }
 }
+
+// #[derive(Default)]
+// pub struct Timestamps(pub Vec<TimerStatus>);
+
+// impl Timestamps {
+//     /// Toggle active or paused.
+//     pub fn toggle(&mut self) {
+//         if self.0.is_empty() {
+//             self.start();
+//         }
+//         if let Some(time) = self.0.last() {
+//             match time {
+//                 TimerStatus::Active(_) => self.pause(),
+//                 TimerStatus::Stopped(_) => self.start(),
+//                 TimerStatus::Paused(_) => self.start(),
+//             }
+//         }
+//     }
+
+//     /// Start the timer.
+//     pub fn start(&mut self) {
+//         self.0.push(TimerStatus::Active(Instant::now()));
+//     }
+
+//     /// Pause the timer.
+//     pub fn pause(&mut self) {
+//         self.0.push(TimerStatus::Paused(Instant::now()));
+//     }
+
+//     pub fn stop(&mut self) {
+//         self.0.push(TimerStatus::Stopped(Instant::now()));
+//     }
+
+//     /// Remove the last added time stamp
+//     pub fn undo(&mut self) -> Option<TimerStatus> {
+//         self.0.pop()
+//     }
+
+//     /// Remove all time stamps
+//     pub fn reset(&mut self) {
+//         *self = Self::default();
+//     }
+
+//     /// Has the timer been started since it was last reset?
+//     pub fn was_started(&self) -> bool {
+//         !self.0.is_empty()
+//     }
+
+//     /// Is the timer currently active?
+//     pub fn is_active(&self) -> bool {
+//         match self.0.last() {
+//             Some(status) => status.is_active(),
+//             None => false,
+//         }
+//     }
+
+//     /// Is the timer currently paused?
+//     pub fn is_paused(&self) -> bool {
+//         match self.0.last() {
+//             Some(status) => status.is_paused(),
+//             None => false,
+//         }
+//     }
+
+//     /// Is the timer currently stopped?
+//     pub fn is_stopped(&self) -> bool {
+//         match self.0.last() {
+//             Some(status) => status.is_stopped(),
+//             None => false,
+//         }
+//     }
+
+//     pub fn last_time(&self) -> f32 {
+//         match self.0.last() {
+//             Some(timestamp) => (Instant::now() - *timestamp.instant()).as_secs_f32(),
+//             None => 0.0,
+//         }
+//     }
+
+//     pub fn current_active_time(&self) -> f32 {
+//         if self.is_active() {
+//             self.last_time()
+//         } else {
+//             0.0
+//         }
+//     }
+
+//     pub fn current_stopped_time(&self) -> f32 {
+//         if self.is_stopped() {
+//             self.last_time()
+//         } else {
+//             0.0
+//         }
+//     }
+
+//     pub fn current_paused_time(&self) -> f32 {
+//         if self.is_paused() {
+//             self.last_time()
+//         } else {
+//             0.0
+//         }
+//     }
+
+//     /// How long the timer has been running in total in seconds.
+//     pub fn active_time(&self) -> f32 {
+//         let mut total = 0.0;
+//         for window in self.0.windows(2) {
+//             if window[0].is_active() {
+//                 total += (*window[1].instant() - *window[0].instant()).as_secs_f32()
+//             }
+//         }
+//         total += self.current_active_time();
+//         total
+//     }
+
+//     /// How long the timer has spent paused since it was first started in seconds.
+//     pub fn paused_time(&self) -> f32 {
+//         let mut total = 0.0;
+//         for window in self.0.windows(2) {
+//             if window[0].is_paused() {
+//                 total += (*window[1].instant() - *window[0].instant()).as_secs_f32()
+//             }
+//         }
+//         total += self.current_paused_time();
+//         total
+//     }
+
+//     /// How long the timer has spent paused since it was first started in seconds.
+//     pub fn stopped_time(&self) -> f32 {
+//         let mut total = 0.0;
+//         for window in self.0.windows(2) {
+//             if window[0].is_stopped() {
+//                 total += (*window[1].instant() - *window[0].instant()).as_secs_f32()
+//             }
+//         }
+//         total += self.current_stopped_time();
+//         total
+//     }
+// }
 
 pub struct Timer {
-    pub timer: SimpleTimer,
-    pub cached_time: f32,
+    pub timestamps: Vec<TimerStatus>,
+    pub cached_active_time: f32,
+    pub cached_paused_time: f32,
+    pub cached_stopped_time: f32,
     pub countdown_from: f32,
-    stopped: bool,
 }
 
 impl Default for Timer {
     fn default() -> Self {
         Self {
-            timer: Default::default(),
-            cached_time: Default::default(),
             countdown_from: 30.0,
-            stopped: false,
+            timestamps: Default::default(),
+            cached_active_time: Default::default(),
+            cached_paused_time: Default::default(),
+            cached_stopped_time: Default::default(),
         }
     }
 }
 
 impl Timer {
-    /// Pause or unpause.
+    /// Start or stop. If the timer has not been started this starts it. Does nothing when the timer is paused.
     pub fn toggle(&mut self) {
-        if !(self.stopped && self.is_paused()) {
-            self.timer.toggle();
-            self.update_cached_time();
+        if !self.was_started() {
+            self.start();
+        } else if self.is_stopped() {
+            self.start();
+        } else if self.is_active() {
+            self.stop();
         }
     }
 
-    /// If the timer is paused, start it. Otherwise do nothing.
+    /// Pause or unpause. If the timer is stopped it switches to paused. Does nothing if the timer has not been started.
+    pub fn toggle_pause(&mut self) {
+        if self.is_paused() {
+            self.start();
+        } else if self.is_active() || self.is_stopped() {
+            self.pause();
+        }
+    }
+
+    /// Push a new Active time to timestamps.
     pub fn start(&mut self) {
-        if self.is_paused() && !self.stopped {
-            self.toggle();
-        }
+        self.timestamps.push(TimerStatus::Active(Instant::now()));
+        self.update_cached_times();
     }
 
-    /// If the time is active, pause it. Otherwise do nothing.
-    pub fn pause(&mut self) {
-        if self.is_active() {
-            self.toggle();
-        }
-    }
-
-    /// Pause the timer and flag it as stopped. When stopped .start() and .toggle() will no longer start the timer.
+    /// Push a new Stopped time to timestamps.
     pub fn stop(&mut self) {
-        self.pause();
-        self.stopped = true;
+        self.timestamps.push(TimerStatus::Stopped(Instant::now()));
+        self.update_cached_times();
     }
 
-    /// Remove the last added time stamp.
-    pub fn undo(&mut self) -> Option<Instant> {
-        let out = self.timer.undo();
-        self.update_cached_time();
+    /// Push a new Paused time to timestamps.
+    pub fn pause(&mut self) {
+        self.timestamps.push(TimerStatus::Paused(Instant::now()));
+        self.update_cached_times();
+    }
+
+    /// Remove the last added time stamp and return it if it exists.
+    pub fn undo(&mut self) -> Option<TimerStatus> {
+        let out = self.timestamps.pop();
+        self.update_cached_times();
         out
     }
 
@@ -184,100 +278,133 @@ impl Timer {
         }
     }
 
+    /// Update the cached times to be the sum of the previous active periods. This is relatively expensive.
+    pub fn update_cached_times(&mut self) {
+        self.cached_active_time = 0.0;
+        self.cached_stopped_time = 0.0;
+        self.cached_paused_time = 0.0;
+        for window in self.timestamps.windows(2) {
+            let interval_end = *window[1].instant();
+            match window[0] {
+                TimerStatus::Active(interval_start) => {
+                    self.cached_active_time += (interval_end - interval_start).as_secs_f32()
+                }
+                TimerStatus::Stopped(interval_start) => {
+                    self.cached_stopped_time += (interval_end - interval_start).as_secs_f32()
+                }
+                TimerStatus::Paused(interval_start) => {
+                    self.cached_paused_time += (interval_end - interval_start).as_secs_f32()
+                }
+            }
+        }
+    }
+
     /// Has the timer been started since it was last reset?
     pub fn was_started(&self) -> bool {
-        self.timer.was_started()
+        !self.timestamps.is_empty()
     }
 
     /// Is the timer currently active?
     pub fn is_active(&self) -> bool {
-        self.timer.is_active()
+        match self.timestamps.last() {
+            Some(status) => status.is_active(),
+            None => false,
+        }
     }
 
     /// Is the timer currently paused?
     pub fn is_paused(&self) -> bool {
-        self.timer.is_paused()
-    }
-
-    /// Is the timer currently paused AND flagged as stopped?
-    pub fn is_stopped(&self) -> bool {
-        self.is_paused() && self.stopped
-    }
-
-    /// Update the cached time to be the sum of the previous active periods. This is relatively expensive.
-    pub fn update_cached_time(&mut self) {
-        self.cached_time = 0.0;
-        let (chunks, _) = self.timer.time_stamps.as_chunks::<2>();
-        for i in chunks {
-            self.cached_time += (i[1] - i[0]).as_secs_f32();
+        match self.timestamps.last() {
+            Some(status) => status.is_paused(),
+            None => false,
         }
     }
 
-    /// How long the timer has been running since it was last started.
-    pub fn current_time(&self) -> f32 {
-        self.timer.current_time()
+    /// Is the timer currently stopped?
+    pub fn is_stopped(&self) -> bool {
+        match self.timestamps.last() {
+            Some(status) => status.is_stopped(),
+            None => false,
+        }
     }
 
-    /// Current time as minutes and seconds.
-    pub fn current_mins_secs(&self) -> (f32, f32) {
-        mins_secs(self.current_time())
+    pub fn last_time(&self) -> f32 {
+        match self.timestamps.last() {
+            Some(timestamp) => (Instant::now() - *timestamp.instant()).as_secs_f32(),
+            None => 0.0,
+        }
     }
 
-    /// How long the timer has been running in total, ignoring time paused.
-    pub fn running_time(&self) -> f32 {
-        self.cached_time + self.current_time()
+    pub fn current_active_time(&self) -> f32 {
+        if self.is_active() {
+            self.last_time()
+        } else {
+            0.0
+        }
     }
 
-    /// Total time as minutes and seconds.
-    pub fn running_mins_secs(&self) -> (f32, f32) {
-        mins_secs(self.running_time())
+    pub fn current_stopped_time(&self) -> f32 {
+        if self.is_stopped() {
+            self.last_time()
+        } else {
+            0.0
+        }
+    }
+
+    pub fn current_paused_time(&self) -> f32 {
+        if self.is_paused() {
+            self.last_time()
+        } else {
+            0.0
+        }
+    }
+
+    /// How long the timer has been active in seconds.
+    pub fn active_time(&self) -> f32 {
+        self.cached_active_time + self.current_active_time()
+    }
+
+    /// How long the timer has been paused in seconds.
+    pub fn paused_time(&self) -> f32 {
+        self.cached_paused_time + self.current_paused_time()
+    }
+
+    /// How long the timer has been stopped in seconds.
+    pub fn stopped_time(&self) -> f32 {
+        self.cached_stopped_time + self.current_stopped_time()
+    }
+
+    /// Duration since the first time stamp in seconds.
+    pub fn total_time(&self) -> f32 {
+        if self.timestamps.is_empty() {
+            0.0
+        } else {
+            (*self.timestamps[0].instant() - Instant::now()).as_secs_f32()
+        }
     }
 
     /// Remaining time in the countdown. May be negative.
     pub fn remaining_time(&self) -> f32 {
-        self.countdown_from - self.running_time()
-    }
-
-    /// Remaining time as minutes and seconds.
-    pub fn remaining_time_mins_secs(&self) -> (f32, f32) {
-        mins_secs(self.remaining_time())
-    }
-
-    /// Paused time since the timer was started.
-    pub fn paused_time(&self) -> f32 {
-        self.timer.paused_time()
-    }
-
-    /// Paused time as minutes and seconds.
-    pub fn paused_mins_secs(&self) -> (f32, f32) {
-        mins_secs(self.paused_time())
-    }
-
-    /// Total time since the timer was started.
-    pub fn total_time(&self) -> f32 {
-        self.timer.total_time()
-    }
-
-    /// Total time as minutes and seconds.
-    pub fn total_mins_secs(&self) -> (f32, f32) {
-        mins_secs(self.total_time())
+        self.countdown_from - self.active_time()
     }
 }
 
 pub fn view_simple_timer(ui: &mut Ui, timer: &Timer) {
-    let (mins, secs) = mins_secs(timer.running_time());
+    let (mins, secs) = mins_secs(timer.active_time());
     if !timer.was_started() {
         timer_display!(ui, mins, secs);
     } else {
-        match timer.is_active() {
-            true => {
-                ui.request_repaint();
-                timer_display!(ui, mins, secs, ACTIVE_COLOR);
-            }
-            false => {
-                timer_display!(ui, mins, secs, ACTIVE_COLOR);
-            }
-        }
+        match timer.timestamps.last() {
+            Some(status) => match status {
+                TimerStatus::Active(_) => {
+                    ui.request_repaint();
+                    timer_display!(ui, mins, secs, ACTIVE_COLOR)
+                }
+                TimerStatus::Stopped(_) => timer_display!(ui, mins, secs),
+                TimerStatus::Paused(_) => timer_display!(ui, mins, secs),
+            },
+            None => timer_display!(ui, 0.0, 0.0),
+        };
     }
 }
 
