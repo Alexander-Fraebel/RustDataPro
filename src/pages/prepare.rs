@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{Conditions, DataType},
+    data::{AssessmentInfo, DataType},
     quick_error,
     ui_elements::DataProUiElements,
     utils::windows_error_dialog,
@@ -175,7 +175,7 @@ impl PrepareSession {
                         app.data
                             .assessments
                             .entry(app.data.session.chosen_assessment.clone())
-                            .or_insert(Conditions::default());
+                            .or_insert(AssessmentInfo::default());
                     }
                     egui::ComboBox::from_id_salt("assessment")
                         .selected_text(assessment_text)

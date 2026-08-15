@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{AssessmentsData, Conditions, Data},
+    data::{AssessmentInfo, AssessmentsData, Data},
     quick_error,
     ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
@@ -76,7 +76,7 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
             if ui.button("Add Assessment").clicked() {
                 app.edit_assessments
                     .user_input
-                    .push((String::new(), String::new(), 0));
+                    .push((String::new(), String::new(), 1));
             }
             ui.add_space(10.0);
 
@@ -91,7 +91,7 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
                             .collect();
                         temp_assessments_data.insert(
                             assessment.clone(),
-                            Conditions::new_with_session(*session, conditions_vec),
+                            AssessmentInfo::new_with_session(*session, conditions_vec),
                         );
                     }
                 }
@@ -137,13 +137,24 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
     });
 }
 
-#[derive(Default)]
 pub struct EditAssessments {
     pub user_input: Vec<(String, String, u32)>,
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
     pub save_path: PathBuf,
+}
+
+impl Default for EditAssessments {
+    fn default() -> Self {
+        Self {
+            user_input: vec![(String::new(), String::new(), 1)],
+            save_finished: Default::default(),
+            deleted_row: Default::default(),
+            file_dialog: Default::default(),
+            save_path: Default::default(),
+        }
+    }
 }
 
 impl EditAssessments {

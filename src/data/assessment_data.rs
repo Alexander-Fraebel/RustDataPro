@@ -8,21 +8,31 @@ use std::{
     path::PathBuf,
 };
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug)]
-pub struct Conditions {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AssessmentInfo {
     pub session: u32,
     pub conditions: IndexSet<String>,
 }
 
-impl Conditions {
+impl Default for AssessmentInfo {
+    fn default() -> Self {
+        Self {
+            session: 1,
+            conditions: Default::default(),
+        }
+    }
+}
+
+impl AssessmentInfo {
     // TODO: allow generic type for easier to use API
     pub fn new(conditions: Vec<String>) -> Self {
         Self {
-            session: 0,
+            session: 1,
             conditions: IndexSet::from_iter(conditions.into_iter()),
         }
     }
 
+    // TODO: allow generic type for easier to use API
     pub fn new_with_session(session: u32, conditions: Vec<String>) -> Self {
         Self {
             session,
@@ -41,10 +51,10 @@ impl Conditions {
 
 /// A list of assessments names paired with a list of their conditions.
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
-pub struct AssessmentsData(IndexMap<String, Conditions>);
+pub struct AssessmentsData(IndexMap<String, AssessmentInfo>);
 
 impl Deref for AssessmentsData {
-    type Target = IndexMap<String, Conditions>;
+    type Target = IndexMap<String, AssessmentInfo>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -73,7 +83,7 @@ impl AssessmentsData {
         serde_json::from_str(
             r#"{
                 "FA": {
-                    "session": 0,
+                    "session": 1,
                     "conditions": [
                         "Ignore/Alone",
                         "Tangible",

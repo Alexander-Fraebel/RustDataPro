@@ -37,7 +37,7 @@ impl Data {
         &self.session.chosen_condition
     }
 
-    pub fn active_assessment_data(&mut self) -> Option<&mut Conditions> {
+    pub fn active_assessment_data(&mut self) -> Option<&mut AssessmentInfo> {
         self.assessments.get_mut(&self.session.chosen_assessment)
     }
 
