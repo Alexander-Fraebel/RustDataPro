@@ -164,9 +164,9 @@ impl Ksf {
 
 /// A map of KSFs kept in insertion order and index by name.
 #[derive(Serialize, Deserialize, Default, Debug)]
-pub struct KsfData(pub IndexMap<String, Ksf>);
+pub struct KsfsData(pub IndexMap<String, Ksf>);
 
-impl Deref for KsfData {
+impl Deref for KsfsData {
     type Target = IndexMap<String, Ksf>;
 
     fn deref(&self) -> &Self::Target {
@@ -174,13 +174,13 @@ impl Deref for KsfData {
     }
 }
 
-impl DerefMut for KsfData {
+impl DerefMut for KsfsData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl KsfData {
+impl KsfsData {
     // Return an error with the name of the first KSF that does not have all unique keys
     pub fn all_keys_unique(&self) -> Result<()> {
         for (name, ksf) in self.iter() {
@@ -198,7 +198,7 @@ impl KsfData {
         let mut s = String::new();
         file.read_to_string(&mut s)?;
         s = restore_num_names(s);
-        let ksf: KsfData = serde_json::from_str(&s)?;
+        let ksf: KsfsData = serde_json::from_str(&s)?;
         Ok(ksf)
     }
 
@@ -208,8 +208,8 @@ impl KsfData {
         Ok(prettier_json(raw_json))
     }
 
-    pub fn initial_file() -> KsfData {
-        let mut data = KsfData::default();
+    pub fn initial_file() -> KsfsData {
+        let mut data = KsfsData::default();
         data.insert(String::from("Example"), Ksf::example_ksf());
         data
     }

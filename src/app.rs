@@ -4,7 +4,7 @@ use crate::{
         HARDCODED_ROOT_DIR, HARDCODED_ZOOM, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
     },
-    data::{AssessmentsData, ClientData, Data, KsfData},
+    data::{AssessmentsData, ClientData, Data, KsfsData},
     display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
@@ -316,12 +316,12 @@ impl DataPro {
     }
 
     pub fn load_ksf(&mut self, path: &PathBuf) {
-        match KsfData::from_file(&path) {
+        match KsfsData::from_file(&path) {
             Ok(ksf) => {
                 self.data.ksfs = ksf;
             }
             Err(e) => {
-                self.data.ksfs = KsfData::default();
+                self.data.ksfs = KsfsData::default();
                 windows_error_dialog(e);
             }
         };
@@ -386,7 +386,7 @@ impl DataPro {
 
                 // Load the KSF Data
                 let ksf_path = Path::new(path).join(KSF_FILE_NAME);
-                match KsfData::from_file(&ksf_path) {
+                match KsfsData::from_file(&ksf_path) {
                     Ok(ksf_data) => {
                         self.data.ksfs = ksf_data;
                         self.edit_ksfs.prepare(&self.data, ksf_path.clone());

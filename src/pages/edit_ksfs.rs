@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{ALLOWED_KSF_KEYS, Data, Ksf, KsfData},
+    data::{ALLOWED_KSF_KEYS, Data, Ksf, KsfsData},
     ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
@@ -56,7 +56,7 @@ fn entry_row(ui: &mut egui::Ui, string: &mut String, save_finished: &mut bool, l
     }
 }
 
-fn build_ksfs(ksfs: &mut KsfData, (name, freq, dura): &(String, String, String)) -> Result<()> {
+fn build_ksfs(ksfs: &mut KsfsData, (name, freq, dura): &(String, String, String)) -> Result<()> {
     if !name.is_empty() {
         let mut ksf = Ksf::default();
         for line in freq.split("\n") {
@@ -80,7 +80,7 @@ fn build_ksfs(ksfs: &mut KsfData, (name, freq, dura): &(String, String, String))
 fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
     if ui.large_green_button("SAVE").clicked() {
         let mut write_succeeded = true;
-        let mut temp_ksf_data = KsfData::default();
+        let mut temp_ksf_data = KsfsData::default();
         // Check if each KSF builds
         for input in app.edit_ksfs.user_input.iter() {
             if let Err(e) = build_ksfs(&mut temp_ksf_data, input) {

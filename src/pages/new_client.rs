@@ -4,7 +4,7 @@ use crate::{
         ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
     },
-    data::{AssessmentsData, ClientData, KsfData},
+    data::{AssessmentsData, ClientData, KsfsData},
     quick_error,
     ui_elements::DataProUiElements,
     utils::windows_error_dialog,
@@ -57,12 +57,12 @@ impl NewClient {
 
         // Create a default assessments file with an FA and conditions
         let mut writer = File::create_new(Path::new(&client_path.join(ASSESSMENTS_FILE_NAME)))?;
-        writer.write_all(AssessmentsData::fa_conditions().to_json()?.as_bytes())?;
+        writer.write_all(AssessmentsData::example().to_json()?.as_bytes())?;
         writer.flush()?;
 
         // Create a template KSF file
         let mut writer = File::create_new(Path::new(&client_path.join(KSF_FILE_NAME)))?;
-        writer.write_all(KsfData::initial_file().to_json()?.as_bytes())?;
+        writer.write_all(KsfsData::initial_file().to_json()?.as_bytes())?;
         writer.flush()?;
 
         Ok(())

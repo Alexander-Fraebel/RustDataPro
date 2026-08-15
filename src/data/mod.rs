@@ -21,7 +21,7 @@ pub struct Data {
     pub client: ClientData,
     pub session: SessionData,
     pub assessments: AssessmentsData,
-    pub ksfs: KsfData,
+    pub ksfs: KsfsData,
     pub current_session: u32,
 }
 
@@ -38,10 +38,12 @@ impl Data {
         &self.session.chosen_condition
     }
 
-    pub fn active_assessment_data(&mut self) -> Option<&mut AssessmentInfo> {
+    pub fn active_assessment_data(&mut self) -> Option<&mut Assessment> {
         self.assessments.get_mut(&self.session.chosen_assessment)
     }
 
+    /// Increements the session number for the chosen assessment and set the current_session value to that number.
+    /// If there is no chosen assessment or it is invalid current_session is set to u32::MAX
     pub fn increment_current_session(&mut self) {
         if let Some(n) = self.assessments.get_mut(&self.session.chosen_assessment) {
             n.session += 1;

@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{AssessmentInfo, AssessmentsData, Data},
+    data::{Assessment, AssessmentsData, Data},
     quick_error,
     ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
@@ -91,7 +91,7 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
                             .collect();
                         temp_assessments_data.insert(
                             assessment.clone(),
-                            AssessmentInfo::new_with_session(*session, conditions_vec),
+                            Assessment::new_with_session(*session, conditions_vec),
                         );
                     }
                 }

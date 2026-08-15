@@ -9,12 +9,12 @@ use std::{
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AssessmentInfo {
+pub struct Assessment {
     pub session: u32,
     pub conditions: IndexSet<String>,
 }
 
-impl Default for AssessmentInfo {
+impl Default for Assessment {
     fn default() -> Self {
         Self {
             session: 1,
@@ -23,7 +23,7 @@ impl Default for AssessmentInfo {
     }
 }
 
-impl AssessmentInfo {
+impl Assessment {
     // TODO: allow generic type for easier to use API
     pub fn new(conditions: Vec<String>) -> Self {
         Self {
@@ -45,16 +45,32 @@ impl AssessmentInfo {
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self).context("unable to convert Conditions to json")
+        serde_json::to_string_pretty(&self).context("unable to convert Assessment to json")
+    }
+
+    pub fn example() -> Self {
+        serde_json::from_str(
+            r#"{
+                "session": 1,
+                "conditions": [
+                    "Alone",
+                    "Tangible",
+                    "Demand",
+                    "Attention",
+                    "Toy Play"
+                ]
+            }"#,
+        )
+        .unwrap()
     }
 }
 
 /// A list of assessments names paired with a list of their conditions.
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
-pub struct AssessmentsData(IndexMap<String, AssessmentInfo>);
+pub struct AssessmentsData(IndexMap<String, Assessment>);
 
 impl Deref for AssessmentsData {
-    type Target = IndexMap<String, AssessmentInfo>;
+    type Target = IndexMap<String, Assessment>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -79,28 +95,15 @@ impl AssessmentsData {
         serde_json::to_string_pretty(&self).context("unable to convert AssessmentsData to json")
     }
 
-    pub fn fa_conditions() -> Self {
-        serde_json::from_str(
-            r#"{
-                "FA": {
-                    "session": 1,
-                    "conditions": [
-                        "Alone",
-                        "Tangible",
-                        "Demand",
-                        "Attention",
-                        "Toy Play"
-                    ]
-                }
-            }"#,
-        )
-        .unwrap()
+    pub fn example() -> Self {
+        let mut map = IndexMap::new();
+        map.insert("FA".into(), Assessment::example());
+        Self(map)
     }
 }
 
 // #[test]
 // fn create_example_data() {
-//     let mut assess = AssessmentsData::default();
-//     assess.insert("FA".into(), Conditions::default());
-//     println!("{}", assess.to_json().unwrap());
+//     println!("{}", Assessment::example().to_json().unwrap());
+//     println!("{}", AssessmentsData::example().to_json().unwrap());
 // }
