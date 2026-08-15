@@ -127,12 +127,12 @@ impl DataPro {
         }
         let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
         for (t, bouts, k, _d) in self.session.dura_keys.iter() {
-            dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
+            dur_map.insert(*k, (*bouts, rounded_f32(t.running_time())));
         }
 
         serde_json::to_string(&OutputData {
             datetime: date_time_string(&self.session.start_time),
-            session_duration: rounded_f32(self.session.timer.total_time()),
+            session_duration: rounded_f32(self.session.timer.running_time()),
             session: self.data.session.clone(),
             duration: dur_map,
             frequency: fre_map,
@@ -191,13 +191,13 @@ impl SessionPage {
     /// Stops all timers, records the final keypress (simulates it if session ended another way), disallows unpressing keys, then opens the Save/Discard dialog.
     /// This should only occur once in a session, when it ends.
     fn stop_all_timers(&mut self) {
-        if self.timer.was_started() && !self.timer.is_active() {
+        if self.timer.was_started() {
             for (timer, _, _, _) in self.dura_keys.iter_mut() {
-                timer.pause();
+                timer.stop();
             }
-            self.timer.pause();
+            self.timer.stop();
             self.timeline
-                .push((Key::Escape, rounded_f32(self.timer.total_time())));
+                .push((Key::Escape, rounded_f32(self.timer.running_time())));
             self.keypresses_display.pop_front();
             self.keypresses_display.push_back("e");
         }
@@ -323,13 +323,13 @@ impl SessionPage {
                     if timer.is_active() {
                         *bouts += 1;
                     }
-                    record_keypress!(app.session, *key, app.session.timer.total_time());
+                    record_keypress!(app.session, *key, app.session.timer.running_time());
                 }
             }
             for (counter, key, _) in app.session.freq_keys.iter_mut() {
                 if app.session.clicked_keys.contains(key) {
                     *counter += 1;
-                    record_keypress!(app.session, *key, app.session.timer.total_time());
+                    record_keypress!(app.session, *key, app.session.timer.running_time());
                 }
             }
         }
@@ -489,10 +489,10 @@ impl SessionPage {
                                             ui.strong("Key");
                                         });
                                         row.col(|ui| {
-                                            ui.strong("Current");
+                                            ui.strong("Total");
                                         });
                                         row.col(|ui| {
-                                            ui.strong("Total");
+                                            ui.strong("Current");
                                         });
                                         row.col(|ui| {
                                             ui.strong("Bouts");

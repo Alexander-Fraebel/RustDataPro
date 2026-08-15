@@ -87,7 +87,7 @@ impl SimpleTimer {
     }
 
     /// How long the time has been running in total, ignoring time paused.
-    pub fn total_time(&self) -> f32 {
+    pub fn running_time(&self) -> f32 {
         let mut total = 0.0;
         let (chunks, _) = self.time_stamps.as_chunks::<2>();
         for i in chunks {
@@ -95,6 +95,30 @@ impl SimpleTimer {
         }
         total += self.current_time();
         total
+    }
+
+    /// Time spent paused since the time was first started.
+    pub fn paused_time(&self) -> f32 {
+        if self.time_stamps.len() < 2 {
+            0.0
+        } else {
+            let mut total = 0.0;
+            let (chunks, _) = self.time_stamps[1..].as_chunks::<2>();
+            for i in chunks {
+                total += (i[1] - i[0]).as_secs_f32();
+            }
+            total += self.current_time();
+            total
+        }
+    }
+
+    /// Time since the timer was first started including time paused.
+    pub fn total_time(&self) -> f32 {
+        if self.time_stamps.is_empty() {
+            0.0
+        } else {
+            (self.time_stamps[0] - Instant::now()).as_secs_f32()
+        }
     }
 }
 
@@ -200,28 +224,48 @@ impl Timer {
     }
 
     /// How long the timer has been running in total, ignoring time paused.
-    pub fn total_time(&self) -> f32 {
+    pub fn running_time(&self) -> f32 {
         self.cached_time + self.current_time()
     }
 
     /// Total time as minutes and seconds.
-    pub fn total_mins_secs(&self) -> (f32, f32) {
-        mins_secs(self.total_time())
+    pub fn running_mins_secs(&self) -> (f32, f32) {
+        mins_secs(self.running_time())
     }
 
     /// Remaining time in the countdown. May be negative.
     pub fn remaining_time(&self) -> f32 {
-        self.countdown_from - self.total_time()
+        self.countdown_from - self.running_time()
     }
 
     /// Remaining time as minutes and seconds.
     pub fn remaining_time_mins_secs(&self) -> (f32, f32) {
         mins_secs(self.remaining_time())
     }
+
+    /// Paused time since the timer was started.
+    pub fn paused_time(&self) -> f32 {
+        self.timer.paused_time()
+    }
+
+    /// Paused time as minutes and seconds.
+    pub fn paused_mins_secs(&self) -> (f32, f32) {
+        mins_secs(self.paused_time())
+    }
+
+    /// Total time since the timer was started.
+    pub fn total_time(&self) -> f32 {
+        self.timer.total_time()
+    }
+
+    /// Total time as minutes and seconds.
+    pub fn total_mins_secs(&self) -> (f32, f32) {
+        mins_secs(self.total_time())
+    }
 }
 
 pub fn view_simple_timer(ui: &mut Ui, timer: &Timer) {
-    let (mins, secs) = mins_secs(timer.total_time());
+    let (mins, secs) = mins_secs(timer.running_time());
     if !timer.was_started() {
         timer_display!(ui, mins, secs);
     } else {
