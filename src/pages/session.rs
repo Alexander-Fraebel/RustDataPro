@@ -3,7 +3,7 @@ use crate::{
     data::{Data, Ksf, output_data::OutputData, timeline::Timeline},
     display_control::DisplayControl,
     quick_error,
-    timer::{Timer, TimerStatus, view_nonneg_countdown_timer, view_simple_timer},
+    timer::{Timer, view_nonneg_countdown_timer, view_simple_timer},
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
 };
@@ -191,11 +191,11 @@ impl SessionPage {
     /// Stops all timers, records the final keypress (simulates it if session ended another way), disallows unpressing keys, then opens the Save/Discard dialog.
     /// This should only occur once in a session, when it ends.
     fn stop_all_timers(&mut self) {
-        if self.timer.was_started() && !self.timer.is_stopped() {
+        if self.timer.was_started() && !self.timer.is_active() {
             for (timer, _, _, _) in self.dura_keys.iter_mut() {
-                timer.stop();
+                timer.pause();
             }
-            self.timer.stop();
+            self.timer.pause();
             self.timeline
                 .push((Key::Escape, rounded_f32(self.timer.total_time())));
             self.keypresses_display.pop_front();
@@ -224,18 +224,23 @@ impl SessionPage {
                 for (timer, bouts, key, _) in self.dura_keys.iter_mut() {
                     if key == &removed_key {
                         if timer.is_active() {
-                            timer.unstart();
+                            timer.undo();
                             *bouts = bouts.saturating_sub(1);
                         } else {
-                            timer.unstop();
+                            timer.undo();
                         }
-                        self.unpress_available = false;
+                        if *self.keypresses_display.iter().last().unwrap() == "t" {
+                            self.unpress_available = false;
+                        }
                         return;
                     }
                 }
                 for (counter, key, _) in self.freq_keys.iter_mut() {
                     if key == &removed_key {
                         *counter = counter.saturating_sub(1);
+                        if *self.keypresses_display.iter().last().unwrap() == "t" {
+                            self.unpress_available = false;
+                        }
                         return;
                     }
                 }
@@ -314,7 +319,7 @@ impl SessionPage {
         if app.session.timer.is_active() {
             for (timer, bouts, key, _) in app.session.dura_keys.iter_mut() {
                 if app.session.clicked_keys.contains(key) {
-                    timer.stop_start();
+                    timer.toggle();
                     if timer.is_active() {
                         *bouts += 1;
                     }
@@ -494,25 +499,24 @@ impl SessionPage {
                                         });
                                     });
                                     for (timer, bouts, key, desc) in app.session.dura_keys.iter() {
-                                        body.row(ROW_HEIGHT, |mut row| match timer.status() {
-                                            TimerStatus::Active | TimerStatus::Paused => {
-                                                timer_display!(
-                                                    active,
-                                                    row,
-                                                    desc,
-                                                    key,
-                                                    timer.saved_time(),
-                                                    timer.current_time(),
-                                                    bouts
-                                                );
-                                            }
-                                            TimerStatus::Stopped | TimerStatus::NotStarted => {
+                                        body.row(ROW_HEIGHT, |mut row| {
+                                            if !timer.was_started() {
                                                 timer_display!(
                                                     passive,
                                                     row,
                                                     desc,
                                                     key,
-                                                    timer.saved_time(),
+                                                    timer.cached_time,
+                                                    timer.current_time(),
+                                                    bouts
+                                                );
+                                            } else {
+                                                timer_display!(
+                                                    active,
+                                                    row,
+                                                    desc,
+                                                    key,
+                                                    timer.cached_time,
                                                     timer.current_time(),
                                                     bouts
                                                 );

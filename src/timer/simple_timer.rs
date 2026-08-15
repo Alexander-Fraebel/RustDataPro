@@ -20,11 +20,16 @@ macro_rules! timer_display {
     };
 }
 
+fn mins_secs(n: f32) -> (f32, f32) {
+    ((n / 60.0).trunc(), n % 60.0)
+}
+
 const ACTIVE_COLOR: Color32 = Color32::YELLOW;
+const NEGATIVE_COLOR: Color32 = Color32::RED;
 
 #[derive(Default)]
 pub struct SimpleTimer {
-    time_stamps: Vec<Instant>,
+    pub time_stamps: Vec<Instant>,
 }
 
 impl SimpleTimer {
@@ -33,7 +38,14 @@ impl SimpleTimer {
         self.time_stamps.push(Instant::now());
     }
 
-    /// If the time is active, pause it. Otherwise do nothing.
+    /// If the time is paused, start it. Otherwise do nothing.
+    pub fn start(&mut self) {
+        if self.is_paused() {
+            self.toggle();
+        }
+    }
+
+    /// If the timer is active, pause it. Otherwise do nothing.
     pub fn pause(&mut self) {
         if self.is_active() {
             self.toggle();
@@ -74,12 +86,6 @@ impl SimpleTimer {
         }
     }
 
-    // Current time as minutes and seconds.
-    pub fn current_mins_secs(&self) -> (f32, f32) {
-        let total = self.current_time();
-        ((total / 60.0).trunc(), total % 60.0)
-    }
-
     /// How long the time has been running in total, ignoring time paused.
     pub fn total_time(&self) -> f32 {
         let mut total = 0.0;
@@ -90,38 +96,192 @@ impl SimpleTimer {
         total += self.current_time();
         total
     }
+}
 
-    // Total time as minutes and seconds.
+pub struct Timer {
+    pub timer: SimpleTimer,
+    pub cached_time: f32,
+    pub countdown_from: f32,
+    stopped: bool,
+}
+
+impl Default for Timer {
+    fn default() -> Self {
+        Self {
+            timer: Default::default(),
+            cached_time: Default::default(),
+            countdown_from: 30.0,
+            stopped: false,
+        }
+    }
+}
+
+impl Timer {
+    /// Pause or unpause.
+    pub fn toggle(&mut self) {
+        if !(self.stopped && self.is_paused()) {
+            self.timer.toggle();
+            self.update_cached_time();
+        }
+    }
+
+    /// If the timer is paused, start it. Otherwise do nothing.
+    pub fn start(&mut self) {
+        if self.is_paused() && !self.stopped {
+            self.toggle();
+        }
+    }
+
+    /// If the time is active, pause it. Otherwise do nothing.
+    pub fn pause(&mut self) {
+        if self.is_active() {
+            self.toggle();
+        }
+    }
+
+    /// Pause the timer and flag it as stopped. When stopped .start() and .toggle() will no longer start the timer.
+    pub fn stop(&mut self) {
+        self.pause();
+        self.stopped = true;
+    }
+
+    /// Remove the last added time stamp.
+    pub fn undo(&mut self) -> Option<Instant> {
+        let out = self.timer.undo();
+        self.update_cached_time();
+        out
+    }
+
+    /// Remove all time stamps and reset cached time.
+    pub fn reset(&mut self) {
+        *self = Self {
+            countdown_from: self.countdown_from,
+            ..Default::default()
+        }
+    }
+
+    /// Has the timer been started since it was last reset?
+    pub fn was_started(&self) -> bool {
+        self.timer.was_started()
+    }
+
+    /// Is the timer currently active?
+    pub fn is_active(&self) -> bool {
+        self.timer.is_active()
+    }
+
+    /// Is the timer currently paused?
+    pub fn is_paused(&self) -> bool {
+        self.timer.is_paused()
+    }
+
+    /// Is the timer currently paused AND flagged as stopped?
+    pub fn is_stopped(&self) -> bool {
+        self.is_paused() && self.stopped
+    }
+
+    /// Update the cached time to be the sum of the previous active periods. This is relatively expensive.
+    pub fn update_cached_time(&mut self) {
+        self.cached_time = 0.0;
+        let (chunks, _) = self.timer.time_stamps.as_chunks::<2>();
+        for i in chunks {
+            self.cached_time += (i[1] - i[0]).as_secs_f32();
+        }
+    }
+
+    /// How long the timer has been running since it was last started.
+    pub fn current_time(&self) -> f32 {
+        self.timer.current_time()
+    }
+
+    /// Current time as minutes and seconds.
+    pub fn current_mins_secs(&self) -> (f32, f32) {
+        mins_secs(self.current_time())
+    }
+
+    /// How long the timer has been running in total, ignoring time paused.
+    pub fn total_time(&self) -> f32 {
+        self.cached_time + self.current_time()
+    }
+
+    /// Total time as minutes and seconds.
     pub fn total_mins_secs(&self) -> (f32, f32) {
-        let total = self.total_time();
-        ((total / 60.0).trunc(), total % 60.0)
+        mins_secs(self.total_time())
+    }
+
+    /// Remaining time in the countdown. May be negative.
+    pub fn remaining_time(&self) -> f32 {
+        self.countdown_from - self.total_time()
+    }
+
+    /// Remaining time as minutes and seconds.
+    pub fn remaining_time_mins_secs(&self) -> (f32, f32) {
+        mins_secs(self.remaining_time())
     }
 }
 
-pub fn view_simple_timer_total(ui: &mut Ui, timer: &SimpleTimer) {
-    let (total_mins, total_secs) = timer.total_mins_secs();
-    match timer.is_paused() {
-        false => {
-            ui.request_repaint();
-            timer_display!(ui, total_mins, total_secs, ACTIVE_COLOR);
-        }
-
-        true => {
-            timer_display!(ui, total_mins, total_secs);
+pub fn view_simple_timer(ui: &mut Ui, timer: &Timer) {
+    let (mins, secs) = mins_secs(timer.total_time());
+    if !timer.was_started() {
+        timer_display!(ui, mins, secs);
+    } else {
+        match timer.is_active() {
+            true => {
+                ui.request_repaint();
+                timer_display!(ui, mins, secs, ACTIVE_COLOR);
+            }
+            false => {
+                timer_display!(ui, mins, secs, ACTIVE_COLOR);
+            }
         }
     }
 }
 
-pub fn view_simple_timer_current(ui: &mut Ui, timer: &SimpleTimer) {
-    let (cur_mins, cur_secs) = timer.current_mins_secs();
-    match timer.is_paused() {
-        false => {
-            ui.request_repaint();
-            timer_display!(ui, cur_mins, cur_secs, ACTIVE_COLOR);
-        }
+pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
+    let time = timer.remaining_time();
+    let (mins, secs) = mins_secs(time.abs());
+    if !timer.was_started() {
+        timer_display!(ui, mins, secs);
+        return;
+    }
 
-        true => {
-            timer_display!(ui, cur_mins, cur_secs);
+    if time.is_sign_positive() {
+        match timer.is_active() {
+            true => {
+                ui.request_repaint();
+                timer_display!(ui, mins, secs, ACTIVE_COLOR);
+            }
+            false => {
+                timer_display!(ui, mins, secs, ACTIVE_COLOR);
+            }
+        }
+    } else {
+        match timer.is_active() {
+            true => {
+                ui.request_repaint();
+                timer_display!(ui, mins, secs, NEGATIVE_COLOR);
+            }
+            false => {
+                timer_display!(ui, mins, secs, NEGATIVE_COLOR);
+            }
+        }
+    }
+}
+
+// Special timer for session page which counts down to zero and not below.
+pub fn view_nonneg_countdown_timer(ui: &mut Ui, timer: &Timer) {
+    let (mins, secs) = mins_secs(timer.remaining_time().max(0.0));
+    if !timer.was_started() {
+        timer_display!(ui, mins, secs);
+    } else {
+        match timer.is_active() {
+            true => {
+                ui.request_repaint();
+                timer_display!(ui, mins, secs, ACTIVE_COLOR);
+            }
+            false => {
+                timer_display!(ui, mins, secs, ACTIVE_COLOR);
+            }
         }
     }
 }
