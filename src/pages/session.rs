@@ -116,17 +116,8 @@ impl DataPro {
             self.data.session.data_type.abbrev()
         ));
         overwrite_file(Ok(file_name), &self.write_output_json()?)?;
-        self.increment_current_session()
-    }
-
-    /// This assumes that data collectors use INDEPENDENT files
-    pub fn increment_current_session(&mut self) -> Result<()> {
-        let path = self.path_to_assessments();
-        std::fs::write(path, &self.data.assessments.to_json()?)?;
-        let name = self.data.active_assessment_name().clone();
-        if let Some(conditions) = self.data.assessments.get_mut(&name) {
-            conditions.session += 1;
-        }
+        self.data.increment_current_session();
+        self.overwrite_assessments()?;
         Ok(())
     }
 

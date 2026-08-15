@@ -29,6 +29,7 @@ impl Data {
     pub fn clear(&mut self) {
         *self = Self::default()
     }
+
     pub fn active_assessment_name(&self) -> &String {
         &self.session.chosen_assessment
     }
@@ -39,6 +40,15 @@ impl Data {
 
     pub fn active_assessment_data(&mut self) -> Option<&mut AssessmentInfo> {
         self.assessments.get_mut(&self.session.chosen_assessment)
+    }
+
+    pub fn increment_current_session(&mut self) {
+        if let Some(n) = self.assessments.get_mut(&self.session.chosen_assessment) {
+            n.session += 1;
+            self.current_session = n.session;
+        } else {
+            self.current_session = u32::MAX;
+        }
     }
 
     pub fn chosen_ksf(&self) -> &String {

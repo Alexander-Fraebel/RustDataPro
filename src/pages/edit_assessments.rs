@@ -137,24 +137,13 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
     });
 }
 
+#[derive(Default)]
 pub struct EditAssessments {
     pub user_input: Vec<(String, String, u32)>,
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
     pub save_path: PathBuf,
-}
-
-impl Default for EditAssessments {
-    fn default() -> Self {
-        Self {
-            user_input: vec![(String::new(), String::new(), 1)],
-            save_finished: Default::default(),
-            deleted_row: Default::default(),
-            file_dialog: Default::default(),
-            save_path: Default::default(),
-        }
-    }
 }
 
 impl EditAssessments {

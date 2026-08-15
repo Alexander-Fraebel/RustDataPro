@@ -85,7 +85,7 @@ impl AssessmentsData {
                 "FA": {
                     "session": 1,
                     "conditions": [
-                        "Ignore/Alone",
+                        "Alone",
                         "Tangible",
                         "Demand",
                         "Attention",

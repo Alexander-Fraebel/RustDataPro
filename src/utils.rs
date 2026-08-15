@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, Local, Timelike};
 use egui::{InputState, Key};
 use itertools::Itertools;
@@ -95,7 +95,10 @@ pub fn overwrite_file(pathbuf: Result<PathBuf>, data: &str) -> Result<()> {
             if pb.exists() {
                 std::fs::write(pb, data)?
             } else {
-                let mut writer = BufWriter::new(File::create_new(pb)?);
+                let mut writer = BufWriter::new(
+                    File::create_new(&pb)
+                        .with_context(|| format!("error creating file named: {:?}", pb))?,
+                );
                 writer.write_all(data.as_bytes())?;
                 writer.flush()?;
             }
