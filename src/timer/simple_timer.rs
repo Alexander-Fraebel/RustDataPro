@@ -1,22 +1,24 @@
 use egui::{Color32, RichText, Ui};
 use std::time::Instant;
 
-/// Need to use a macro to pass around a string literal
-macro_rules! timer_format {
-    () => {
-        "{:4.0}:{:05.2}"
+macro_rules! egui_timer_display {
+    ($f:literal, $mins:expr, $secs:expr) => {
+        RichText::new(format!($f, $mins, $secs)).monospace()
     };
-}
-
-macro_rules! timer_display {
     ($mins:expr, $secs:expr) => {
-        RichText::new(format!(timer_format!(), $mins, $secs)).monospace()
+        RichText::new(format!("{:4.0}:{:05.2}", $mins, $secs)).monospace()
+    };
+    ($ui:ident, $f:literal, $mins:expr, $secs:expr) => {
+        $ui.label(egui_timer_display!($f, $mins, $secs))
+    };
+    ($ui:ident, $f:literal, $mins:expr, $secs:expr, $color:expr) => {
+        $ui.label(egui_timer_display!($f, $mins, $secs).color($color))
     };
     ($ui:ident, $mins:expr, $secs:expr) => {
-        $ui.label(timer_display!($mins, $secs))
+        $ui.label(egui_timer_display!($mins, $secs))
     };
     ($ui:ident, $mins:expr, $secs:expr, $color:expr) => {
-        $ui.label(timer_display!($mins, $secs).color($color))
+        $ui.label(egui_timer_display!($mins, $secs).color($color))
     };
 }
 
@@ -174,7 +176,8 @@ impl Timer {
         self.timestamps.push(Timestamp::paused());
     }
 
-    /// Push a new timestamp of the same type as the last status. Updated the paused time.
+    /// Push a new timestamp of the same type as the last status. Updates the paused time.
+    /// Does not update other cached times.
     pub fn unpause(&mut self) {
         match self.cached.status {
             TimerStatus::Active => self.start_silent(),
@@ -363,7 +366,7 @@ impl Timer {
     /// Duration since the first time stamp in seconds.
     pub fn total_time(&self) -> f32 {
         if self.was_started() {
-            (self.timestamps[0].instant - Instant::now()).as_secs_f32()
+            (Instant::now() - self.timestamps[0].instant).as_secs_f32()
         } else {
             0.0
         }
@@ -387,9 +390,9 @@ impl Timer {
 pub fn view_simple_timer(ui: &mut Ui, timer: &Timer) {
     let (mins, secs) = mins_secs(timer.active_time() + timer.cached.active.last);
     if !timer.was_started() {
-        timer_display!(ui, mins, secs);
+        egui_timer_display!(ui, mins, secs);
     } else {
-        timer_display!(ui, mins, secs, ACTIVE_COLOR);
+        egui_timer_display!(ui, mins, secs, ACTIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint()
         }
@@ -399,9 +402,9 @@ pub fn view_simple_timer(ui: &mut Ui, timer: &Timer) {
 pub fn view_paused_timer(ui: &mut Ui, timer: &Timer) {
     let (mins, secs) = mins_secs(timer.paused_time() + timer.cached.paused.last);
     if !timer.was_started() {
-        timer_display!(ui, mins, secs);
+        egui_timer_display!(ui, mins, secs);
     } else {
-        timer_display!(ui, mins, secs, ACTIVE_COLOR);
+        egui_timer_display!(ui, mins, secs, ACTIVE_COLOR);
         if timer.is_paused() {
             ui.request_repaint()
         }
@@ -410,17 +413,17 @@ pub fn view_paused_timer(ui: &mut Ui, timer: &Timer) {
 
 pub fn view_paused_plus_active_timer(ui: &mut Ui, timer: &Timer) {
     let (mins, secs) = mins_secs(
-        timer.paused_time()
-            + timer.cached.paused.last
-            + timer.active_time()
-            + timer.cached.active.last,
+        timer.active_time()
+            + timer.paused_time()
+            + timer.cached.active.last
+            + timer.cached.paused.last,
     );
 
     if !timer.was_started() {
-        timer_display!(ui, mins, secs);
+        egui_timer_display!(ui, mins, secs);
     } else {
         ui.request_repaint();
-        timer_display!(ui, mins, secs, ACTIVE_COLOR);
+        egui_timer_display!(ui, mins, secs, ACTIVE_COLOR);
     }
 }
 
@@ -428,17 +431,17 @@ pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
     let time = timer.remaining_time();
     let (mins, secs) = mins_secs(time);
     if !timer.was_started() {
-        timer_display!(ui, mins, secs.abs());
+        egui_timer_display!(ui, mins, secs.abs());
         return;
     }
 
     if time.is_sign_positive() {
-        timer_display!(ui, mins, secs.abs(), ACTIVE_COLOR);
+        egui_timer_display!(ui, mins, secs.abs(), ACTIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint();
         }
     } else {
-        timer_display!(ui, mins, secs.abs(), NEGATIVE_COLOR);
+        egui_timer_display!(ui, mins, secs.abs(), NEGATIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint();
         }
@@ -449,9 +452,9 @@ pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
 pub fn view_nonneg_countdown_timer(ui: &mut Ui, timer: &Timer) {
     let (mins, secs) = mins_secs(timer.remaining_time().max(0.0));
     if !timer.was_started() {
-        timer_display!(ui, mins, secs);
+        egui_timer_display!(ui, mins, secs);
     } else {
-        timer_display!(ui, mins, secs, ACTIVE_COLOR);
+        egui_timer_display!(ui, mins, secs, ACTIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint();
         }
