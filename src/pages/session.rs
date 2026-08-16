@@ -86,18 +86,26 @@ macro_rules! passive_cell {
 }
 
 macro_rules! timer_display {
-    (active, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
+    (active, $row:ident, $desc:ident, $key:ident, $timer:expr, $bouts:expr) => {
         active_cell!($row, $desc);
         active_cell!($row, $key.name());
-        active_cell!($row, timer_format!(), $time1);
-        active_cell!($row, timer_format!(), $time2);
+        active_cell!($row, timer_format!(), $timer.cached_active_time);
+        active_cell!(
+            $row,
+            timer_format!(),
+            $timer.current_active_time() + $timer.last_active_time
+        );
         active_cell!($row, $bouts);
     };
-    (passive, $row:ident, $desc:ident, $key:ident, $time1:expr, $time2:expr, $bouts:expr) => {
+    (passive, $row:ident, $desc:ident, $key:ident, $timer:expr, $bouts:expr) => {
         passive_cell!($row, $desc);
         passive_cell!($row, $key.name());
-        passive_cell!($row, timer_format!(), $time1);
-        passive_cell!($row, timer_format!(), $time2);
+        passive_cell!($row, timer_format!(), $timer.cached_active_time);
+        passive_cell!(
+            $row,
+            timer_format!(),
+            $timer.current_active_time() + $timer.last_active_time
+        );
         passive_cell!($row, $bouts);
     };
 }
@@ -498,43 +506,30 @@ impl SessionPage {
                                     });
                                     for (timer, bouts, key, desc) in app.session.dura_keys.iter() {
                                         body.row(ROW_HEIGHT, |mut row| {
-                                            match timer.timestamps.last() {
-                                                Some(status) => match status {
-                                                    TimerStatus::Active(_) => {
+                                            match timer.current_status() {
+                                                TimerStatus::Active => {
+                                                    timer_display!(
+                                                        active, row, desc, key, timer, bouts
+                                                    );
+                                                }
+                                                TimerStatus::Stopped => {
+                                                    timer_display!(
+                                                        passive, row, desc, key, timer, bouts
+                                                    );
+                                                }
+                                                TimerStatus::Paused => match timer.last_status {
+                                                    TimerStatus::Active => {
                                                         timer_display!(
-                                                            active,
-                                                            row,
-                                                            desc,
-                                                            key,
-                                                            timer.cached_active_time,
-                                                            timer.current_active_time(),
-                                                            bouts
+                                                            active, row, desc, key, timer, bouts
                                                         );
                                                     }
                                                     _ => {
                                                         timer_display!(
-                                                            passive,
-                                                            row,
-                                                            desc,
-                                                            key,
-                                                            timer.cached_active_time,
-                                                            timer.current_active_time(),
-                                                            bouts
+                                                            passive, row, desc, key, timer, bouts
                                                         );
                                                     }
                                                 },
-                                                None => {
-                                                    timer_display!(
-                                                        passive,
-                                                        row,
-                                                        desc,
-                                                        key,
-                                                        timer.cached_active_time,
-                                                        timer.current_active_time(),
-                                                        bouts
-                                                    );
-                                                }
-                                            }
+                                            };
                                         });
                                     }
                                 });

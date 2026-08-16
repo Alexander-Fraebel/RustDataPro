@@ -21,7 +21,7 @@ fn parse_line(s: &str) -> Result<(Key, String)> {
         Some(key) => {
             if !ALLOWED_KSF_KEYS.contains(&key) {
                 return Err(anyhow::anyhow!(
-                    "invalid key name `{}` in line `{}`",
+                    "invalid key name `{}` in line `{}`\nonly letters and numbers are allowed",
                     key.symbol_or_name(),
                     s
                 ));
