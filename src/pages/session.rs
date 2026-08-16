@@ -3,7 +3,10 @@ use crate::{
     data::{Data, Ksf, output_data::OutputData, timeline::Timeline},
     display_control::DisplayControl,
     quick_error,
-    timer::{Timer, TimerStatus, view_nonneg_countdown_timer, view_simple_timer},
+    timer::{
+        Timer, TimerStatus, view_nonneg_countdown_timer, view_paused_plus_active_timer,
+        view_paused_timer, view_simple_timer,
+    },
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
 };
@@ -89,22 +92,22 @@ macro_rules! timer_display {
     (active, $row:ident, $desc:ident, $key:ident, $timer:expr, $bouts:expr) => {
         active_cell!($row, $desc);
         active_cell!($row, $key.name());
-        active_cell!($row, timer_format!(), $timer.cached_active_time);
+        active_cell!($row, timer_format!(), $timer.cached.active.saved);
         active_cell!(
             $row,
             timer_format!(),
-            $timer.current_active_time() + $timer.last_active_time
+            $timer.current_active_time() + $timer.cached.active.last
         );
         active_cell!($row, $bouts);
     };
     (passive, $row:ident, $desc:ident, $key:ident, $timer:expr, $bouts:expr) => {
         passive_cell!($row, $desc);
         passive_cell!($row, $key.name());
-        passive_cell!($row, timer_format!(), $timer.cached_active_time);
+        passive_cell!($row, timer_format!(), $timer.cached.active.saved);
         passive_cell!(
             $row,
             timer_format!(),
-            $timer.current_active_time() + $timer.last_active_time
+            $timer.current_active_time() + $timer.cached.active.last
         );
         passive_cell!($row, $bouts);
     };
@@ -313,6 +316,8 @@ impl SessionPage {
         if app.session.clicked_keys.contains(&egui::Key::Space) {
             if app.session.timer.was_started() {
                 app.session.pause_unpause_all_timers();
+                app.session.keypresses_display.pop_front();
+                app.session.keypresses_display.push_back("p");
             }
         }
         if app.session.clicked_keys.contains(&egui::Key::Backspace) {
@@ -403,9 +408,9 @@ impl SessionPage {
                     ui.label("TAB to start.\nESC return to end session.\nSPACE to pause/unpause.");
                     ui.horizontal(|ui| {
                         if app.session.timer.was_started() {
-                            ui.label(RichText::new("Session Time:").color(ACTIVE_COLOR));
+                            ui.monospace(RichText::new("Session Time:").color(ACTIVE_COLOR));
                         } else {
-                            ui.label("Session Time:");
+                            ui.monospace("Session Time:");
                         }
 
                         if app.prep_session.limit_session_length {
@@ -422,6 +427,22 @@ impl SessionPage {
                         } else {
                             view_simple_timer(ui, &mut app.session.timer);
                         }
+                    });
+                    ui.horizontal(|ui| {
+                        if app.session.timer.was_started() {
+                            ui.monospace(RichText::new(" Paused Time:").color(ACTIVE_COLOR));
+                        } else {
+                            ui.monospace(" Paused Time:");
+                        };
+                        view_paused_timer(ui, &mut app.session.timer);
+                    });
+                    ui.horizontal(|ui| {
+                        if app.session.timer.was_started() {
+                            ui.monospace(RichText::new("  Total Time:").color(ACTIVE_COLOR));
+                        } else {
+                            ui.monospace("  Total Time:");
+                        };
+                        view_paused_plus_active_timer(ui, &mut app.session.timer);
                     });
                 });
             });
@@ -517,7 +538,7 @@ impl SessionPage {
                                                         passive, row, desc, key, timer, bouts
                                                     );
                                                 }
-                                                TimerStatus::Paused => match timer.last_status {
+                                                TimerStatus::Paused => match timer.cached.status {
                                                     TimerStatus::Active => {
                                                         timer_display!(
                                                             active, row, desc, key, timer, bouts
