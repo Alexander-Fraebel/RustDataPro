@@ -278,7 +278,7 @@ impl Timer {
         }
     }
 
-    /// Update the cached times to be the sum of the previous active periods. This is relatively expensive.
+    /// Update the cached times in order to diplay them properly. This is relatively expensive.
     pub fn update_cached_times(&mut self) {
         self.cached_active_time = 0.0;
         self.cached_stopped_time = 0.0;

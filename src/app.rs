@@ -118,9 +118,6 @@ impl DataPro {
 
         cc.egui_ctx.set_visuals(Visuals::dark());
 
-        // cc.egui_ctx
-        //     .add_image_loader(std::sync::Arc::new(ImageCrateLoader::default()));
-
         // Custom monospace font
         let mut font_defs = FontDefinitions::default();
         font_defs.font_data.insert(

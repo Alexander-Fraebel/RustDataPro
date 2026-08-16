@@ -322,11 +322,6 @@ impl SessionPage {
                         *bouts += 1;
                     }
                     record_keypress!(app.session, *key, app.session.timer.active_time());
-                    println!("\ntoggling {:?}", key);
-                    println!("timer is active: {}", timer.is_active());
-                    println!("timer is paused: {}", timer.is_paused());
-                    println!("timer is stopped: {}", timer.is_stopped());
-                    println!("timer is was started: {}", timer.was_started());
                 }
             }
             for (counter, key, _) in app.session.freq_keys.iter_mut() {

@@ -126,17 +126,23 @@ impl Ksf {
         serde_json::from_str(
             r#"{
                 "frequency": [
-                    ["V", "NegVoc"],
                     ["A", "Aggression"],
-                    ["M", "Mand"],
+                    ["D", "Disruption"],
                     ["S", "SIB"],
                     ["I", "Instruction"],
-                    ["C", "Compliance"]
+                    ["C", "Compliance"],
+                    ["M", "Mand"],
+                    ["L", "Elope"],
+                    ["V", "Neg Voc"],
+                    ["Z", "Inapp Voc"],
+                    ["F", "Ind FCR"],
+                    ["G", "Prompt FCR"],
+                    ["H", "Inacc FCR"],
                 ],
                 "duration": [
-                    ["Num4", "Toy Engage"],
-                    ["Num1", "Sr+"],
-                    ["Num2", "Sdelta"]
+                    ["4", "Toy Engage"],
+                    ["1", "Sr+"],
+                    ["2", "Sdelta"]
                 ]
             }"#,
         )
