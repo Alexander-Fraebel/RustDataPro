@@ -203,7 +203,9 @@ impl PreferenceAssessment {
                     ui.label(format!(
                         "With {} conditions there are {} pairs.",
                         app.preference_assessment.conditions.len(),
-                        app.preference_assessment.all_pairs.len()
+                        app.preference_assessment.conditions.len()
+                            * app.preference_assessment.conditions.len()
+                            - app.preference_assessment.conditions.len() // app.preference_assessment.all_pairs.len()
                     ));
                     ui.add_space(10.0);
 
@@ -218,19 +220,23 @@ impl PreferenceAssessment {
                 ui.vertical(|ui| {
                     egui::ScrollArea::vertical()
                         .id_salt("paired choice scroller")
-                        .min_scrolled_height(550.0)
+                        .min_scrolled_height(600.0)
                         .show(ui, |ui| {
                             egui_extras::TableBuilder::new(ui)
                                 .id_salt("frequency")
+                                .column(Column::exact(25.0))
                                 .column(Column::exact(150.0))
                                 .column(Column::exact(150.0))
                                 .striped(true)
                                 .body(|mut body| {
                                     let mut changes = false;
-                                    for (a, b, abool, bbool) in
-                                        app.preference_assessment.all_pairs.iter_mut()
+                                    for (n, (a, b, abool, bbool)) in
+                                        app.preference_assessment.all_pairs.iter_mut().enumerate()
                                     {
                                         body.row(20.0, |mut row| {
+                                            row.col(|ui| {
+                                                ui.monospace(format!("{:>2})", n + 1));
+                                            });
                                             row.col(|ui| {
                                                 if ui.checkbox(abool, a.as_str()).clicked() {
                                                     *bbool = !*abool;

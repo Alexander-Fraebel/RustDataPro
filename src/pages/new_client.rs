@@ -77,39 +77,71 @@ impl NewClient {
                 .spacing((10.0, 10.0))
                 .show(ui, |ui| {
                     ui.monospace("Client ID");
-                    ui.text_edit_singleline(&mut app.new_client_page.client.id);
+                    if ui
+                        .text_edit_singleline(&mut app.new_client_page.client.id)
+                        .changed()
+                    {
+                        app.new_client_page.created = false;
+                    };
                     if ui.button("random").clicked() {
                         app.new_client_page.client.id = format!(
                             "{:0<10}",
                             app.new_client_page
                                 .prng
                                 .random_range(1000000000_i64..=9999999999)
-                        )
+                        );
+                        app.new_client_page.created = false;
                     }
                     ui.end_row();
 
                     ui.monospace("Client Name");
-                    ui.text_edit_singleline(&mut app.new_client_page.client.name);
+                    if ui
+                        .text_edit_singleline(&mut app.new_client_page.client.name)
+                        .changed()
+                    {
+                        app.new_client_page.created = false;
+                    }
                     ui.end_row();
 
                     ui.monospace("Case Manager");
-                    ui.text_edit_singleline(&mut app.new_client_page.client.case_manager);
+                    if ui
+                        .text_edit_singleline(&mut app.new_client_page.client.case_manager)
+                        .changed()
+                    {
+                        app.new_client_page.created = false;
+                    }
                     ui.end_row();
 
                     ui.monospace("Primary Therapist");
-                    ui.text_edit_singleline(&mut app.new_client_page.client.primary_therapist);
+                    if ui
+                        .text_edit_singleline(&mut app.new_client_page.client.primary_therapist)
+                        .changed()
+                    {
+                        app.new_client_page.created = false;
+                    }
                     ui.end_row();
 
                     ui.monospace("Date of Admission\n(YYYY-MM-DD)");
-                    ui.text_edit_singleline(&mut app.new_client_page.client.date_of_admission);
+                    if ui
+                        .text_edit_singleline(&mut app.new_client_page.client.date_of_admission)
+                        .changed()
+                    {
+                        app.new_client_page.created = false;
+                    }
                     if ui.button("today").clicked() {
                         app.new_client_page.client.date_of_admission =
                             Local::now().date_naive().format("%Y-%m-%d").to_string();
+                        app.new_client_page.created = false;
                     }
                     ui.end_row();
 
                     ui.monospace("Location");
-                    ui.text_edit_singleline(&mut app.new_client_page.client.location);
+                    if ui
+                        .text_edit_singleline(&mut app.new_client_page.client.location)
+                        .changed()
+                    {
+                        app.new_client_page.created = false;
+                    }
                     ui.end_row();
                 });
 
@@ -124,6 +156,7 @@ impl NewClient {
                         app.new_client_page
                             .create_new_client_folder(&app.root_directory)
                     );
+                    app.new_client_page.created = true;
                 }
             });
             ui.add_space(5.0);

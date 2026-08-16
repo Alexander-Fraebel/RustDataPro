@@ -13,7 +13,7 @@ macro_rules! simple_custom_button {
     };
 }
 
-pub const DEFAULT_LARGE_BUTTOM_DIMS: (f32, f32) = (120.0, 40.0);
+pub const DEFAULT_LARGE_BUTTOM_DIMS: (f32, f32) = (110.0, 40.0);
 pub trait DataProUiElements {
     fn large_button(&mut self, text: &'static str) -> Response;
     fn large_green_button(&mut self, text: &'static str) -> Response;

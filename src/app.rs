@@ -447,7 +447,7 @@ impl eframe::App for DataPro {
 
         // ### Main Panel ###
         match self.display_info.active_page {
-            Page::RunSession => SessionPage::view(self, ui),
+            Page::RunSession => self.view_session(ui),
             Page::Ioa => IoaPage::view(self, ui),
             Page::PrepareSession => PrepareSession::view(self, ui),
             Page::CreateClient => NewClient::view(self, ui),

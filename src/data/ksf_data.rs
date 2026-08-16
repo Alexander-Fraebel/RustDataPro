@@ -137,12 +137,12 @@ impl Ksf {
                     ["Z", "Inapp Voc"],
                     ["F", "Ind FCR"],
                     ["G", "Prompt FCR"],
-                    ["H", "Inacc FCR"],
+                    ["H", "Inacc FCR"]
                 ],
                 "duration": [
-                    ["4", "Toy Engage"],
-                    ["1", "Sr+"],
-                    ["2", "Sdelta"]
+                    ["Num4", "Toy Engage"],
+                    ["Num1", "Sr+"],
+                    ["Num2", "Sdelta"]
                 ]
             }"#,
         )

@@ -64,7 +64,6 @@ impl DisplayControl {
 
     pub fn go_to_preference_assessment(&mut self) {
         self.active_page = Page::PreferenceAssessment;
-        self.sidebar_open = false;
     }
 
     pub fn toggle_debug_display(&mut self) {

@@ -12,9 +12,9 @@ impl Sidebar {
             app.root_directory = pathbuf.clone();
         }
         egui::Panel::left("welcome_panel")
-            .default_size(200.0)
-            .min_size(200.0)
-            .max_size(200.0)
+            .default_size(170.0)
+            .min_size(170.0)
+            .max_size(170.0)
             .resizable(false)
             .show(ui, |ui| {
                 egui::ScrollArea::vertical()
@@ -22,82 +22,82 @@ impl Sidebar {
                     .show(ui, |ui| {
                         warn_if_debug_build(ui);
                         ui.strong("Welcome to RustDataPro!");
-                        ui.add_space(5.0);
+                        ui.add_space(4.0);
 
                         ui.label("Clients Directory");
                         ui.directory_picker(&mut app.pick_root_directory, &app.root_directory);
 
-                        ui.add_space(10.0);
+                        ui.add_space(8.0);
                         ui.separator();
-                        ui.add_space(10.0);
+                        ui.add_space(8.0);
 
-                        #[cfg(debug_assertions)]
-                        {
-                            if ui
-                                .add_sized(
-                                    crate::ui_elements::DEFAULT_LARGE_BUTTOM_DIMS,
-                                    egui::Button::new(
-                                        egui::RichText::new("DEBUG")
-                                            .color(ui.visuals().warn_fg_color),
-                                    ),
-                                )
-                                .clicked()
-                            {
-                                app.display_info.toggle_debug_display();
-                            }
-                            ui.add_space(5.0);
-                        }
+                        // #[cfg(debug_assertions)]
+                        // {
+                        //     if ui
+                        //         .add_sized(
+                        //             crate::ui_elements::DEFAULT_LARGE_BUTTOM_DIMS,
+                        //             egui::Button::new(
+                        //                 egui::RichText::new("DEBUG")
+                        //                     .color(ui.visuals().warn_fg_color),
+                        //             ),
+                        //         )
+                        //         .clicked()
+                        //     {
+                        //         app.display_info.toggle_debug_display();
+                        //     }
+                        //     ui.add_space(5.0);
+                        // }
 
                         if ui.large_button("Settings").clicked() {
                             app.display_info.go_to_settings();
                         }
-                        ui.add_space(5.0);
+                        ui.add_space(4.0);
 
                         if ui.large_button("Credits").clicked() {
                             app.display_info.go_to_credits();
                         }
 
-                        ui.add_space(10.0);
+                        ui.add_space(8.0);
                         ui.separator();
-                        ui.add_space(10.0);
+                        ui.add_space(8.0);
 
                         if ui.large_button("Create Client").clicked() {
                             app.display_info.go_to_new_client();
                         }
-                        ui.add_space(5.0);
+                        ui.add_space(4.0);
 
                         if ui.large_button("Calculate IOA").clicked() {
                             app.display_info.go_to_ioa();
                         }
-                        ui.add_space(5.0);
+                        ui.add_space(4.0);
 
                         if ui.large_button("KSF").clicked() {
                             app.display_info.go_to_new_ksf();
                         }
-                        ui.add_space(5.0);
+                        ui.add_space(4.0);
 
                         if ui.large_button("Assessments").clicked() {
                             app.display_info.go_to_new_assessments();
                         }
 
-                        ui.add_space(10.0);
+                        ui.add_space(8.0);
                         ui.separator();
-                        ui.add_space(10.0);
+                        ui.add_space(8.0);
 
                         if ui.large_button("Shuffle List").clicked() {
                             app.display_info.toggle_random_display();
                         }
-                        ui.add_space(5.0);
+                        ui.add_space(4.0);
 
                         if ui.large_button("Timers").clicked() {
                             app.display_info.toggle_timer_display();
                         }
-                        ui.add_space(5.0);
+                        ui.add_space(4.0);
 
                         if ui.large_button("Preference Assessment").clicked() {
                             app.display_info.go_to_preference_assessment();
                         }
-                        ui.add_space(10.0);
+                        ui.add_space(8.0);
                     });
             });
     }

@@ -10,7 +10,7 @@ pub struct Shuffler {
 impl Default for Shuffler {
     fn default() -> Self {
         Self {
-            csv_list: String::from("a, b, c, 1, 2, 3"),
+            csv_list: String::new(),
         }
     }
 }
@@ -36,6 +36,7 @@ impl Shuffler {
                 ui.add_space(5.0);
                 ui.add(
                     TextEdit::multiline(&mut app.randomness_page.csv_list)
+                        .hint_text("a, b, c, 1, 2, 3")
                         .desired_width(300.0)
                         .desired_rows(4),
                 );

@@ -15,7 +15,6 @@ use chrono::{DateTime, Local};
 use egui::{Color32, Key, Layout, RichText, Ui};
 use egui_extras::Column;
 use indexmap::IndexMap;
-use std::collections::VecDeque;
 
 const DESCRIPTION_WIDTH: f32 = 100.0;
 const KEY_WIDTH: f32 = 30.0;
@@ -26,8 +25,7 @@ const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 macro_rules! record_keypress {
     ($self:expr, $key:expr, $time:expr) => {
         $self.timeline.push(($key, rounded_f32($time)));
-        $self.keypresses_display.pop_front();
-        $self.keypresses_display.push_back($key.name());
+        $self.keypresses_display.push($key.name());
         $self.unpress_available = true;
     };
 }
@@ -170,9 +168,10 @@ pub struct SessionPage {
     pub timer: Timer,
     pub start_time: DateTime<Local>,
     pub timeline: Timeline,
-    pub keypresses_display: VecDeque<&'static str>,
+    pub keypresses_display: Vec<&'static str>,
     pub clicked_keys: ClickedKeys,
     pub save_discard_open: bool,
+    pub confirm_end: bool,
     pub unpress_available: bool,
 }
 
@@ -184,9 +183,10 @@ impl Default for SessionPage {
             freq_keys: Vec::new(),
             dura_keys: Vec::new(),
             timeline: Timeline::default(),
-            keypresses_display: VecDeque::from(["_"; 11]),
+            keypresses_display: Vec::from(["_"; 11]),
             clicked_keys: ClickedKeys::new(),
             save_discard_open: false,
+            confirm_end: false,
             unpress_available: false,
         }
     }
@@ -207,11 +207,9 @@ impl SessionPage {
             self.timer.stop();
             self.timeline
                 .push((Key::Escape, rounded_f32(self.timer.active_time())));
-            self.keypresses_display.pop_front();
-            self.keypresses_display.push_back("e");
+            self.keypresses_display.push("e");
         }
         self.unpress_available = false;
-        self.save_discard_open = true;
     }
 
     /// Pause or unpause all timers, including the session timer. This method should be the only way to pause or unpause any timers.
@@ -222,13 +220,18 @@ impl SessionPage {
             }
         }
         self.timer.toggle_pause();
+        self.unpress_available = false;
     }
 
     /// Decrement a key's counter and rewind the recorded time if necessary.
     fn unpress_key(&mut self) {
         if self.unpress_available {
-            self.keypresses_display.push_front("_");
-            self.keypresses_display.pop_back();
+            // Cannot unpress a pause of start of session
+            if ["t", "p"].contains(self.keypresses_display.iter().last().unwrap()) {
+                self.unpress_available = false;
+                return;
+            }
+            self.keypresses_display.pop();
             if let Some((removed_key, _time)) = self.timeline.pop() {
                 for (timer, bouts, key, _) in self.dura_keys.iter_mut() {
                     if key == &removed_key {
@@ -238,8 +241,9 @@ impl SessionPage {
                         } else {
                             timer.undo();
                         }
-                        if *self.keypresses_display.iter().last().unwrap() == "t" {
+                        if ["t", "p"].contains(self.keypresses_display.iter().last().unwrap()) {
                             self.unpress_available = false;
+                            return;
                         }
                         return;
                     }
@@ -247,8 +251,9 @@ impl SessionPage {
                 for (counter, key, _) in self.freq_keys.iter_mut() {
                     if key == &removed_key {
                         *counter = counter.saturating_sub(1);
-                        if *self.keypresses_display.iter().last().unwrap() == "t" {
+                        if ["t", "p"].contains(self.keypresses_display.iter().last().unwrap()) {
                             self.unpress_available = false;
+                            return;
                         }
                         return;
                     }
@@ -277,8 +282,7 @@ impl SessionPage {
         self.timer.start();
         self.start_time = Local::now();
         self.timeline.push((Key::Tab, 0.0));
-        self.keypresses_display.pop_front();
-        self.keypresses_display.push_back("t");
+        self.keypresses_display.push("t");
     }
 
     /// Reset the session page and return to the prep session page.
@@ -286,68 +290,98 @@ impl SessionPage {
         self.reset();
         display_info.go_to_prep_session();
     }
+}
 
-    pub fn view(app: &mut DataPro, ui: &mut Ui) {
-        if app.prep_session.limit_session_length && app.session.timer.is_active() {
-            if app.session.timer.current_active_time() >= app.prep_session.maximum_session_length {
-                app.session.save_discard_open = true;
-                app.session.stop_all_timers();
+impl DataPro {
+    pub fn view_session(&mut self, ui: &mut Ui) {
+        if self.prep_session.limit_session_length && self.session.timer.is_active() {
+            if self.session.timer.current_active_time() >= self.prep_session.maximum_session_length
+            {
+                self.session.save_discard_open = true;
+                self.session.stop_all_timers();
             }
         }
 
         // Itercept key presses to detect clicks and then delete all of them to prevent egui from reusing them.
         ui.ctx().input_mut(|i| {
-            app.session.clicked_keys.update(i);
+            self.session.clicked_keys.update(i);
             i.events.clear();
         });
 
+        // ######################
         // ### Permanent Keys ###
+        // ######################
         // Starting is only allowed when session is Stopped.
-        if app.session.clicked_keys.contains(&egui::Key::Tab) {
-            if !app.session.timer.was_started() {
-                app.session.start_session();
+        if self.session.clicked_keys.contains(&egui::Key::Tab) {
+            if !self.session.timer.was_started() {
+                self.session.start_session();
             }
         }
-        // Stop timers and open the confirmation app.session_page.
-        if app.session.clicked_keys.contains(&egui::Key::Escape) {
-            app.session.stop_all_timers();
+        // Stop timers and open the confirmation self.session_page.
+        if self.session.clicked_keys.contains(&egui::Key::Escape) {
+            self.session.confirm_end = true;
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
-        if app.session.clicked_keys.contains(&egui::Key::Space) {
-            if app.session.timer.was_started() {
-                app.session.pause_unpause_all_timers();
-                app.session.keypresses_display.pop_front();
-                app.session.keypresses_display.push_back("p");
+        if self.session.clicked_keys.contains(&egui::Key::Space) {
+            if self.session.timer.was_started() {
+                self.session.pause_unpause_all_timers();
+                self.session.unpress_available = false;
+                self.session.keypresses_display.push("p");
             }
         }
-        if app.session.clicked_keys.contains(&egui::Key::Backspace) {
-            if app.session.timer.is_active() {
-                app.session.unpress_key();
+        if self.session.clicked_keys.contains(&egui::Key::Backspace) {
+            if self.session.timer.is_active() {
+                self.session.unpress_key();
             }
         }
 
+        // ###################################
         // ### Duration and Frequency Keys ###
-        if app.session.timer.is_active() {
-            for (timer, bouts, key, _) in app.session.dura_keys.iter_mut() {
-                if app.session.clicked_keys.contains(key) {
+        // ###################################
+        if self.session.timer.is_active() {
+            for (timer, bouts, key, _) in self.session.dura_keys.iter_mut() {
+                if self.session.clicked_keys.contains(key) {
                     timer.toggle();
                     if timer.is_active() {
                         *bouts += 1;
                     }
-                    record_keypress!(app.session, *key, app.session.timer.active_time());
+                    record_keypress!(self.session, *key, self.session.timer.active_time());
                 }
             }
-            for (counter, key, _) in app.session.freq_keys.iter_mut() {
-                if app.session.clicked_keys.contains(key) {
+            for (counter, key, _) in self.session.freq_keys.iter_mut() {
+                if self.session.clicked_keys.contains(key) {
                     *counter += 1;
-                    record_keypress!(app.session, *key, app.session.timer.active_time());
+                    record_keypress!(self.session, *key, self.session.timer.active_time());
                 }
             }
         }
 
-        let session_was_started = app.session.timer.was_started();
-        if app.session.save_discard_open {
-            egui::Window::new("Confirm Exit").show(ui, |ui| {
+        // #####################################
+        // ### Confirm End of Session Window ###
+        // #####################################
+        let session_was_started = self.session.timer.was_started();
+        if self.session.confirm_end {
+            egui::Window::new("End Session?").show(ui, |ui| {
+                ui.columns(2, |columns| {
+                    columns[0].set_height(50.0);
+                    if columns[0].large_green_button("YES").clicked() {
+                        self.session.confirm_end = false;
+                        self.session.save_discard_open = true;
+                        self.session.stop_all_timers();
+                    }
+                    columns[1].set_height(50.0);
+                    if columns[1].large_red_button("NO").clicked() {
+                        self.session.confirm_end = false;
+                    }
+                });
+            });
+        }
+
+        // ##############################
+        // ### Save of Discard Window ###
+        // ##############################
+        if self.session.save_discard_open {
+            egui::Window::new("Save Data?").show(ui, |ui| {
                 ui.columns(2, |columns| {
                     columns[0].set_height(50.0);
                     columns[0].add_enabled_ui(session_was_started, |ui| {
@@ -356,99 +390,101 @@ impl SessionPage {
                             .on_disabled_hover_text("no data to save")
                             .clicked()
                         {
-                            quick_error!(app.save_new_output_data());
-                            app.session.leave_session(&mut app.display_info);
+                            quick_error!(self.save_new_output_data());
+                            self.session.leave_session(&mut self.display_info);
                         }
                     });
                     columns[1].set_height(50.0);
                     if columns[1].large_red_button("DISCARD").clicked() {
-                        app.session.leave_session(&mut app.display_info);
+                        self.session.leave_session(&mut self.display_info);
                     }
                 });
             });
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            // ui.visuals_mut().selection.bg_fill = Color32::GOLD;
             ui.horizontal(|ui| {
                 ui.group(|ui| {
                     ui.vertical(|ui| {
-                        ui.label(format!("Client ID: {}", app.data.client.id));
-                        ui.label(format!("Session Number: {}", app.data.current_session));
+                        ui.label(format!("Client ID: {}", self.data.client.id));
+                        ui.label(format!("Session Number: {}", self.data.current_session));
                         ui.label(format!(
                             "DOA: {}",
-                            app.data.client.days_since_admission().unwrap_or(i32::MIN) //this should always be valid but avoid crash by giving default
+                            self.data.client.days_since_admission().unwrap_or(i32::MIN) //this should always be valid but avoid crash by giving default
                         ));
-                        ui.label(format!("Location: {}", app.data.client.location));
+                        ui.label(format!("Location: {}", self.data.client.location));
                     });
                 });
                 ui.group(|ui| {
                     ui.vertical(|ui| {
                         ui.label(format!(
                             "Assessment: {}",
-                            app.data.session.chosen_assessment
+                            self.data.session.chosen_assessment
                         ));
-                        ui.label(format!("Condition: {}", app.data.session.chosen_condition));
-                        ui.label(format!("KSF: {}", app.data.chosen_ksf()));
+                        ui.label(format!("Condition: {}", self.data.session.chosen_condition));
+                        ui.label(format!("KSF: {}", self.data.chosen_ksf()));
                         ui.label("");
                     });
                 });
                 ui.group(|ui| {
                     ui.vertical(|ui| {
-                        ui.label(format!("Therapist: {}", app.data.session.therapist));
+                        ui.label(format!("Therapist: {}", self.data.session.therapist));
                         ui.label(format!(
                             "Data Collector: {}",
-                            app.data.session.data_collector
+                            self.data.session.data_collector
                         ));
-                        ui.label(format!("Data Type: {}", app.data.session.data_type));
+                        ui.label(format!("Data Type: {}", self.data.session.data_type));
                         ui.label("");
                     });
                 });
                 ui.vertical(|ui| {
                     ui.label("TAB to start.\nESC return to end session.\nSPACE to pause/unpause.");
+                });
+
+                ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        if app.session.timer.was_started() {
+                        if self.session.timer.was_started() {
                             ui.monospace(RichText::new("Session Time:").color(ACTIVE_COLOR));
                         } else {
                             ui.monospace("Session Time:");
                         }
 
-                        if app.prep_session.limit_session_length {
-                            view_nonneg_countdown_timer(ui, &mut app.session.timer);
+                        if self.prep_session.limit_session_length {
+                            view_nonneg_countdown_timer(ui, &mut self.session.timer);
                             ui.label(
                                 RichText::from(format!(
                                     "[{:.0}:{:05.2}]",
-                                    (app.prep_session.maximum_session_length / 60.0).trunc(),
-                                    app.prep_session.maximum_session_length % 60.0
+                                    (self.prep_session.maximum_session_length / 60.0).trunc(),
+                                    self.prep_session.maximum_session_length % 60.0
                                 ))
                                 .strong()
                                 .monospace(),
                             );
                         } else {
-                            view_simple_timer(ui, &mut app.session.timer);
+                            view_simple_timer(ui, &mut self.session.timer);
                         }
                     });
                     ui.horizontal(|ui| {
-                        if app.session.timer.was_started() {
+                        if self.session.timer.was_started() {
                             ui.monospace(RichText::new(" Paused Time:").color(ACTIVE_COLOR));
                         } else {
                             ui.monospace(" Paused Time:");
                         };
-                        view_paused_timer(ui, &mut app.session.timer);
+                        view_paused_timer(ui, &mut self.session.timer);
                     });
                     ui.horizontal(|ui| {
-                        if app.session.timer.was_started() {
+                        if self.session.timer.was_started() {
                             ui.monospace(RichText::new("  Total Time:").color(ACTIVE_COLOR));
                         } else {
                             ui.monospace("  Total Time:");
                         };
-                        view_paused_plus_active_timer(ui, &mut app.session.timer);
+                        view_paused_plus_active_timer(ui, &mut self.session.timer);
                     });
                 });
             });
             ui.add_space(5.0);
 
-            ui.add_enabled_ui(app.session.timer.is_active(), |ui| {
+            ui.add_enabled_ui(self.session.timer.is_active(), |ui| {
                 ui.spacing_mut().item_spacing = (5.0, 0.0).into();
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
@@ -479,7 +515,7 @@ impl SessionPage {
                                             ui.strong("Count");
                                         });
                                     });
-                                    for (counter, key, desc) in app.session.freq_keys.iter() {
+                                    for (counter, key, desc) in self.session.freq_keys.iter() {
                                         body.row(ROW_HEIGHT, |mut row| {
                                             passive_cell!(row, desc);
                                             passive_cell!(row, key.name());
@@ -525,7 +561,7 @@ impl SessionPage {
                                             ui.strong("Bouts");
                                         });
                                     });
-                                    for (timer, bouts, key, desc) in app.session.dura_keys.iter() {
+                                    for (timer, bouts, key, desc) in self.session.dura_keys.iter() {
                                         body.row(ROW_HEIGHT, |mut row| {
                                             match timer.current_status() {
                                                 TimerStatus::Active => {
@@ -562,12 +598,19 @@ impl SessionPage {
 
             ui.group(|ui| {
                 ui.horizontal(|ui| {
-                    for k in app.session.keypresses_display.make_contiguous()[1..11].iter() {
+                    for k in self.session.keypresses_display
+                        [(self.session.keypresses_display.len() - 10)..]
+                        .iter()
+                    {
                         ui.monospace(*k);
                     }
                 });
             });
-            ui.label("BACKSPACE to undo last entry.");
+            if self.session.unpress_available {
+                ui.strong("BACKSPACE to undo last entry.");
+            } else {
+                ui.label("BACKSPACE to undo last entry.");
+            }
         });
     }
 }
