@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    config::{CONFIG_FILE_NAME, Config, path_to_config_file},
+    config::{Config, path_to_config_file},
     ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
 };
@@ -31,7 +31,7 @@ impl Settings {
                 if ui
                     .add(
                         egui::DragValue::new(&mut app.settings.config.zoom)
-                            .range(1.0..=2.0)
+                            .range(1.0..=8.0)
                             .speed(0.1)
                             .fixed_decimals(1),
                     )
@@ -51,10 +51,9 @@ impl Settings {
                     .unwrap_or_else(|e| windows_error_dialog(e))
             }
             ui.label(format!(
-                "saves to:\n{}.{}",
+                "saves to:\n{}",
                 path_to_config_file()
                     .map_or("NOT FOUND".into(), |pb| pb.to_string_lossy().to_string()),
-                CONFIG_FILE_NAME
             ));
             ui.add_space(10.0);
 
