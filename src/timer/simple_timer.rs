@@ -1,18 +1,14 @@
 use egui::{Color32, RichText, Ui};
 use std::time::Instant;
 
+// Format string indicates to allocate space for four symbols with no decimals, then
+// a colon, then space for five symbols to represent the seconds padded with zeroes
+// and showing two decimals.
+// Takes up 10 symbols worth of space
+// Max value before additional space is used is 9999:99.99 which is about 7 days
 macro_rules! egui_timer_display {
-    ($f:literal, $mins:expr, $secs:expr) => {
-        RichText::new(format!($f, $mins, $secs)).monospace()
-    };
     ($mins:expr, $secs:expr) => {
         RichText::new(format!("{:4.0}:{:05.2}", $mins, $secs)).monospace()
-    };
-    ($ui:ident, $f:literal, $mins:expr, $secs:expr) => {
-        $ui.label(egui_timer_display!($f, $mins, $secs))
-    };
-    ($ui:ident, $f:literal, $mins:expr, $secs:expr, $color:expr) => {
-        $ui.label(egui_timer_display!($f, $mins, $secs).color($color))
     };
     ($ui:ident, $mins:expr, $secs:expr) => {
         $ui.label(egui_timer_display!($mins, $secs))

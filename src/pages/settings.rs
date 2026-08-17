@@ -52,8 +52,7 @@ impl Settings {
             }
             ui.label(format!(
                 "saves to:\n{}",
-                path_to_config_file()
-                    .map_or("NOT FOUND".into(), |pb| pb.to_string_lossy().to_string()),
+                path_to_config_file().map_or("NOT FOUND".into(), |pb| pb.to_string_lossy()),
             ));
             ui.add_space(10.0);
 

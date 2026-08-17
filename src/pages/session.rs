@@ -22,6 +22,9 @@ const ROW_HEIGHT: f32 = 18.0;
 const ROW_FONT_SIZE: f32 = 12.0;
 const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 
+const LEFT_MARGIN: f32 = 5.0;
+const TOP_MARGIN: f32 = 5.0;
+
 macro_rules! record_keypress {
     ($self:expr, $key:expr, $time:expr) => {
         $self.timeline.push(($key, rounded_f32($time)));
@@ -33,7 +36,7 @@ macro_rules! record_keypress {
 /// Need to use a macro to pass around a string literal
 macro_rules! timer_format {
     () => {
-        "{:7.1}"
+        "{:6.1}"
     };
 }
 
@@ -402,8 +405,13 @@ impl DataPro {
             });
         }
 
+        // #########################
+        // ### Main Display Area ###
+        // #########################
         egui::CentralPanel::default().show(ui, |ui| {
+            ui.add_space(TOP_MARGIN);
             ui.horizontal(|ui| {
+                ui.add_space(LEFT_MARGIN);
                 ui.group(|ui| {
                     ui.vertical(|ui| {
                         ui.label(format!("Client ID: {}", self.data.client.id));
@@ -423,7 +431,7 @@ impl DataPro {
                         ));
                         ui.label(format!("Condition: {}", self.data.session.chosen_condition));
                         ui.label(format!("KSF: {}", self.data.chosen_ksf()));
-                        ui.label("");
+                        ui.label(format!("Data Type: {}", self.data.session.data_type));
                     });
                 });
                 ui.group(|ui| {
@@ -433,60 +441,17 @@ impl DataPro {
                             "Data Collector: {}",
                             self.data.session.data_collector
                         ));
-                        ui.label(format!("Data Type: {}", self.data.session.data_type));
+
                         ui.label("");
-                    });
-                });
-                ui.vertical(|ui| {
-                    ui.label("TAB to start.\nESC return to end session.\nSPACE to pause/unpause.");
-                });
-
-                ui.vertical(|ui| {
-                    ui.horizontal(|ui| {
-                        if self.session.timer.was_started() {
-                            ui.monospace(RichText::new("Session Time:").color(ACTIVE_COLOR));
-                        } else {
-                            ui.monospace("Session Time:");
-                        }
-
-                        if self.prep_session.limit_session_length {
-                            view_nonneg_countdown_timer(ui, &mut self.session.timer);
-                            ui.label(
-                                RichText::from(format!(
-                                    "[{:.0}:{:05.2}]",
-                                    (self.prep_session.maximum_session_length / 60.0).trunc(),
-                                    self.prep_session.maximum_session_length % 60.0
-                                ))
-                                .strong()
-                                .monospace(),
-                            );
-                        } else {
-                            view_simple_timer(ui, &mut self.session.timer);
-                        }
-                    });
-                    ui.horizontal(|ui| {
-                        if self.session.timer.was_started() {
-                            ui.monospace(RichText::new(" Paused Time:").color(ACTIVE_COLOR));
-                        } else {
-                            ui.monospace(" Paused Time:");
-                        };
-                        view_paused_timer(ui, &mut self.session.timer);
-                    });
-                    ui.horizontal(|ui| {
-                        if self.session.timer.was_started() {
-                            ui.monospace(RichText::new("  Total Time:").color(ACTIVE_COLOR));
-                        } else {
-                            ui.monospace("  Total Time:");
-                        };
-                        view_paused_plus_active_timer(ui, &mut self.session.timer);
                     });
                 });
             });
             ui.add_space(5.0);
 
-            ui.add_enabled_ui(self.session.timer.is_active(), |ui| {
-                ui.spacing_mut().item_spacing = (5.0, 0.0).into();
-                ui.horizontal(|ui| {
+            ui.horizontal(|ui| {
+                ui.add_space(LEFT_MARGIN);
+                ui.add_enabled_ui(self.session.timer.is_active(), |ui| {
+                    ui.spacing_mut().item_spacing = (10.0, 0.0).into();
                     ui.vertical(|ui| {
                         ui.group(|ui| {
                             ui.heading("Frequency Keys");
@@ -593,24 +558,79 @@ impl DataPro {
                         })
                     });
                 });
-            });
-            ui.add_space(5.0);
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing = (0.0, 0.0).into();
+                    ui.group(|ui| {
+                        ui.heading("Controls");
+                        ui.label(
+                            "TAB to start.\nESC return to end session.\nSPACE to pause/unpause.",
+                        );
+                    });
+                    ui.horizontal(|ui| {
+                        if self.session.timer.was_started() {
+                            ui.monospace(RichText::new("Session Time:").color(ACTIVE_COLOR));
+                        } else {
+                            ui.monospace("Session Time:");
+                        }
 
-            ui.group(|ui| {
-                ui.horizontal(|ui| {
-                    for k in self.session.keypresses_display
-                        [(self.session.keypresses_display.len() - 10)..]
-                        .iter()
-                    {
-                        ui.monospace(*k);
-                    }
+                        if self.prep_session.limit_session_length {
+                            view_nonneg_countdown_timer(ui, &mut self.session.timer);
+                            ui.label(
+                                RichText::from(format!(
+                                    "[{:.0}:{:05.2}]",
+                                    (self.prep_session.maximum_session_length / 60.0).trunc(),
+                                    self.prep_session.maximum_session_length % 60.0
+                                ))
+                                .strong()
+                                .monospace(),
+                            );
+                        } else {
+                            view_simple_timer(ui, &mut self.session.timer);
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        if self.session.timer.was_started() {
+                            ui.monospace(RichText::new(" Paused Time:").color(ACTIVE_COLOR));
+                        } else {
+                            ui.monospace(" Paused Time:");
+                        };
+                        view_paused_timer(ui, &mut self.session.timer);
+                    });
+                    ui.horizontal(|ui| {
+                        if self.session.timer.was_started() {
+                            ui.monospace(RichText::new("  Total Time:").color(ACTIVE_COLOR));
+                        } else {
+                            ui.monospace("  Total Time:");
+                        };
+                        view_paused_plus_active_timer(ui, &mut self.session.timer);
+                    });
                 });
             });
-            if self.session.unpress_available {
-                ui.strong("BACKSPACE to undo last entry.");
-            } else {
-                ui.label("BACKSPACE to undo last entry.");
-            }
+            ui.add_space(10.0);
+
+            ui.add_enabled_ui(self.session.timer.is_active(), |ui| {
+                ui.horizontal(|ui| {
+                    ui.add_space(LEFT_MARGIN);
+                    ui.vertical(|ui| {
+                        ui.group(|ui| {
+                            ui.horizontal(|ui| {
+                                for k in self.session.keypresses_display
+                                    [(self.session.keypresses_display.len() - 10)..]
+                                    .iter()
+                                {
+                                    ui.monospace(*k);
+                                }
+                            });
+                        });
+                        if self.session.unpress_available {
+                            ui.label("BACKSPACE to undo last entry.");
+                        } else {
+                            ui.weak("BACKSPACE to undo last entry.")
+                                .on_hover_text("Cannot undo pause or start of session.");
+                        }
+                    })
+                });
+            });
         });
     }
 }
