@@ -17,7 +17,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::Local;
-use egui::{FontDefinitions, RichText, TextBuffer, Visuals};
+use egui::{FontDefinitions, RichText, TextBuffer, Visuals, warn_if_debug_build};
 // use egui_extras::loaders::image_loader::ImageCrateLoader;
 use egui_file_dialog::FileDialog;
 use rand::{make_rng, rngs::StdRng};
@@ -435,6 +435,7 @@ impl eframe::App for DataPro {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.request_repaint_after_secs(5.0);
                 ui.label(format!("{}", date_time_string(&Local::now())));
+                warn_if_debug_build(ui);
             });
         });
 

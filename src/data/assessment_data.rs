@@ -11,6 +11,7 @@ use std::{
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Assessment {
     pub session: u32,
+    pub preferred_ksf: String,
     pub conditions: IndexSet<String>,
 }
 
@@ -18,6 +19,7 @@ impl Default for Assessment {
     fn default() -> Self {
         Self {
             session: 1,
+            preferred_ksf: String::new(),
             conditions: Default::default(),
         }
     }
@@ -28,6 +30,7 @@ impl Assessment {
     pub fn new(conditions: Vec<String>) -> Self {
         Self {
             session: 1,
+            preferred_ksf: String::new(),
             conditions: IndexSet::from_iter(conditions.into_iter()),
         }
     }
@@ -36,6 +39,7 @@ impl Assessment {
     pub fn new_with_session(session: u32, conditions: Vec<String>) -> Self {
         Self {
             session,
+            preferred_ksf: String::new(),
             conditions: IndexSet::from_iter(conditions.into_iter()),
         }
     }
@@ -52,6 +56,7 @@ impl Assessment {
         serde_json::from_str(
             r#"{
                 "session": 1,
+                "preferred_ksf": "",
                 "conditions": [
                     "Alone",
                     "Tangible",

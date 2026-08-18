@@ -1,5 +1,5 @@
 use crate::{app::DataPro, ui_elements::DataProUiElements};
-use egui::{Ui, warn_if_debug_build};
+use egui::Ui;
 
 pub struct Sidebar {}
 
@@ -20,7 +20,6 @@ impl Sidebar {
                 egui::ScrollArea::vertical()
                     .id_salt("sidebar scroller")
                     .show(ui, |ui| {
-                        warn_if_debug_build(ui);
                         ui.strong("Welcome to RustDataPro!");
                         ui.add_space(4.0);
 
@@ -97,7 +96,7 @@ impl Sidebar {
                         if ui.large_button("Preference Assessment").clicked() {
                             app.display_info.go_to_preference_assessment();
                         }
-                        ui.add_space(8.0);
+                        ui.add_space(10.0);
                     });
             });
     }

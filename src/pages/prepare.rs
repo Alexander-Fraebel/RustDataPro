@@ -180,22 +180,25 @@ impl PrepareSession {
                     egui::ComboBox::from_id_salt("assessment")
                         .selected_text(assessment_text)
                         .show_ui(ui, |ui| {
-                            for (assessment, conditions) in app.data.assessments.iter() {
+                            for (name, assessment) in app.data.assessments.iter() {
                                 if ui
                                     .selectable_value(
                                         &mut app.data.session.chosen_assessment,
-                                        assessment.clone(),
-                                        assessment.clone(),
+                                        name.clone(),
+                                        name.clone(),
                                     )
                                     .clicked()
                                 {
                                     app.data.session.chosen_condition =
-                                        conditions.first().unwrap_or(&String::new()).clone();
-                                    app.data.current_session = conditions.session;
+                                        assessment.first().unwrap_or(&String::new()).clone();
+                                    app.data.current_session = assessment.session;
+                                    if app.data.ksfs.contains_key(&assessment.preferred_ksf) {
+                                        app.data.session.chosen_ksf =
+                                            assessment.preferred_ksf.clone();
+                                    }
                                 }
                             }
                         });
-
                     ui.end_row();
 
                     ui.label("Condition");
