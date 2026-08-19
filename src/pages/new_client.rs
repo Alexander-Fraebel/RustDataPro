@@ -39,6 +39,11 @@ impl NewClient {
     fn create_new_client_folder(&mut self, root_directory: &PathBuf) -> Result<()> {
         let client_path = Path::new(root_directory).join(self.client.id.to_string());
 
+        // Do these first to catch errors before any files and folder and created.
+        let ksf = KsfsData::initial_file().to_json()?;
+        let assessments = AssessmentsData::example().to_json()?;
+        let client = self.client.to_json()?;
+
         // Create a new directory for the client inside the root
         std::fs::create_dir(&client_path)?;
 
@@ -52,17 +57,17 @@ impl NewClient {
         let mut writer = BufWriter::new(File::create_new(Path::new(
             &client_path.join(CLIENT_DATA_FILE_NAME),
         ))?);
-        writer.write_all(self.client.to_json()?.as_bytes())?;
+        writer.write_all(client.as_bytes())?;
         writer.flush()?;
 
         // Create a default assessments file with an FA and conditions
         let mut writer = File::create_new(Path::new(&client_path.join(ASSESSMENTS_FILE_NAME)))?;
-        writer.write_all(AssessmentsData::example().to_json()?.as_bytes())?;
+        writer.write_all(assessments.as_bytes())?;
         writer.flush()?;
 
         // Create a template KSF file
         let mut writer = File::create_new(Path::new(&client_path.join(KSF_FILE_NAME)))?;
-        writer.write_all(KsfsData::initial_file().to_json()?.as_bytes())?;
+        writer.write_all(ksf.as_bytes())?;
         writer.flush()?;
 
         Ok(())
