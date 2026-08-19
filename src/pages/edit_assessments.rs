@@ -7,6 +7,7 @@ use crate::{
 };
 use egui::{Color32, RichText, TextStyle};
 use egui_file_dialog::FileDialog;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use std::path::PathBuf;
 
@@ -24,17 +25,15 @@ fn assessment_scroller(
         .min_scrolled_height(400.0)
         .id_salt("assessment_scroller")
         .show(ui, |ui| {
-            for (n, (assessment, conditions, session)) in
-                app.edit_assessments.user_input.iter_mut().enumerate()
-            {
+            for (n, assessment) in app.edit_assessments.user_input.iter_mut().enumerate() {
                 ui.horizontal(|ui| {
                     if ui
                         .add_sized(
                             (220.0, 18.0),
-                            egui::TextEdit::singleline(assessment)
+                            egui::TextEdit::singleline(&mut assessment.name)
                                 .font(TextStyle::Monospace)
                                 .prefix(format!("{}) ", n + 1))
-                                .hint_text("Assessment Name"),
+                                .hint_text("Name"),
                         )
                         .changed()
                     {
@@ -48,11 +47,15 @@ fn assessment_scroller(
                 });
                 ui.horizontal(|ui| {
                     ui.label("Current Session:");
-                    ui.add(egui::DragValue::new(session));
+                    ui.add(egui::DragValue::new(&mut assessment.session));
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Preferred KSF:");
+                    ui.text_edit_singleline(&mut assessment.preferred_ksf)
                 });
                 if ui
                     .add(
-                        egui::TextEdit::multiline(conditions)
+                        egui::TextEdit::multiline(&mut assessment.conditions)
                             .font(TextStyle::Monospace)
                             .hint_text("Condition1, Condition2, Condition3..."),
                     )
@@ -74,25 +77,16 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
         ui.vertical(|ui| {
             ui.add_space(30.0);
             if ui.button("Add Assessment").clicked() {
-                app.edit_assessments
-                    .user_input
-                    .push((String::new(), String::new(), 1));
+                app.edit_assessments.user_input.push(AssessmentMaker::new());
             }
             ui.add_space(10.0);
 
             if ui.large_green_button("SAVE").clicked() {
                 let mut temp_assessments_data = AssessmentsData::default();
-                for (assessment, conditions, session) in app.edit_assessments.user_input.iter() {
-                    if !assessment.trim().is_empty() {
-                        let conditions_vec: Vec<String> = conditions
-                            .split(",")
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty())
-                            .collect();
-                        temp_assessments_data.insert(
-                            assessment.clone(),
-                            Assessment::new_with_session(*session, conditions_vec),
-                        );
+                for assessment in app.edit_assessments.user_input.iter() {
+                    if !assessment.name.trim().is_empty() {
+                        temp_assessments_data
+                            .insert(assessment.name.clone(), assessment.into_assessment());
                     }
                 }
 
@@ -137,9 +131,49 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
     });
 }
 
+pub struct AssessmentMaker {
+    name: String,
+    conditions: String,
+    session: u32,
+    preferred_ksf: String,
+}
+
+impl AssessmentMaker {
+    pub fn new() -> Self {
+        Self {
+            name: String::new(),
+            conditions: String::new(),
+            session: 1,
+            preferred_ksf: String::new(),
+        }
+    }
+
+    pub fn from_assessment(name: &str, assessment: &Assessment) -> Self {
+        Self {
+            name: name.to_string(),
+            conditions: assessment.conditions.iter().join(", "),
+            session: assessment.session,
+            preferred_ksf: assessment.preferred_ksf.clone(),
+        }
+    }
+
+    pub fn into_assessment(&self) -> Assessment {
+        Assessment {
+            session: self.session,
+            preferred_ksf: self.preferred_ksf.clone(),
+            conditions: IndexSet::from_iter(
+                self.conditions
+                    .split(",")
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty()),
+            ),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct EditAssessments {
-    pub user_input: Vec<(String, String, u32)>,
+    pub user_input: Vec<AssessmentMaker>,
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
@@ -158,17 +192,14 @@ impl EditAssessments {
 
         // If there is a client loaded rebuild the UI with the client information
         if data.client_loaded() {
-            for (assessment, conds) in data.assessments.iter() {
-                self.user_input.push((
-                    assessment.clone(),
-                    conds.conditions.iter().join(", "),
-                    conds.session,
-                ));
+            for (name, assessment) in data.assessments.iter() {
+                self.user_input
+                    .push(AssessmentMaker::from_assessment(name, assessment))
             }
         }
         // Ensure the UI is not empty
         if self.user_input.is_empty() {
-            self.user_input.push(Default::default());
+            self.user_input.push(AssessmentMaker::new());
         }
     }
 
