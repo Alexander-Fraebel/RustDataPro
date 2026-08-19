@@ -56,37 +56,22 @@ fn entry_row(ui: &mut egui::Ui, string: &mut String, save_finished: &mut bool, l
     }
 }
 
-fn build_ksfs(ksfs: &mut KsfsData, (name, freq, dura): &(String, String, String)) -> Result<()> {
-    if !name.is_empty() {
-        let mut ksf = Ksf::default();
-        for line in freq.split("\n") {
-            if !line.trim().is_empty() {
-                let pair = parse_line(line)?;
-                ksf.freq.push(pair);
-            }
-        }
-
-        for line in dura.split("\n") {
-            if !line.trim().is_empty() {
-                let pair = parse_line(line)?;
-                ksf.dura.push(pair);
-            }
-        }
-        ksfs.insert(name.clone(), ksf);
-    }
-    Ok(())
-}
-
 fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
     if ui.large_green_button("SAVE").clicked() {
         let mut write_succeeded = true;
         let mut temp_ksf_data = KsfsData::default();
+
         // Check if each KSF builds
         for input in app.edit_ksfs.user_input.iter() {
-            if let Err(e) = build_ksfs(&mut temp_ksf_data, input) {
-                windows_error_dialog(e);
-                write_succeeded = false;
-                app.edit_ksfs.save_finished = false;
+            match input.into_ksf() {
+                Ok(ksf) => {
+                    temp_ksf_data.insert(input.name.clone(), ksf);
+                }
+                Err(e) => {
+                    windows_error_dialog(e);
+                    write_succeeded = false;
+                    app.edit_ksfs.save_finished = false;
+                }
             }
         }
         // Check if each KSF is valid
@@ -132,12 +117,12 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
         .min_scrolled_height(400.0)
         .id_salt("ksf_scroller")
         .show(ui, |ui| {
-            for (n, (name, freq, dura)) in app.edit_ksfs.user_input.iter_mut().enumerate() {
+            for (n, ksf_maker) in app.edit_ksfs.user_input.iter_mut().enumerate() {
                 ui.horizontal(|ui| {
                     if ui
                         .add_sized(
                             (220.0, 18.0),
-                            egui::TextEdit::singleline(name)
+                            egui::TextEdit::singleline(&mut ksf_maker.name)
                                 .prefix(format!("{}) ", n + 1))
                                 .hint_text("KSF Name"),
                         )
@@ -153,10 +138,20 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                 });
                 ui.add_space(5.0);
 
-                entry_row(ui, freq, &mut app.edit_ksfs.save_finished, "Frequency Keys");
+                entry_row(
+                    ui,
+                    &mut ksf_maker.freq,
+                    &mut app.edit_ksfs.save_finished,
+                    "Frequency Keys",
+                );
                 ui.add_space(5.0);
 
-                entry_row(ui, dura, &mut app.edit_ksfs.save_finished, "Duration Keys");
+                entry_row(
+                    ui,
+                    &mut ksf_maker.dura,
+                    &mut app.edit_ksfs.save_finished,
+                    "Duration Keys",
+                );
                 ui.add_space(30.0);
             }
         })
@@ -171,9 +166,7 @@ fn ksf_controller(app: &mut DataPro, ui: &mut egui::Ui) {
         ui.vertical(|ui| {
             ui.add_space(30.0);
             if ui.button("Add KSF").clicked() {
-                app.edit_ksfs
-                    .user_input
-                    .push((String::new(), String::new(), String::new()));
+                app.edit_ksfs.user_input.push(KsfMaker::default());
             }
             ui.add_space(10.0);
 
@@ -203,8 +196,49 @@ fn ksf_controller(app: &mut DataPro, ui: &mut egui::Ui) {
 }
 
 #[derive(Default)]
+pub struct KsfMaker {
+    name: String,
+    freq: String,
+    dura: String,
+}
+
+impl KsfMaker {
+    fn from_ksf(name: &str, ksf: &Ksf) -> Self {
+        Self {
+            name: name.to_string(),
+            freq: ksf
+                .freq
+                .iter()
+                .map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
+                .join("\n"),
+            dura: ksf
+                .dura
+                .iter()
+                .map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
+                .join("\n"),
+        }
+    }
+
+    fn into_ksf(&self) -> Result<Ksf> {
+        let mut freq = Vec::new();
+        for line in self.freq.split("\n") {
+            if !line.trim().is_empty() {
+                freq.push(parse_line(line)?);
+            }
+        }
+        let mut dura = Vec::new();
+        for line in self.dura.split("\n") {
+            if !line.trim().is_empty() {
+                dura.push(parse_line(line)?);
+            }
+        }
+        Ok(Ksf { freq, dura })
+    }
+}
+
+#[derive(Default)]
 pub struct EditKsfData {
-    pub user_input: Vec<(String, String, String)>,
+    pub user_input: Vec<KsfMaker>,
     pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
@@ -224,14 +258,7 @@ impl EditKsfData {
         // If there is a client loaded rebuild the UI with the client information
         if data.client_loaded() {
             for (name, ksf) in data.ksfs.iter() {
-                let (freq, dura) = ksf.pairs();
-                self.user_input.push((
-                    name.to_string(),
-                    freq.map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
-                        .join("\n"),
-                    dura.map(|(k, d)| format!("{}, {}", k.symbol_or_name(), d))
-                        .join("\n"),
-                ));
+                self.user_input.push(KsfMaker::from_ksf(name, ksf));
             }
         }
         // Ensure the UI is not empty
