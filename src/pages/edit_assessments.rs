@@ -20,9 +20,9 @@ fn assessment_scroller(
         app.edit_assessments.deleted_row = None;
     }
     ui.style_mut().spacing.scroll = egui::style::ScrollStyle::solid();
-    ui.add_space(30.0);
+    ui.add_space(10.0);
     egui::ScrollArea::vertical()
-        .min_scrolled_height(400.0)
+        .min_scrolled_height(450.0)
         .id_salt("assessment_scroller")
         .show(ui, |ui| {
             for (n, assessment) in app.edit_assessments.user_input.iter_mut().enumerate() {
@@ -31,7 +31,6 @@ fn assessment_scroller(
                         .add_sized(
                             (220.0, 18.0),
                             egui::TextEdit::singleline(&mut assessment.name)
-                                .font(TextStyle::Monospace)
                                 .prefix(format!("{}) ", n + 1))
                                 .hint_text("Name"),
                         )
@@ -47,7 +46,7 @@ fn assessment_scroller(
                 });
                 ui.horizontal(|ui| {
                     ui.label("Current Session:");
-                    ui.add(egui::DragValue::new(&mut assessment.session));
+                    ui.add(egui::DragValue::new(&mut assessment.session).range(1..=99999));
                 });
 
                 if ui
@@ -61,7 +60,7 @@ fn assessment_scroller(
                     app.edit_assessments.save_finished = false;
                 }
                 ui.add_space(5.0);
-                ui.label("Preferred KSF:");
+                ui.label("Preferred KSF (optional):");
                 ui.text_edit_singleline(&mut assessment.preferred_ksf);
                 ui.add_space(30.0);
             }

@@ -112,9 +112,9 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
         app.edit_ksfs.deleted_row = None;
     }
     ui.style_mut().spacing.scroll = egui::style::ScrollStyle::solid();
-    ui.add_space(30.0);
+    ui.add_space(10.0);
     egui::ScrollArea::vertical()
-        .min_scrolled_height(400.0)
+        .min_scrolled_height(450.0)
         .id_salt("ksf_scroller")
         .show(ui, |ui| {
             for (n, ksf_maker) in app.edit_ksfs.user_input.iter_mut().enumerate() {
@@ -276,7 +276,7 @@ impl EditKsfData {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Keyboard Setup File");
             app.client_picker(ui);
-            ui.add_space(15.0);
+            ui.add_space(10.0);
 
             ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
