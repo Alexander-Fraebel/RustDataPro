@@ -4,8 +4,8 @@ use crate::{
     display_control::DisplayControl,
     quick_error,
     timer::{
-        Timer, TimerStatus, view_nonneg_countdown_timer, view_paused_plus_active_timer,
-        view_paused_timer, view_simple_timer,
+        Timer, TimerStatus, view_nonneg_countdown_ms, view_paused_plus_active_timer,
+        view_paused_timer, view_stopwatch_ms,
     },
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
@@ -574,10 +574,14 @@ impl DataPro {
                         }
 
                         if self.prep_session.limit_session_length {
-                            view_nonneg_countdown_timer(ui, &mut self.session.timer);
+                            view_nonneg_countdown_ms(
+                                ui,
+                                &mut self.session.timer,
+                                self.prep_session.maximum_session_length,
+                            );
                             ui.label(
                                 RichText::from(format!(
-                                    "[{:.0}:{:05.2}]",
+                                    "  [{:.0}:{:05.2}]",
                                     (self.prep_session.maximum_session_length / 60.0).trunc(),
                                     self.prep_session.maximum_session_length % 60.0
                                 ))
@@ -585,7 +589,7 @@ impl DataPro {
                                 .monospace(),
                             );
                         } else {
-                            view_simple_timer(ui, &mut self.session.timer);
+                            view_stopwatch_ms(ui, &mut self.session.timer);
                         }
                     });
                     ui.horizontal(|ui| {

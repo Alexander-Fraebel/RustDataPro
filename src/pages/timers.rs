@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    timer::{Timer, view_simple_countdown_timer, view_simple_timer},
+    timer::{Timer, view_countdown_hms, view_stopwatch_hms},
     utils::ClickedKeys,
 };
 use egui::{
@@ -29,6 +29,7 @@ struct UserTimer {
     linked: bool,
     description: String,
     timer_type: TimerType,
+    countdown_from: f32,
 }
 
 impl UserTimer {
@@ -38,6 +39,7 @@ impl UserTimer {
             linked: false,
             description: String::new(),
             timer_type: TimerType::Countdown,
+            countdown_from: 30.0,
         }
     }
 }
@@ -63,10 +65,10 @@ impl Default for Timers {
 }
 
 impl Timers {
-    pub fn pause_all_timers(&mut self) {
+    pub fn stop_all_timers(&mut self) {
         for timer in self.timers.iter_mut() {
             if timer.timer.was_started() {
-                timer.timer.pause();
+                timer.timer.stop();
             }
         }
     }
@@ -109,9 +111,9 @@ impl Timers {
                             };
                             ui.add_space(10.0);
                             if timer.timer_type == TimerType::Countdown {
-                                view_simple_countdown_timer(ui, &timer.timer);
+                                view_countdown_hms(ui, &timer.timer, timer.countdown_from);
                             } else {
-                                view_simple_timer(ui, &timer.timer);
+                                view_stopwatch_hms(ui, &timer.timer);
                             }
                             ui.add_space(5.0);
                             if ui.button("↺").on_hover_text("reset").clicked() {
@@ -128,7 +130,7 @@ impl Timers {
                             let counter_adjust_size = (50.0,20.0);
                             if timer.timer_type == TimerType::Countdown {
                                 let draginfo = ui.add_sized(counter_adjust_size,
-                                    egui::DragValue::new(&mut timer.timer.countdown_from)
+                                    egui::DragValue::new(&mut timer.countdown_from)
                                         .range(0.0..=99999.0),
                                 );
                                 if draginfo.has_focus() {
@@ -164,7 +166,7 @@ impl Timers {
                 app.timers.clicked_keys.update(input);
 
                 if app.timers.clicked_keys.contains(&Key::Space) {
-                    app.timers.pause_all_timers();
+                    app.timers.stop_all_timers();
                 }
 
                 if app.timers.clicked_keys.contains(&Key::R) {

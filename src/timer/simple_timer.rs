@@ -1,26 +1,54 @@
 use egui::{Color32, RichText, Ui};
 use std::time::Instant;
 
-// Format string indicates to allocate space for four symbols with no decimals, then
-// a colon, then space for five symbols to represent the seconds padded with zeroes
-// and showing two decimals.
-// Takes up 10 symbols worth of space
-// Max value before additional space is used is 9999:99.99 which is about 7 days
-macro_rules! egui_timer_display {
-    ($mins:expr, $secs:expr) => {
-        RichText::new(format!("{:4.0}:{:05.2}", $mins, $secs)).monospace()
+/// Time display with minutes:seconds.hundredths
+/// Allocates space for 10 symbols in total.
+/// Max value before additional space is used is 9999:59.99 which is about 7 days
+macro_rules! timer_display_ms {
+    ($time:expr) => {
+        RichText::new(format!(
+            "{:4.0}:{:05.2}",
+            ($time / 60.0).trunc(), // minutes, maybe negative
+            ($time % 60.0).abs()    // seconds, always positive
+        ))
+        .monospace()
     };
-    ($ui:ident, $mins:expr, $secs:expr) => {
-        $ui.label(egui_timer_display!($mins, $secs))
+    ($ui:ident, $time:expr) => {
+        $ui.label(timer_display_ms!($time))
     };
-    ($ui:ident, $mins:expr, $secs:expr, $color:expr) => {
-        $ui.label(egui_timer_display!($mins, $secs).color($color))
+    ($ui:ident, $time:expr, $color:expr) => {
+        $ui.label(timer_display_ms!($time).color($color))
     };
 }
 
-pub fn mins_secs(n: f32) -> (f32, f32) {
-    ((n / 60.0).trunc(), n % 60.0)
+// Timer display with hours:minutes:seconds.hundredths
+// Allocates space for 11 symbols in total.
+// Max value before additional space is used is 9:59:59.99 which is about 10 hours
+macro_rules! timer_display_hms {
+    ($time:expr) => {
+        RichText::new(format!(
+            "{:2.0}:{:02.0}:{:05.2}",
+            ($time / 3600.0).trunc(),            // hours, maybe negative
+            ($time.abs() / 60.0).trunc() % 60.0, // minutes, always positive
+            $time.abs() % 60.0,                  // seconds, always positive
+        ))
+        .monospace()
+    };
+    ($ui:ident, $time:expr) => {
+        $ui.label(timer_display_hms!($time))
+    };
+    ($ui:ident, $time:expr, $color:expr) => {
+        $ui.label(timer_display_hms!($time).color($color))
+    };
 }
+
+// fn mins_secs(n: f32) -> (f32, f32) {
+//     ((n / 60.0).trunc(), n % 60.0)
+// }
+
+// fn hrs_mins_secs(n: f32) -> (f32, f32, f32) {
+//     ((n / 3600.0).trunc(), (n / 60.0).trunc() % 60.0, n % 60.0)
+// }
 
 const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 const NEGATIVE_COLOR: Color32 = Color32::RED;
@@ -104,7 +132,6 @@ impl Timestamp {
 pub struct Timer {
     pub timestamps: Vec<Timestamp>,
     pub cached: CachedInfo,
-    pub countdown_from: f32,
 }
 
 impl Default for Timer {
@@ -112,7 +139,6 @@ impl Default for Timer {
         Self {
             timestamps: Default::default(),
             cached: CachedInfo::default(),
-            countdown_from: 30.0,
         }
     }
 }
@@ -178,7 +204,7 @@ impl Timer {
         match self.cached.status {
             TimerStatus::Active => self.start_silent(),
             TimerStatus::Stopped => self.stop_silent(),
-            TimerStatus::Paused => self.pause(),
+            TimerStatus::Paused => (),
         }
         self.update_paused_time();
     }
@@ -193,7 +219,7 @@ impl Timer {
     /// Remove all time stamps and reset all cached information.
     pub fn reset(&mut self) {
         *self = Self {
-            countdown_from: self.countdown_from,
+            // countdown_from: self.countdown_from,
             ..Default::default()
         }
     }
@@ -368,11 +394,6 @@ impl Timer {
         }
     }
 
-    /// Remaining time in the countdown. May be negative.
-    pub fn remaining_time(&self) -> f32 {
-        self.countdown_from - self.active_time()
-    }
-
     /// Most recent status added to timestamps. Returns Stopped if timestamps is empty.
     pub fn current_status(&self) -> TimerStatus {
         self.timestamps
@@ -383,12 +404,24 @@ impl Timer {
     }
 }
 
-pub fn view_simple_timer(ui: &mut Ui, timer: &Timer) {
-    let (mins, secs) = mins_secs(timer.active_time() + timer.cached.active.last);
+pub fn view_stopwatch_ms(ui: &mut Ui, timer: &Timer) {
+    let t = timer.active_time() + timer.cached.active.last;
     if !timer.was_started() {
-        egui_timer_display!(ui, mins, secs);
+        timer_display_ms!(ui, t);
     } else {
-        egui_timer_display!(ui, mins, secs, ACTIVE_COLOR);
+        timer_display_ms!(ui, t, ACTIVE_COLOR);
+        if timer.is_active() {
+            ui.request_repaint()
+        }
+    }
+}
+
+pub fn view_stopwatch_hms(ui: &mut Ui, timer: &Timer) {
+    let t = timer.active_time() + timer.cached.active.last;
+    if !timer.was_started() {
+        timer_display_hms!(ui, t);
+    } else {
+        timer_display_hms!(ui, t, ACTIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint()
         }
@@ -396,11 +429,11 @@ pub fn view_simple_timer(ui: &mut Ui, timer: &Timer) {
 }
 
 pub fn view_paused_timer(ui: &mut Ui, timer: &Timer) {
-    let (mins, secs) = mins_secs(timer.paused_time() + timer.cached.paused.last);
+    let t = timer.paused_time() + timer.cached.paused.last;
     if !timer.was_started() {
-        egui_timer_display!(ui, mins, secs);
+        timer_display_ms!(ui, t);
     } else {
-        egui_timer_display!(ui, mins, secs, ACTIVE_COLOR);
+        timer_display_ms!(ui, t, ACTIVE_COLOR);
         if timer.is_paused() {
             ui.request_repaint()
         }
@@ -408,36 +441,33 @@ pub fn view_paused_timer(ui: &mut Ui, timer: &Timer) {
 }
 
 pub fn view_paused_plus_active_timer(ui: &mut Ui, timer: &Timer) {
-    let (mins, secs) = mins_secs(
-        timer.active_time()
-            + timer.paused_time()
-            + timer.cached.active.last
-            + timer.cached.paused.last,
-    );
+    let t = timer.active_time()
+        + timer.paused_time()
+        + timer.cached.active.last
+        + timer.cached.paused.last;
 
     if !timer.was_started() {
-        egui_timer_display!(ui, mins, secs);
+        timer_display_ms!(ui, t);
     } else {
         ui.request_repaint();
-        egui_timer_display!(ui, mins, secs, ACTIVE_COLOR);
+        timer_display_ms!(ui, t, ACTIVE_COLOR);
     }
 }
 
-pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
-    let time = timer.remaining_time();
-    let (mins, secs) = mins_secs(time);
+pub fn view_countdown_ms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
+    let t = countdown_from - timer.active_time();
     if !timer.was_started() {
-        egui_timer_display!(ui, mins, secs.abs());
+        timer_display_ms!(ui, t);
         return;
     }
 
-    if time.is_sign_positive() {
-        egui_timer_display!(ui, mins, secs.abs(), ACTIVE_COLOR);
+    if t.is_sign_positive() {
+        timer_display_ms!(ui, t, ACTIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint();
         }
     } else {
-        egui_timer_display!(ui, mins, secs.abs(), NEGATIVE_COLOR);
+        timer_display_ms!(ui, t, NEGATIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint();
         }
@@ -445,12 +475,44 @@ pub fn view_simple_countdown_timer(ui: &mut Ui, timer: &Timer) {
 }
 
 // Special timer for session page which counts down to zero and not below.
-pub fn view_nonneg_countdown_timer(ui: &mut Ui, timer: &Timer) {
-    let (mins, secs) = mins_secs(timer.remaining_time().max(0.0));
+pub fn view_nonneg_countdown_ms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
+    let t = (countdown_from - timer.active_time()).max(0.0);
     if !timer.was_started() {
-        egui_timer_display!(ui, mins, secs);
+        timer_display_ms!(ui, t);
     } else {
-        egui_timer_display!(ui, mins, secs, ACTIVE_COLOR);
+        timer_display_ms!(ui, t, ACTIVE_COLOR);
+        if timer.is_active() {
+            ui.request_repaint();
+        }
+    }
+}
+
+pub fn view_countdown_hms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
+    let t = countdown_from - timer.active_time();
+    if !timer.was_started() {
+        timer_display_hms!(ui, t);
+        return;
+    }
+
+    if t.is_sign_positive() {
+        timer_display_hms!(ui, t, ACTIVE_COLOR);
+        if timer.is_active() {
+            ui.request_repaint();
+        }
+    } else {
+        timer_display_hms!(ui, t, NEGATIVE_COLOR);
+        if timer.is_active() {
+            ui.request_repaint();
+        }
+    }
+}
+
+pub fn view_nonneg_countdown_hms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
+    let t = (countdown_from - timer.active_time()).max(0.0);
+    if !timer.was_started() {
+        timer_display_hms!(ui, t);
+    } else {
+        timer_display_hms!(ui, t, ACTIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint();
         }

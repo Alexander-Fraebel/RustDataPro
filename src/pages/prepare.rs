@@ -313,18 +313,13 @@ impl PrepareSession {
                     ui.add_space(5.0);
 
                     ui.horizontal(|ui| {
-                        if ui
-                            .add_enabled(
-                                app.prep_session.limit_session_length,
-                                egui::DragValue::new(&mut app.prep_session.maximum_session_length)
-                                    .suffix("  secs")
-                                    .range(0.0..=100_000.0),
-                            )
-                            .changed()
-                        {
-                            app.session.timer.countdown_from =
-                                app.prep_session.maximum_session_length;
-                        }
+                        ui.add_enabled(
+                            app.prep_session.limit_session_length,
+                            egui::DragValue::new(&mut app.prep_session.maximum_session_length)
+                                .suffix("  secs")
+                                .range(0.0..=100_000.0),
+                        );
+
                         ui.checkbox(
                             &mut app.prep_session.limit_session_length,
                             "Limit Session Length",
@@ -351,7 +346,7 @@ impl PrepareSession {
                                     app.data.current_session = conditions.session;
                                 }
                                 app.session.load_ksf(&app.data);
-                                app.timers.pause_all_timers();
+                                app.timers.stop_all_timers();
                                 app.display_info.go_to_run_session();
                             }
                         }
