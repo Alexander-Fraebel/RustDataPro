@@ -49,10 +49,7 @@ fn assessment_scroller(
                     ui.label("Current Session:");
                     ui.add(egui::DragValue::new(&mut assessment.session));
                 });
-                ui.horizontal(|ui| {
-                    ui.label("Preferred KSF:");
-                    ui.text_edit_singleline(&mut assessment.preferred_ksf)
-                });
+
                 if ui
                     .add(
                         egui::TextEdit::multiline(&mut assessment.conditions)
@@ -63,6 +60,9 @@ fn assessment_scroller(
                 {
                     app.edit_assessments.save_finished = false;
                 }
+                ui.add_space(5.0);
+                ui.label("Preferred KSF:");
+                ui.text_edit_singleline(&mut assessment.preferred_ksf);
                 ui.add_space(30.0);
             }
         })
