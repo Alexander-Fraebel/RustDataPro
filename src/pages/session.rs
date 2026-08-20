@@ -4,8 +4,8 @@ use crate::{
     display_control::DisplayControl,
     quick_error,
     timer::{
-        Timer, TimerStatus, view_nonneg_countdown_ms, view_paused_plus_active_timer,
-        view_paused_timer, view_stopwatch_ms,
+        Timer, TimerStatus, view_nonneg_countdown_ms, view_paused_timer, view_stopwatch_ms,
+        view_total_time_ms,
     },
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
@@ -97,7 +97,8 @@ macro_rules! timer_display {
         active_cell!(
             $row,
             timer_format!(),
-            $timer.current_active_time() + $timer.cached.active.last
+            // $timer.current_active_time() + $timer.cached.active.last
+            $timer.current_active_time()
         );
         active_cell!($row, $bouts);
     };
@@ -108,7 +109,8 @@ macro_rules! timer_display {
         passive_cell!(
             $row,
             timer_format!(),
-            $timer.current_active_time() + $timer.cached.active.last
+            // $timer.current_active_time() + $timer.cached.active.last
+            $timer.cached.active.last
         );
         passive_cell!($row, $bouts);
     };
@@ -606,7 +608,7 @@ impl DataPro {
                         } else {
                             ui.monospace("  Total Time:");
                         };
-                        view_paused_plus_active_timer(ui, &mut self.session.timer);
+                        view_total_time_ms(ui, &mut self.session.timer);
                     });
                 });
             });
