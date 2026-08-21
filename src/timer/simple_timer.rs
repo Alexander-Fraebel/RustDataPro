@@ -140,6 +140,7 @@ impl Timer {
     /// Updates cached times automatically.
     /// If the timer has not been started this starts it. Does nothing when the timer is paused.
     pub fn toggle(&mut self) {
+        self.reset_last_active_time();
         if !self.was_started() {
             self.start();
         } else if self.is_stopped() {
@@ -161,7 +162,6 @@ impl Timer {
 
     /// Push a new Active time to timestamps.
     pub fn start(&mut self) {
-        self.reset_last_active_time();
         self.timestamps.push(Timestamp::active());
         self.update_saved_times();
     }
@@ -173,7 +173,6 @@ impl Timer {
 
     /// Push a new Stopped time to timestamps.
     pub fn stop(&mut self) {
-        self.reset_last_active_time();
         self.timestamps.push(Timestamp::stopped());
         self.update_saved_times();
     }
@@ -271,13 +270,13 @@ impl Timer {
         }
     }
 
-    pub fn update_last_stopped_time(&mut self) {
-        self.cached.stopped.last += self.current_stopped_time();
-    }
+    // pub fn update_last_stopped_time(&mut self) {
+    //     self.cached.stopped.last += self.current_stopped_time();
+    // }
 
-    pub fn reset_last_stopped_time(&mut self) {
-        self.cached.stopped.last = 0.0;
-    }
+    // pub fn reset_last_stopped_time(&mut self) {
+    //     self.cached.stopped.last = 0.0;
+    // }
 
     pub fn update_paused_time(&mut self) {
         self.cached.paused.saved = 0.0;
@@ -294,13 +293,13 @@ impl Timer {
         }
     }
 
-    pub fn update_last_paused_time(&mut self) {
-        self.cached.paused.last += self.current_paused_time();
-    }
+    // pub fn update_last_paused_time(&mut self) {
+    //     self.cached.paused.last += self.current_paused_time();
+    // }
 
-    pub fn reset_last_paused_time(&mut self) {
-        self.cached.paused.last = 0.0;
-    }
+    // pub fn reset_last_paused_time(&mut self) {
+    //     self.cached.paused.last = 0.0;
+    // }
 
     /// Has the timer been started since it was last reset?
     pub fn was_started(&self) -> bool {

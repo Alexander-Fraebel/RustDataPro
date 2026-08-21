@@ -97,8 +97,7 @@ macro_rules! timer_display {
         active_cell!(
             $row,
             timer_format!(),
-            // $timer.current_active_time() + $timer.cached.active.last
-            $timer.current_active_time()
+            $timer.current_active_time() + $timer.cached.active.last
         );
         active_cell!($row, $bouts);
     };
@@ -109,8 +108,7 @@ macro_rules! timer_display {
         passive_cell!(
             $row,
             timer_format!(),
-            // $timer.current_active_time() + $timer.cached.active.last
-            $timer.cached.active.last
+            $timer.current_active_time() + $timer.cached.active.last
         );
         passive_cell!($row, $bouts);
     };
