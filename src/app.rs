@@ -27,6 +27,8 @@ pub const NO_CLIENT: &'static str = "no Client loaded";
 pub const NO_KSF: &'static str = "no KSF loaded";
 pub const NO_ASSESSMENT: &'static str = "no Assessment chosen";
 pub const NO_CONDITION: &'static str = "no Condition chosen";
+pub const NO_THERAPIST: &'static str = "no Session Therapist provided";
+pub const NO_DATA_COLLECTOR: &'static str = "no Data Collector provided";
 pub const INVALID_DATE: &'static str = "Date of Admission is not valid";
 
 pub struct DataPro {
@@ -209,6 +211,12 @@ impl DataPro {
         } else if !self.data.condition_chosen() {
             self.prep_session.session_start_error = NO_CONDITION;
             false
+        } else if self.data.session.data_collector.is_empty() {
+            self.prep_session.session_start_error = NO_DATA_COLLECTOR;
+            false
+        } else if self.data.session.therapist.is_empty() {
+            self.prep_session.session_start_error = NO_THERAPIST;
+            false
         } else if !self.time_limit_set() {
             self.prep_session.session_start_error = "time limit cannot be 0.0 seconds";
             false
@@ -218,6 +226,7 @@ impl DataPro {
         }
     }
 
+    /// Is a time limit set?
     pub fn time_limit_set(&self) -> bool {
         // It is false that: session length is limited and the maximum session length is zero
         !(self.prep_session.limit_session_length && self.prep_session.maximum_session_length == 0.0)
@@ -266,7 +275,7 @@ impl DataPro {
     }
 
     /// Path to Session Records if a client has been chosen or the default directory otherwise.
-    pub fn path_to_session_records(&self) -> PathBuf {
+    pub fn path_to_session_records_dir(&self) -> PathBuf {
         self.path_to(SESSION_DATA_FOLDER_NAME).unwrap_or_else(|_| {
             DEFAULT_DIRECTORY
                 .get_or_init(|| HARDCODED_ROOT_DIR.into())
@@ -275,7 +284,7 @@ impl DataPro {
     }
 
     /// Path to IOA Data if a client has been chosen or the default directory otherwise.
-    pub fn path_to_ioa_data(&self) -> PathBuf {
+    pub fn path_to_ioa_data_dir(&self) -> PathBuf {
         self.path_to(IOA_DATA_FOLDER_NAME).unwrap_or_else(|_| {
             DEFAULT_DIRECTORY
                 .get_or_init(|| HARDCODED_ROOT_DIR.into())
@@ -283,8 +292,8 @@ impl DataPro {
         })
     }
 
-    pub fn save_ioa_data(&mut self) -> Result<()> {
-        let path = self.path_to_ioa_data();
+    pub fn save_new_ioa_data(&mut self) -> Result<()> {
+        let path = self.path_to_ioa_data_dir();
         let ioa_page = &mut self.ioa_page;
         if !ioa_page.ioa_finished {
             validate_files(&ioa_page.prim_data, &ioa_page.reli_data)?;
@@ -296,20 +305,19 @@ impl DataPro {
         }
     }
 
-    pub fn overwrite_file(&self, name: &str, data: &str) -> Result<()> {
-        overwrite_file(self.path_to(name), data)
-    }
-
     pub fn overwrite_client_data(&self) -> Result<()> {
-        self.overwrite_file(CLIENT_DATA_FILE_NAME, &self.data.client.to_json()?)
+        overwrite_file(Ok(self.path_to_client_data()), &self.data.client.to_json()?)
     }
 
     pub fn overwrite_assessments(&self) -> Result<()> {
-        self.overwrite_file(ASSESSMENTS_FILE_NAME, &self.data.assessments.to_json()?)
+        overwrite_file(
+            Ok(self.path_to_assessments()),
+            &self.data.assessments.to_json()?,
+        )
     }
 
     pub fn overwrite_ksf_data(&self) -> Result<()> {
-        self.overwrite_file(KSF_FILE_NAME, &self.data.ksfs.to_json()?)
+        overwrite_file(Ok(self.path_to_ksf_data()), &self.data.ksfs.to_json()?)
     }
 
     pub fn load_ksf(&mut self, path: &PathBuf) {
@@ -410,8 +418,15 @@ impl DataPro {
                     ),
                 }
 
-                self.ioa_page
-                    .prepare(self.path_to_session_records(), self.path_to_ioa_data());
+                self.ioa_page.prepare(
+                    self.path_to_session_records_dir(),
+                    self.path_to_ioa_data_dir(),
+                );
+
+                if cfg!(debug_assertions) {
+                    self.data.session.data_collector = String::from("EX");
+                    self.data.session.therapist = String::from("EX");
+                }
             }
             Err(e) => {
                 self.unload_client();

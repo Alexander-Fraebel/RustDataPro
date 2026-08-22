@@ -159,8 +159,10 @@ impl IoaPage {
                 .prepare(app.ioa_page.select_path.clone(), pathbuf);
         }
         if let Some(bufs) = app.ioa_page.select_file_dialog.take_picked_multiple() {
-            app.ioa_page
-                .prepare(app.path_to_session_records(), app.path_to_ioa_data());
+            app.ioa_page.prepare(
+                app.path_to_session_records_dir(),
+                app.path_to_ioa_data_dir(),
+            );
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match OutputData::from_file(buf.as_path()) {
@@ -224,7 +226,7 @@ impl IoaPage {
             ui.add_space(20.0);
 
             if ui.large_green_button("Calculate IOA").clicked() {
-                app.save_ioa_data()
+                app.save_new_ioa_data()
                     .unwrap_or_else(|e| windows_error_dialog(e))
             }
             ui.add_space(5.0);

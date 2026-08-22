@@ -94,7 +94,7 @@ macro_rules! timer_display {
         active_cell!(
             $row,
             timer_format!(),
-            $timer.cached.active.last + $timer.current_time()
+            $timer.active_time() - $timer.cached.active.saved
         );
         active_cell!($row, $bouts);
     };
@@ -102,14 +102,14 @@ macro_rules! timer_display {
         passive_cell!($row, $desc);
         passive_cell!($row, $key.name());
         passive_cell!($row, timer_format!(), $timer.cached.active.saved);
-        passive_cell!($row, timer_format!(), $timer.cached.active.last);
+        passive_cell!($row, timer_format!(), 0.0);
         passive_cell!($row, $bouts);
     };
 }
 
 impl DataPro {
     pub fn save_new_output_data(&mut self) -> Result<()> {
-        let file_name = self.path_to_session_records().join(format!(
+        let file_name = self.path_to_session_records_dir().join(format!(
             "{}-{}_{}{}.txt",
             self.data.active_assessment_name(),
             self.data.active_condition_name(),

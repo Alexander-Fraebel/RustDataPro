@@ -201,7 +201,7 @@ impl Timer {
         self.update_paused_time();
     }
 
-    /// Remove the last added time stamp and return it if it exists.
+    /// Remove the last added time stamp and return it if it exists. Then update saved times.
     pub fn undo(&mut self) -> Option<Timestamp> {
         let out = self.timestamps.pop();
         self.update_saved_times();
@@ -260,23 +260,19 @@ impl Timer {
         self.cached.active.last = 0.0;
     }
 
-    pub fn update_stopped_time(&mut self) {
-        self.cached.stopped.saved = 0.0;
-        for window in self.timestamps.windows(2) {
-            match window[0].status {
-                TimerStatus::Stopped => {
-                    let interval_end = window[1].instant;
-                    let interval_start = window[0].instant;
-                    let interval_length = (interval_end - interval_start).as_secs_f32();
-                    self.cached.stopped.saved += interval_length
-                }
-                _ => (),
-            }
-        }
-    }
-
-    // pub fn update_last_stopped_time(&mut self) {
-    //     self.cached.stopped.last += self.current_stopped_time();
+    // pub fn update_stopped_time(&mut self) {
+    //     self.cached.stopped.saved = 0.0;
+    //     for window in self.timestamps.windows(2) {
+    //         match window[0].status {
+    //             TimerStatus::Stopped => {
+    //                 let interval_end = window[1].instant;
+    //                 let interval_start = window[0].instant;
+    //                 let interval_length = (interval_end - interval_start).as_secs_f32();
+    //                 self.cached.stopped.saved += interval_length
+    //             }
+    //             _ => (),
+    //         }
+    //     }
     // }
 
     pub fn reset_last_stopped_time(&mut self) {
@@ -298,10 +294,6 @@ impl Timer {
         }
     }
 
-    // pub fn update_last_paused_time(&mut self) {
-    //     self.cached.paused.last += self.current_paused_time();
-    // }
-
     pub fn reset_last_paused_time(&mut self) {
         self.cached.paused.last = 0.0;
     }
@@ -322,26 +314,17 @@ impl Timer {
 
     /// Is the timer currently active?
     pub fn is_active(&self) -> bool {
-        match self.timestamps.last() {
-            Some(timestamp) => timestamp.is_active(),
-            None => false,
-        }
+        self.current_status().is_active()
     }
 
     /// Is the timer currently paused?
     pub fn is_paused(&self) -> bool {
-        match self.timestamps.last() {
-            Some(timestamp) => timestamp.is_paused(),
-            None => false,
-        }
+        self.current_status().is_paused()
     }
 
-    /// Is the timer currently stopped?
+    /// Is the timer currently stopped? Returns true is timestamps is empty.
     pub fn is_stopped(&self) -> bool {
-        match self.timestamps.last() {
-            Some(timestamp) => timestamp.is_stopped(),
-            None => false,
-        }
+        self.current_status().is_stopped()
     }
 
     /// How long the since the last time stamp was added.
@@ -379,7 +362,7 @@ impl Timer {
         }
     }
 
-    /// Sum of all cached times plus. If Paused or Active also include current time.
+    /// Sum of all cached times if Stopped. Otherwise also includes the current time.
     pub fn total_time(&self) -> f32 {
         let s = self.cached.active.saved
             + self.cached.paused.saved
