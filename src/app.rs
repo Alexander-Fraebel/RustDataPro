@@ -4,7 +4,7 @@ use crate::{
         HARDCODED_ROOT_DIR, HARDCODED_ZOOM, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
     },
-    data::{AssessmentsData, ClientData, Data, KsfsData},
+    data::{AssessmentsData, ClientData, Data, KsfsData, NO_CLIENT},
     display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
@@ -17,19 +17,10 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::Local;
-use egui::{FontDefinitions, RichText, TextBuffer, Visuals, warn_if_debug_build};
-// use egui_extras::loaders::image_loader::ImageCrateLoader;
+use egui::{FontDefinitions, RichText, Visuals, warn_if_debug_build};
 use egui_file_dialog::FileDialog;
 use rand::{make_rng, rngs::StdRng};
 use std::path::{Path, PathBuf};
-
-pub const NO_CLIENT: &'static str = "no Client loaded";
-pub const NO_KSF: &'static str = "no KSF loaded";
-pub const NO_ASSESSMENT: &'static str = "no Assessment chosen";
-pub const NO_CONDITION: &'static str = "no Condition chosen";
-pub const NO_THERAPIST: &'static str = "no Session Therapist provided";
-pub const NO_DATA_COLLECTOR: &'static str = "no Data Collector provided";
-pub const INVALID_DATE: &'static str = "Date of Admission is not valid";
 
 pub struct DataPro {
     pub pick_root_directory: FileDialog,
@@ -196,34 +187,15 @@ impl DataPro {
     }
 
     pub fn ready_to_start_session(&mut self) -> bool {
-        if !self.data.client_loaded() {
-            self.prep_session.session_start_error = NO_CLIENT;
-            false
-        } else if !self.data.client_admission_valid() {
-            self.prep_session.session_start_error = INVALID_DATE;
-            false
-        } else if !self.data.ksf_loaded() {
-            self.prep_session.session_start_error = NO_KSF;
-            false
-        } else if !self.data.assessment_chosen() {
-            self.prep_session.session_start_error = NO_ASSESSMENT;
-            false
-        } else if !self.data.condition_chosen() {
-            self.prep_session.session_start_error = NO_CONDITION;
-            false
-        } else if self.data.session.data_collector.is_empty() {
-            self.prep_session.session_start_error = NO_DATA_COLLECTOR;
-            false
-        } else if self.data.session.therapist.is_empty() {
-            self.prep_session.session_start_error = NO_THERAPIST;
-            false
-        } else if !self.time_limit_set() {
-            self.prep_session.session_start_error = "time limit cannot be 0.0 seconds";
-            false
-        } else {
-            self.prep_session.session_start_error.clear();
-            true
+        self.prep_session.session_start_error = self.data.list_misconfigurations();
+
+        if !self.time_limit_set() {
+            self.prep_session
+                .session_start_error
+                .push_str("time limit cannot be 0.0 seconds");
         }
+
+        self.prep_session.session_start_error.is_empty()
     }
 
     /// Is a time limit set?

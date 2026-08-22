@@ -9,7 +9,7 @@ use egui::RichText;
 
 pub struct PrepareSession {
     pub can_start_session: bool,
-    pub session_start_error: &'static str,
+    pub session_start_error: String,
     pub edit_primary_therapist: bool,
     pub edit_case_manager: bool,
     pub edit_client_id: bool,
@@ -22,7 +22,7 @@ impl Default for PrepareSession {
     fn default() -> Self {
         Self {
             can_start_session: false,
-            session_start_error: "configuration error, this should not be visible",
+            session_start_error: String::from("configuration error, this should not be visible"),
             edit_primary_therapist: false,
             edit_case_manager: false,
             edit_client_id: false,
@@ -146,15 +146,15 @@ impl PrepareSession {
 
                     ui.label("Primary/Reliability");
                     egui::ComboBox::from_id_salt("datatype")
-                        .selected_text(app.data.session.data_type.to_string())
+                        .selected_text(app.data.session.data_collecion_type.to_string())
                         .show_ui(ui, |ui| {
                             ui.selectable_value(
-                                &mut app.data.session.data_type,
+                                &mut app.data.session.data_collecion_type,
                                 DataType::Primary,
                                 "Primary",
                             );
                             ui.selectable_value(
-                                &mut app.data.session.data_type,
+                                &mut app.data.session.data_collecion_type,
                                 DataType::Reliability,
                                 "Reliability",
                             );
@@ -330,7 +330,7 @@ impl PrepareSession {
                     ui.add_enabled_ui(app.prep_session.can_start_session, |ui| {
                         if ui
                             .large_green_button("BEGIN SESSION")
-                            .on_disabled_hover_text(app.prep_session.session_start_error)
+                            .on_disabled_hover_text(&app.prep_session.session_start_error)
                             .clicked()
                         {
                             if let Err(e) = app.overwrite_client_data() {
@@ -356,7 +356,7 @@ impl PrepareSession {
                 ui.vertical(|ui| {
                     ui.add_space(15.0);
                     ui.add_enabled_ui(app.data.client_loaded(), |ui| {
-                        ui.heading("KSF");
+                        ui.heading("Choose Keyboard Setup File (KSF)");
                         ui.add_space(5.0);
                         PrepareSession::ksf_display(app, ui);
                     });

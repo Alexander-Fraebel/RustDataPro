@@ -166,7 +166,7 @@ impl IoaPage {
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match OutputData::from_file(buf.as_path()) {
-                    Ok(data) => match data.session.data_type {
+                    Ok(data) => match data.session.data_collecion_type {
                         DataType::Primary => app.ioa_page.prim_data.push((data, buf)),
                         DataType::Reliability => app.ioa_page.reli_data.push((data, buf)),
                     },

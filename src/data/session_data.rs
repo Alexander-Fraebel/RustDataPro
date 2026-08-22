@@ -35,7 +35,7 @@ pub struct SessionData {
     pub chosen_ksf: String,
     pub therapist: String,
     pub data_collector: String,
-    pub data_type: DataType,
+    pub data_collecion_type: DataType,
 }
 
 impl SessionData {

@@ -136,11 +136,10 @@ impl Default for Timer {
 }
 
 impl Timer {
-    /// Start or stop. Preferred interface for the timer.
-    /// Updates cached times automatically.
+    /// Start or stop. Preferred interface for the timer..
     /// If the timer has not been started this starts it. Does nothing when the timer is paused.
     pub fn toggle(&mut self) {
-        self.reset_last_active_time();
+        self.cached.active.last = 0.0;
         if !self.was_started() {
             self.start();
         } else if self.is_stopped() {
@@ -150,7 +149,7 @@ impl Timer {
         }
     }
 
-    /// Pause or unpause. Used to pause the timer AND override the normal toggle.
+    /// Pause or unpause.
     /// Saves the previous status when pausing and restores it when unpausing.
     pub fn toggle_pause(&mut self) {
         if self.is_paused() {
@@ -160,30 +159,30 @@ impl Timer {
         }
     }
 
-    /// Push a new Active time to timestamps.
+    /// Push a new Active time to timestamps and update saved times.
     pub fn start(&mut self) {
         self.timestamps.push(Timestamp::active());
         self.update_saved_times();
     }
 
     /// Push a new Active time to timestamps without updating cached times.
-    pub fn start_silent(&mut self) {
+    fn start_silent(&mut self) {
         self.timestamps.push(Timestamp::active());
     }
 
-    /// Push a new Stopped time to timestamps.
+    /// Push a new Stopped time to timestamps and update saved times.
     pub fn stop(&mut self) {
         self.timestamps.push(Timestamp::stopped());
         self.update_saved_times();
     }
 
     /// Push a new Stopped time to timestamps without updating cached times.
-    pub fn stop_silent(&mut self) {
+    fn stop_silent(&mut self) {
         self.timestamps.push(Timestamp::stopped());
     }
 
     /// Push a new Paused time to timestamps. Saves the current timer status and updates the last active time.
-    /// Does not update any cached times.
+    /// Does not update saved times.
     pub fn pause(&mut self) {
         self.update_last_active_time();
         self.cached.status = self.current_status();
@@ -208,7 +207,7 @@ impl Timer {
         out
     }
 
-    /// Remove all time stamps and reset all cached information.
+    /// Remove all timer to its default starting state.
     pub fn reset(&mut self) {
         *self = Self {
             ..Default::default()
@@ -216,7 +215,7 @@ impl Timer {
     }
 
     /// Recalculate the saved times for active, stopped, and paused. This is relatively expensive and should only be called when new inputs are made.
-    pub fn update_saved_times(&mut self) {
+    fn update_saved_times(&mut self) {
         self.cached.active.saved = 0.0;
         self.cached.stopped.saved = 0.0;
         self.cached.paused.saved = 0.0;
@@ -230,9 +229,6 @@ impl Timer {
                 TimerStatus::Paused => self.cached.paused.saved += interval_length,
             }
         }
-        // self.reset_last_active_time();
-        // self.reset_last_stopped_time();
-        // self.reset_last_paused_time();
     }
 
     pub fn update_active_time(&mut self) {
@@ -250,36 +246,13 @@ impl Timer {
         }
     }
 
-    pub fn update_last_active_time(&mut self) {
+    fn update_last_active_time(&mut self) {
         if self.current_status().is_active() {
             self.cached.active.last += self.current_time();
         }
     }
 
-    pub fn reset_last_active_time(&mut self) {
-        self.cached.active.last = 0.0;
-    }
-
-    // pub fn update_stopped_time(&mut self) {
-    //     self.cached.stopped.saved = 0.0;
-    //     for window in self.timestamps.windows(2) {
-    //         match window[0].status {
-    //             TimerStatus::Stopped => {
-    //                 let interval_end = window[1].instant;
-    //                 let interval_start = window[0].instant;
-    //                 let interval_length = (interval_end - interval_start).as_secs_f32();
-    //                 self.cached.stopped.saved += interval_length
-    //             }
-    //             _ => (),
-    //         }
-    //     }
-    // }
-
-    pub fn reset_last_stopped_time(&mut self) {
-        self.cached.stopped.last = 0.0;
-    }
-
-    pub fn update_paused_time(&mut self) {
+    fn update_paused_time(&mut self) {
         self.cached.paused.saved = 0.0;
         for window in self.timestamps.windows(2) {
             match window[0].status {
@@ -292,10 +265,6 @@ impl Timer {
                 _ => (),
             }
         }
-    }
-
-    pub fn reset_last_paused_time(&mut self) {
-        self.cached.paused.last = 0.0;
     }
 
     /// Has the timer been started since it was last reset?
@@ -356,13 +325,13 @@ impl Timer {
     /// How long the timer has been stopped in seconds.
     pub fn stopped_time(&self) -> f32 {
         if self.is_stopped() {
-            self.cached.stopped.saved + self.cached.paused.last + self.current_time()
+            self.cached.stopped.saved + self.cached.stopped.last + self.current_time()
         } else {
             self.cached.stopped.saved + self.cached.stopped.last
         }
     }
 
-    /// Sum of all cached times if Stopped. Otherwise also includes the current time.
+    /// Sum of all cached times if Stopped. Also includes the current time if Active or Paused.
     pub fn total_time(&self) -> f32 {
         let s = self.cached.active.saved
             + self.cached.paused.saved

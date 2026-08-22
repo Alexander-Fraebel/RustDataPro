@@ -114,7 +114,7 @@ impl DataPro {
             self.data.active_assessment_name(),
             self.data.active_condition_name(),
             self.data.current_session,
-            self.data.session.data_type.abbrev()
+            self.data.session.data_collecion_type.abbrev()
         ));
         overwrite_file(Ok(file_name), &self.write_output_json()?)?;
         self.data.increment_current_session();
@@ -425,7 +425,10 @@ impl DataPro {
                         ));
                         ui.label(format!("Condition: {}", self.data.session.chosen_condition));
                         ui.label(format!("KSF: {}", self.data.chosen_ksf()));
-                        ui.label(format!("Data Type: {}", self.data.session.data_type));
+                        ui.label(format!(
+                            "Data Type: {}",
+                            self.data.session.data_collecion_type
+                        ));
                     });
                 });
                 ui.group(|ui| {
