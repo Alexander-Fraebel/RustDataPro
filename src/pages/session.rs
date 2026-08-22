@@ -3,10 +3,7 @@ use crate::{
     data::{Data, Ksf, output_data::OutputData, timeline::Timeline},
     display_control::DisplayControl,
     quick_error,
-    timer::{
-        Timer, TimerStatus, view_nonneg_countdown_ms, view_paused_timer, view_stopwatch_ms,
-        view_total_time_ms,
-    },
+    timer::{Timer, TimerStatus, view_paused_timer, view_stopwatch_ms, view_total_time_ms},
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
 };
@@ -97,7 +94,7 @@ macro_rules! timer_display {
         active_cell!(
             $row,
             timer_format!(),
-            $timer.current_active_time() + $timer.cached.active.last
+            $timer.cached.active.last + $timer.current_time()
         );
         active_cell!($row, $bouts);
     };
@@ -105,11 +102,7 @@ macro_rules! timer_display {
         passive_cell!($row, $desc);
         passive_cell!($row, $key.name());
         passive_cell!($row, timer_format!(), $timer.cached.active.saved);
-        passive_cell!(
-            $row,
-            timer_format!(),
-            $timer.current_active_time() + $timer.cached.active.last
-        );
+        passive_cell!($row, timer_format!(), $timer.cached.active.last);
         passive_cell!($row, $bouts);
     };
 }
@@ -142,7 +135,7 @@ impl DataPro {
 
         serde_json::to_string(&OutputData {
             datetime: date_time_string(&self.session.start_time),
-            session_duration: rounded_f32(self.session.timer.active_time()),
+            session_duration: rounded_f32(self.session.main_timer.active_time()),
             session: self.data.session.clone(),
             duration: dur_map,
             frequency: fre_map,
@@ -168,7 +161,8 @@ impl DataPro {
 pub struct SessionPage {
     pub freq_keys: Vec<(u32, Key, String)>,
     pub dura_keys: Vec<(Timer, u32, Key, String)>,
-    pub timer: Timer,
+    pub main_timer: Timer,
+    pub pause_timer: Timer,
     pub start_time: DateTime<Local>,
     pub timeline: Timeline,
     pub keypresses_display: Vec<&'static str>,
@@ -181,7 +175,8 @@ pub struct SessionPage {
 impl Default for SessionPage {
     fn default() -> Self {
         Self {
-            timer: Timer::default(),
+            main_timer: Timer::default(),
+            pause_timer: Timer::default(),
             start_time: Local::now(),
             freq_keys: Vec::new(),
             dura_keys: Vec::new(),
@@ -203,26 +198,26 @@ impl SessionPage {
     /// Stops all timers, records the final keypress (simulates it if session ended another way), disallows unpressing keys, then opens the Save/Discard dialog.
     /// This should only occur once in a session, when it ends.
     fn stop_all_timers(&mut self) {
-        if self.timer.was_started() {
+        if self.main_timer.was_started() {
             for (timer, _, _, _) in self.dura_keys.iter_mut() {
                 timer.stop();
             }
-            self.timer.stop();
+            self.main_timer.stop();
             self.timeline
-                .push((Key::Escape, rounded_f32(self.timer.active_time())));
+                .push((Key::Escape, rounded_f32(self.main_timer.active_time())));
             self.keypresses_display.push("e");
         }
         self.unpress_available = false;
     }
 
-    /// Pause or unpause all timers, including the session timer. This method should be the only way to pause or unpause any timers.
+    /// Pause or unpause all timers, including the session timer. This method MUST be the only way to pause or unpause any timers.
     fn pause_unpause_all_timers(&mut self) {
         for (timer, _, _, _) in self.dura_keys.iter_mut() {
             if timer.was_started() {
                 timer.toggle_pause();
             }
         }
-        self.timer.toggle_pause();
+        self.main_timer.toggle_pause();
         self.unpress_available = false;
     }
 
@@ -282,7 +277,7 @@ impl SessionPage {
 
     /// Start the session time and record the initial keypress.
     fn start_session(&mut self) {
-        self.timer.start();
+        self.main_timer.start();
         self.start_time = Local::now();
         self.timeline.push((Key::Tab, 0.0));
         self.keypresses_display.push("t");
@@ -297,9 +292,8 @@ impl SessionPage {
 
 impl DataPro {
     pub fn view_session(&mut self, ui: &mut Ui) {
-        if self.prep_session.limit_session_length && self.session.timer.is_active() {
-            if self.session.timer.current_active_time() >= self.prep_session.maximum_session_length
-            {
+        if self.prep_session.limit_session_length && self.session.main_timer.is_active() {
+            if self.session.main_timer.active_time() >= self.prep_session.maximum_session_length {
                 self.session.save_discard_open = true;
                 self.session.stop_all_timers();
             }
@@ -316,7 +310,7 @@ impl DataPro {
         // ######################
         // Starting is only allowed when session is Stopped.
         if self.session.clicked_keys.contains(&egui::Key::Tab) {
-            if !self.session.timer.was_started() {
+            if !self.session.main_timer.was_started() {
                 self.session.start_session();
             }
         }
@@ -326,14 +320,14 @@ impl DataPro {
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
         if self.session.clicked_keys.contains(&egui::Key::Space) {
-            if self.session.timer.was_started() {
+            if self.session.main_timer.was_started() {
                 self.session.pause_unpause_all_timers();
                 self.session.unpress_available = false;
                 self.session.keypresses_display.push("p");
             }
         }
         if self.session.clicked_keys.contains(&egui::Key::Backspace) {
-            if self.session.timer.is_active() {
+            if self.session.main_timer.is_active() {
                 self.session.unpress_key();
             }
         }
@@ -341,20 +335,20 @@ impl DataPro {
         // ###################################
         // ### Duration and Frequency Keys ###
         // ###################################
-        if self.session.timer.is_active() {
+        if self.session.main_timer.is_active() {
             for (timer, bouts, key, _) in self.session.dura_keys.iter_mut() {
                 if self.session.clicked_keys.contains(key) {
                     timer.toggle();
                     if timer.is_active() {
                         *bouts += 1;
                     }
-                    record_keypress!(self.session, *key, self.session.timer.active_time());
+                    record_keypress!(self.session, *key, self.session.main_timer.active_time());
                 }
             }
             for (counter, key, _) in self.session.freq_keys.iter_mut() {
                 if self.session.clicked_keys.contains(key) {
                     *counter += 1;
-                    record_keypress!(self.session, *key, self.session.timer.active_time());
+                    record_keypress!(self.session, *key, self.session.main_timer.active_time());
                 }
             }
         }
@@ -362,7 +356,7 @@ impl DataPro {
         // #####################################
         // ### Confirm End of Session Window ###
         // #####################################
-        let session_was_started = self.session.timer.was_started();
+        let session_was_started = self.session.main_timer.was_started();
         if self.session.confirm_end {
             egui::Window::new("End Session?").show(ui, |ui| {
                 ui.columns(2, |columns| {
@@ -450,7 +444,7 @@ impl DataPro {
 
             ui.horizontal(|ui| {
                 ui.add_space(LEFT_MARGIN);
-                ui.add_enabled_ui(self.session.timer.is_active(), |ui| {
+                ui.add_enabled_ui(self.session.main_timer.is_active(), |ui| {
                     ui.spacing_mut().item_spacing = (10.0, 0.0).into();
                     ui.vertical(|ui| {
                         ui.group(|ui| {
@@ -567,18 +561,13 @@ impl DataPro {
                         );
                     });
                     ui.horizontal(|ui| {
-                        if self.session.timer.was_started() {
+                        if self.session.main_timer.was_started() {
                             ui.monospace(RichText::new("Session Time:").color(ACTIVE_COLOR));
                         } else {
                             ui.monospace("Session Time:");
                         }
-
+                        view_stopwatch_ms(ui, &mut self.session.main_timer);
                         if self.prep_session.limit_session_length {
-                            view_nonneg_countdown_ms(
-                                ui,
-                                &mut self.session.timer,
-                                self.prep_session.maximum_session_length,
-                            );
                             ui.label(
                                 RichText::from(format!(
                                     "  [{:.0}:{:05.2}]",
@@ -588,31 +577,29 @@ impl DataPro {
                                 .strong()
                                 .monospace(),
                             );
-                        } else {
-                            view_stopwatch_ms(ui, &mut self.session.timer);
                         }
                     });
                     ui.horizontal(|ui| {
-                        if self.session.timer.was_started() {
+                        if self.session.main_timer.was_started() {
                             ui.monospace(RichText::new(" Paused Time:").color(ACTIVE_COLOR));
                         } else {
                             ui.monospace(" Paused Time:");
                         };
-                        view_paused_timer(ui, &mut self.session.timer);
+                        view_paused_timer(ui, &mut self.session.main_timer);
                     });
                     ui.horizontal(|ui| {
-                        if self.session.timer.was_started() {
+                        if self.session.main_timer.was_started() {
                             ui.monospace(RichText::new("  Total Time:").color(ACTIVE_COLOR));
                         } else {
                             ui.monospace("  Total Time:");
                         };
-                        view_total_time_ms(ui, &mut self.session.timer);
+                        view_total_time_ms(ui, &mut self.session.main_timer);
                     });
                 });
             });
             ui.add_space(10.0);
 
-            ui.add_enabled_ui(self.session.timer.is_active(), |ui| {
+            ui.add_enabled_ui(self.session.main_timer.is_active(), |ui| {
                 ui.horizontal(|ui| {
                     ui.add_space(LEFT_MARGIN);
                     ui.vertical(|ui| {

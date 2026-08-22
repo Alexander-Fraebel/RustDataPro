@@ -48,7 +48,7 @@ const NEGATIVE_COLOR: Color32 = Color32::RED;
 #[derive(Clone, Copy, Default)]
 pub struct CachedTime {
     pub saved: f32,
-    pub last: f32,
+    pub last: f32, // how long the value was running
 }
 
 #[derive(Clone, Copy, Default)]
@@ -230,6 +230,9 @@ impl Timer {
                 TimerStatus::Paused => self.cached.paused.saved += interval_length,
             }
         }
+        // self.reset_last_active_time();
+        // self.reset_last_stopped_time();
+        // self.reset_last_paused_time();
     }
 
     pub fn update_active_time(&mut self) {
@@ -248,7 +251,9 @@ impl Timer {
     }
 
     pub fn update_last_active_time(&mut self) {
-        self.cached.active.last += self.current_active_time();
+        if self.current_status().is_active() {
+            self.cached.active.last += self.current_time();
+        }
     }
 
     pub fn reset_last_active_time(&mut self) {
@@ -274,9 +279,9 @@ impl Timer {
     //     self.cached.stopped.last += self.current_stopped_time();
     // }
 
-    // pub fn reset_last_stopped_time(&mut self) {
-    //     self.cached.stopped.last = 0.0;
-    // }
+    pub fn reset_last_stopped_time(&mut self) {
+        self.cached.stopped.last = 0.0;
+    }
 
     pub fn update_paused_time(&mut self) {
         self.cached.paused.saved = 0.0;
@@ -297,13 +302,22 @@ impl Timer {
     //     self.cached.paused.last += self.current_paused_time();
     // }
 
-    // pub fn reset_last_paused_time(&mut self) {
-    //     self.cached.paused.last = 0.0;
-    // }
+    pub fn reset_last_paused_time(&mut self) {
+        self.cached.paused.last = 0.0;
+    }
 
     /// Has the timer been started since it was last reset?
     pub fn was_started(&self) -> bool {
         !self.timestamps.is_empty()
+    }
+
+    /// Most recent status added to timestamps. Returns Stopped if timestamps is empty.
+    pub fn current_status(&self) -> TimerStatus {
+        self.timestamps
+            .iter()
+            .map(|t| t.status)
+            .last()
+            .unwrap_or(TimerStatus::Stopped)
     }
 
     /// Is the timer currently active?
@@ -330,6 +344,7 @@ impl Timer {
         }
     }
 
+    /// How long the since the last time stamp was added.
     pub fn current_time(&self) -> f32 {
         match self.timestamps.last() {
             Some(timestamp) => (Instant::now() - timestamp.instant).as_secs_f32(),
@@ -337,68 +352,51 @@ impl Timer {
         }
     }
 
-    pub fn current_active_time(&self) -> f32 {
-        if self.is_active() {
-            self.current_time() + self.cached.active.last
-        } else {
-            self.cached.active.last
-        }
-    }
-
-    pub fn current_stopped_time(&self) -> f32 {
-        if self.is_stopped() {
-            self.current_time() + self.cached.stopped.last
-        } else {
-            self.cached.stopped.last
-        }
-    }
-
-    pub fn current_paused_time(&self) -> f32 {
-        if self.is_paused() {
-            self.current_time() + self.cached.active.last
-        } else {
-            self.cached.paused.last
-        }
-    }
-
     /// How long the timer has been active in seconds.
     pub fn active_time(&self) -> f32 {
-        self.cached.active.saved + self.cached.active.last + self.current_active_time()
+        if self.is_active() {
+            self.cached.active.saved + self.cached.active.last + self.current_time()
+        } else {
+            self.cached.active.saved + self.cached.active.last
+        }
     }
 
     /// How long the timer has been paused in seconds.
     pub fn paused_time(&self) -> f32 {
-        self.cached.paused.saved + self.cached.paused.last + self.current_paused_time()
+        if self.is_paused() {
+            self.cached.paused.saved + self.cached.paused.last + self.current_time()
+        } else {
+            self.cached.paused.saved + self.cached.paused.last
+        }
     }
 
     /// How long the timer has been stopped in seconds.
     pub fn stopped_time(&self) -> f32 {
-        self.cached.stopped.saved + self.cached.stopped.last + self.current_stopped_time()
+        if self.is_stopped() {
+            self.cached.stopped.saved + self.cached.paused.last + self.current_time()
+        } else {
+            self.cached.stopped.saved + self.cached.stopped.last
+        }
     }
 
-    /// Sum of current time and all cached times.
+    /// Sum of all cached times plus. If Paused or Active also include current time.
     pub fn total_time(&self) -> f32 {
-        self.current_time()
-            + self.cached.active.saved
+        let s = self.cached.active.saved
             + self.cached.paused.saved
             + self.cached.stopped.saved
             + self.cached.active.last
             + self.cached.paused.last
-            + self.cached.stopped.last
-    }
-
-    /// Most recent status added to timestamps. Returns Stopped if timestamps is empty.
-    pub fn current_status(&self) -> TimerStatus {
-        self.timestamps
-            .iter()
-            .map(|t| t.status)
-            .last()
-            .unwrap_or(TimerStatus::Stopped)
+            + self.cached.stopped.last;
+        if self.is_stopped() {
+            s
+        } else {
+            s + self.current_time()
+        }
     }
 }
 
 pub fn view_stopwatch_ms(ui: &mut Ui, timer: &Timer) {
-    let t = timer.active_time() + timer.cached.active.last;
+    let t = timer.active_time();
     if !timer.was_started() {
         timer_display_ms!(ui, t);
     } else {
@@ -410,7 +408,7 @@ pub fn view_stopwatch_ms(ui: &mut Ui, timer: &Timer) {
 }
 
 pub fn view_stopwatch_hms(ui: &mut Ui, timer: &Timer) {
-    let t = timer.active_time() + timer.cached.active.last;
+    let t = timer.active_time();
     if !timer.was_started() {
         timer_display_hms!(ui, t);
     } else {
@@ -422,7 +420,7 @@ pub fn view_stopwatch_hms(ui: &mut Ui, timer: &Timer) {
 }
 
 pub fn view_paused_timer(ui: &mut Ui, timer: &Timer) {
-    let t = timer.paused_time() + timer.cached.paused.last;
+    let t = timer.paused_time();
     if !timer.was_started() {
         timer_display_ms!(ui, t);
     } else {
@@ -460,19 +458,6 @@ pub fn view_countdown_ms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
     }
 }
 
-// Special timer for session page which counts down to zero and not below.
-pub fn view_nonneg_countdown_ms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
-    let t = (countdown_from - timer.active_time()).max(0.0);
-    if !timer.was_started() {
-        timer_display_ms!(ui, t);
-    } else {
-        timer_display_ms!(ui, t, ACTIVE_COLOR);
-        if timer.is_active() {
-            ui.request_repaint();
-        }
-    }
-}
-
 pub fn view_countdown_hms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
     let t = countdown_from - timer.active_time();
     if !timer.was_started() {
@@ -486,18 +471,6 @@ pub fn view_countdown_hms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
             timer_display_hms!(ui, t, ACTIVE_COLOR);
         } else {
             timer_display_hms!(ui, t, NEGATIVE_COLOR);
-        }
-    }
-}
-
-pub fn view_nonneg_countdown_hms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
-    let t = (countdown_from - timer.active_time()).max(0.0);
-    if !timer.was_started() {
-        timer_display_hms!(ui, t);
-    } else {
-        timer_display_hms!(ui, t, ACTIVE_COLOR);
-        if timer.is_active() {
-            ui.request_repaint();
         }
     }
 }
