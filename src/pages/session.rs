@@ -86,7 +86,7 @@ macro_rules! passive_cell {
     };
 }
 
-macro_rules! timer_display {
+macro_rules! split_timer_display {
     (active, $row:ident, $desc:ident, $key:ident, $timer:expr, $bouts:expr) => {
         active_cell!($row, $desc);
         active_cell!($row, $key.name());
@@ -524,23 +524,23 @@ impl DataPro {
                                         body.row(ROW_HEIGHT, |mut row| {
                                             match timer.current_status() {
                                                 TimerStatus::Active => {
-                                                    timer_display!(
+                                                    split_timer_display!(
                                                         active, row, desc, key, timer, bouts
                                                     );
                                                 }
                                                 TimerStatus::Stopped => {
-                                                    timer_display!(
+                                                    split_timer_display!(
                                                         passive, row, desc, key, timer, bouts
                                                     );
                                                 }
                                                 TimerStatus::Paused => match timer.cached.status {
                                                     TimerStatus::Active => {
-                                                        timer_display!(
+                                                        split_timer_display!(
                                                             active, row, desc, key, timer, bouts
                                                         );
                                                     }
                                                     _ => {
-                                                        timer_display!(
+                                                        split_timer_display!(
                                                             passive, row, desc, key, timer, bouts
                                                         );
                                                     }
