@@ -25,8 +25,6 @@ fn save_and_reload_assessments(app: &mut DataPro) {
                 windows_error_dialog(e)
             } else {
                 quick_error!(app.load_assessments());
-
-                app.edit_assessments.save_finished = true;
             }
         }
         Err(e) => {
@@ -64,17 +62,23 @@ fn assessment_scroller(
                         )
                         .changed()
                     {
-                        app.edit_assessments.save_finished = false;
+                        app.edit_assessments.changes_made = true;
                     }
                     if ui.small_button("delete").clicked() {
                         if are_you_sure_dialog("Delete this Assessment?") {
-                            app.edit_assessments.deleted_row = Some(n)
+                            app.edit_assessments.deleted_row = Some(n);
+                            app.edit_assessments.changes_made = true;
                         }
                     };
                 });
                 ui.horizontal(|ui| {
                     ui.label("Current Session:");
-                    ui.add(egui::DragValue::new(&mut assessment.session).range(1..=99999));
+                    if ui
+                        .add(egui::DragValue::new(&mut assessment.session).range(1..=99999))
+                        .changed()
+                    {
+                        app.edit_assessments.changes_made = true;
+                    };
                 });
 
                 if ui
@@ -85,11 +89,16 @@ fn assessment_scroller(
                     )
                     .changed()
                 {
-                    app.edit_assessments.save_finished = false;
+                    app.edit_assessments.changes_made = true;
                 }
                 ui.add_space(5.0);
                 ui.label("Preferred KSF (optional):");
-                ui.text_edit_singleline(&mut assessment.preferred_ksf);
+                if ui
+                    .text_edit_singleline(&mut assessment.preferred_ksf)
+                    .changed()
+                {
+                    app.edit_assessments.changes_made = true;
+                }
                 ui.add_space(30.0);
             }
         })
@@ -105,12 +114,15 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
             ui.add_space(30.0);
             if ui.button("Add Assessment").clicked() {
                 app.edit_assessments.user_input.push(AssessmentMaker::new());
+                app.edit_assessments.changes_made = true;
             }
             ui.add_space(10.0);
 
             ui.return_button(app, |app| {
-                save_and_reload_assessments(app);
-                app.edit_assessments.save_finished = false
+                if app.edit_assessments.changes_made {
+                    save_and_reload_assessments(app);
+                    app.edit_assessments.changes_made = false
+                }
             });
             ui.add_space(10.0);
         });
@@ -160,10 +172,10 @@ impl AssessmentMaker {
 #[derive(Default)]
 pub struct EditAssessments {
     pub user_input: Vec<AssessmentMaker>,
-    pub save_finished: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
     pub save_path: PathBuf,
+    pub changes_made: bool,
 }
 
 impl EditAssessments {

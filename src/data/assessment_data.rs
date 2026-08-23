@@ -26,8 +26,10 @@ impl Default for Assessment {
 }
 
 impl Assessment {
-    // TODO: allow generic type for easier to use API
-    pub fn new(conditions: Vec<String>) -> Self {
+    pub fn new<I>(conditions: I) -> Self
+    where
+        I: IntoIterator<Item = String>,
+    {
         Self {
             session: 1,
             preferred_ksf: String::new(),
@@ -35,8 +37,10 @@ impl Assessment {
         }
     }
 
-    // TODO: allow generic type for easier to use API
-    pub fn new_with_session(session: u32, conditions: Vec<String>) -> Self {
+    pub fn new_with_session<I>(session: u32, conditions: I) -> Self
+    where
+        I: IntoIterator<Item = String>,
+    {
         Self {
             session,
             preferred_ksf: String::new(),
@@ -44,7 +48,7 @@ impl Assessment {
         }
     }
 
-    pub fn first(&self) -> Option<&String> {
+    pub fn first_condition(&self) -> Option<&String> {
         self.conditions.first()
     }
 

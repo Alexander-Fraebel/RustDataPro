@@ -39,8 +39,8 @@ impl NewClient {
     fn create_new_client_folder(&mut self, root_directory: &PathBuf) -> Result<()> {
         let client_path = Path::new(root_directory).join(self.client.id.to_string());
 
-        // Do these first to catch errors before any files and folder and created.
-        let ksf = KsfsData::example_file().to_json()?;
+        // Do these first to catch errors before any files and folders are created.
+        let ksf = KsfsData::example().to_json()?;
         let assessments = AssessmentsData::example().to_json()?;
         let client = self.client.to_json()?;
 
@@ -93,7 +93,7 @@ impl NewClient {
                             "{:0<10}",
                             app.new_client_page
                                 .prng
-                                .random_range(1000000000_i64..=9999999999)
+                                .random_range(1000000000_i64..=9999999999) // collisions become higly likely after created 94868 IDs, alphanumeric might be better
                         );
                         app.new_client_page.created = false;
                     }

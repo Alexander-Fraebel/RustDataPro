@@ -122,7 +122,7 @@ impl Ksf {
         f.chain(d).all_unique()
     }
 
-    pub fn example_ksf() -> Ksf {
+    pub fn example() -> Ksf {
         serde_json::from_str(
             r#"{
                 "frequency": [
@@ -212,9 +212,9 @@ impl KsfsData {
         Ok(prettier_json(raw_json))
     }
 
-    pub fn example_file() -> KsfsData {
+    pub fn example() -> KsfsData {
         let mut data = KsfsData::default();
-        data.insert(String::from("Example"), Ksf::example_ksf());
+        data.insert(String::from("Example"), Ksf::example());
         data
     }
 }

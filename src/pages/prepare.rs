@@ -202,8 +202,10 @@ impl PrepareSession {
                                     )
                                     .clicked()
                                 {
-                                    app.data.session.chosen_condition =
-                                        assessment.first().unwrap_or(&String::new()).clone();
+                                    app.data.session.chosen_condition = assessment
+                                        .first_condition()
+                                        .unwrap_or(&String::new())
+                                        .clone();
                                     app.data.current_session = assessment.session;
                                     if app.data.ksfs.contains_key(&assessment.preferred_ksf) {
                                         app.data.session.chosen_ksf_name =

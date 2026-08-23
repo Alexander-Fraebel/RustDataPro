@@ -332,7 +332,7 @@ impl DataPro {
         match self.data.assessments.first() {
             Some((assessment, conds)) => {
                 self.data.session.chosen_assessment = assessment.clone();
-                match conds.first() {
+                match conds.first_condition() {
                     Some(cond) => self.data.session.chosen_condition = cond.clone(),
                     None => self.data.session.chosen_condition.clear(),
                 }
@@ -343,6 +343,23 @@ impl DataPro {
                 self.data.session.chosen_condition.clear()
             }
         }
+    }
+
+    pub fn create_example_ksfs_file(&self) -> Result<()> {
+        let mut writer = std::fs::File::create_new(Path::new(&&self.path_to_ksf_data()))?;
+        std::io::Write::write_all(&mut writer, KsfsData::example().to_json()?.as_bytes())?;
+        std::io::Write::flush(&mut writer)?;
+        Ok(())
+    }
+
+    pub fn create_example_assessments_file(&self) -> Result<()> {
+        let mut writer = std::fs::File::create_new(Path::new(&self.path_to_assessments()))?;
+        std::io::Write::write_all(
+            &mut writer,
+            AssessmentsData::example().to_json()?.as_bytes(),
+        )?;
+        std::io::Write::flush(&mut writer)?;
+        Ok(())
     }
 
     pub fn unload_client(&mut self) {
@@ -385,7 +402,7 @@ impl DataPro {
                 };
 
                 // Load the Assessments Data
-                let assessments_path = Path::new(path).join(ASSESSMENTS_FILE_NAME);
+                let assessments_path = self.path_to_assessments();
                 match AssessmentsData::from_file(&assessments_path) {
                     Ok(assessments_data) => {
                         self.data.assessments = assessments_data;
@@ -393,10 +410,34 @@ impl DataPro {
                             .prepare(&self.data, assessments_path.clone());
                         self.choose_first_assessment_and_condition();
                     }
-                    Err(e) => windows_error_dialog(e.context(format!(
-                        "unable to read {}, the file may be missing or corrupt",
-                        ASSESSMENTS_FILE_NAME
-                    ))),
+                    Err(e) => {
+                        if *&e
+                            .to_string()
+                            .contains("The system cannot find the file specified")
+                        {
+                            windows_error_dialog(anyhow::anyhow!(format!(
+                                "{} could not be found, a default file has been created",
+                                ASSESSMENTS_FILE_NAME
+                            )));
+                            match self.create_example_assessments_file() {
+                                Ok(_) => match AssessmentsData::from_file(&assessments_path) {
+                                    Ok(new_data) => {
+                                        self.data.assessments = new_data;
+                                        self.edit_assessments
+                                            .prepare(&self.data, assessments_path.clone());
+                                        self.choose_first_assessment_and_condition();
+                                    }
+                                    Err(e) => windows_error_dialog(e),
+                                },
+                                Err(e) => windows_error_dialog(e),
+                            }
+                        } else {
+                            windows_error_dialog(e.context(format!(
+                                "unable to read {}, the file may be corrupt",
+                                ASSESSMENTS_FILE_NAME
+                            )));
+                        }
+                    }
                 }
 
                 self.ioa_page.prepare(
@@ -408,6 +449,7 @@ impl DataPro {
                     self.data.session.data_collector = String::from("EX");
                     self.data.session.therapist = String::from("EX");
                 }
+
                 self.check_if_ready_to_start_session();
             }
             Err(e) => {
