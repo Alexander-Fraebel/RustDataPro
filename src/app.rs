@@ -17,7 +17,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::Local;
-use egui::{FontDefinitions, RichText, Visuals, warn_if_debug_build};
+use egui::{FontDefinitions, RichText, Visuals};
 use egui_file_dialog::FileDialog;
 use rand::{make_rng, rngs::StdRng};
 use std::path::{Path, PathBuf};
@@ -386,7 +386,7 @@ impl DataPro {
                 self.data.client = client;
 
                 // Load the KSF Data
-                let ksf_path = Path::new(path).join(KSF_FILE_NAME);
+                let ksf_path = self.path_to_ksf_data();
                 match KsfsData::from_file(&ksf_path) {
                     Ok(ksf_data) => {
                         self.data.ksfs = ksf_data;
@@ -395,10 +395,35 @@ impl DataPro {
                             self.data.session.chosen_ksf_name = name.clone()
                         }
                     }
-                    Err(e) => windows_error_dialog(e.context(format!(
-                        "unable to read {}, the file may be missing or corrupt",
-                        KSF_FILE_NAME
-                    ))),
+                    Err(e) => {
+                        if *&e
+                            .to_string()
+                            .contains("The system cannot find the file specified")
+                        {
+                            windows_error_dialog(anyhow::anyhow!(format!(
+                                "{} could not be found, a default file has been created",
+                                KSF_FILE_NAME
+                            )));
+                            match self.create_example_ksfs_file() {
+                                Ok(_) => match KsfsData::from_file(&ksf_path) {
+                                    Ok(new_data) => {
+                                        self.data.ksfs = new_data;
+                                        self.edit_ksfs.prepare(&self.data, ksf_path.clone());
+                                        if let Some((name, _)) = self.data.ksfs.first() {
+                                            self.data.session.chosen_ksf_name = name.clone()
+                                        }
+                                    }
+                                    Err(e) => windows_error_dialog(e),
+                                },
+                                Err(e) => windows_error_dialog(e),
+                            }
+                        } else {
+                            windows_error_dialog(e.context(format!(
+                                "unable to read {}, the file may be corrupt",
+                                KSF_FILE_NAME
+                            )));
+                        }
+                    }
                 };
 
                 // Load the Assessments Data
@@ -474,7 +499,19 @@ impl eframe::App for DataPro {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.request_repaint_after_secs(5.0);
                 ui.label(format!("{}", date_time_string(&Local::now())));
-                warn_if_debug_build(ui);
+
+                if cfg!(debug_assertions) {
+                    let warn_color = ui.visuals().warn_fg_color;
+                    ui.label(RichText::new("⚠ Debug build ⚠").small().color(warn_color))
+                        .on_hover_text("egui was compiled with debug assertions enabled.");
+                    let dt = ui.input(|i| i.unstable_dt);
+                    let fps = if dt > 0.0 { 1.0 / dt } else { 0.0 };
+                    ui.label(
+                        RichText::from(format!("FPS: {:.0}", fps.round()))
+                            .monospace()
+                            .color(warn_color),
+                    );
+                }
             });
         });
 

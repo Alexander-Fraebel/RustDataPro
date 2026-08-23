@@ -140,9 +140,9 @@ impl Ksf {
                     ["H", "Inacc FCR"]
                 ],
                 "duration": [
-                    ["Num4", "Toy Engage"],
-                    ["Num1", "Sr+"],
-                    ["Num2", "Sdelta"]
+                    ["K", "Toy Engage"],
+                    ["Num4", "Sr+"],
+                    ["Num6", "Sdelta"]
                 ]
             }"#,
         )
