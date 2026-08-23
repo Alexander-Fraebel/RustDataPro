@@ -95,7 +95,11 @@ fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
             match overwrite_file(Ok(app.edit_ksfs.save_path.clone()), &output_json) {
                 Ok(_) => {
                     app.edit_ksfs.save_finished = true;
-                    app.data.ksfs = temp_ksf_data
+                    if !app.data.ksf_loaded() {
+                        app.load_ksf(&app.path_to_ksf_data());
+                    } else {
+                        app.data.ksfs = temp_ksf_data;
+                    }
                 }
                 Err(e) => {
                     windows_error_dialog(e.context("error while saving KsfData"));
@@ -110,6 +114,10 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
     if let Some(idx) = app.edit_ksfs.deleted_row {
         app.edit_ksfs.user_input.remove(idx);
         app.edit_ksfs.deleted_row = None;
+        if app.edit_ksfs.user_input.is_empty() {
+            app.edit_ksfs.user_input.push(KsfMaker::default());
+            app.data.session.chosen_ksf_name.clear();
+        }
     }
     ui.style_mut().spacing.scroll = egui::style::ScrollStyle::solid();
     ui.add_space(10.0);

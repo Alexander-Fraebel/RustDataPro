@@ -5,11 +5,35 @@ use crate::{
     ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
-use egui::{Color32, RichText, TextStyle};
+use egui::TextStyle;
 use egui_file_dialog::FileDialog;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use std::path::PathBuf;
+
+fn save_and_reload_assessments(app: &mut DataPro) {
+    let mut temp_assessments_data = AssessmentsData::default();
+    for assessment in app.edit_assessments.user_input.iter() {
+        if !assessment.name.trim().is_empty() {
+            temp_assessments_data.insert(assessment.name.clone(), assessment.into_assessment());
+        }
+    }
+
+    match temp_assessments_data.to_json() {
+        Ok(json) => {
+            if let Err(e) = overwrite_file(Ok(app.edit_assessments.save_path.clone()), &json) {
+                windows_error_dialog(e)
+            } else {
+                quick_error!(app.load_assessments());
+
+                app.edit_assessments.save_finished = true;
+            }
+        }
+        Err(e) => {
+            windows_error_dialog(e);
+        }
+    }
+}
 
 fn assessment_scroller(
     app: &mut DataPro,
@@ -18,6 +42,10 @@ fn assessment_scroller(
     if let Some(idx) = app.edit_assessments.deleted_row {
         app.edit_assessments.user_input.remove(idx);
         app.edit_assessments.deleted_row = None;
+        if app.edit_assessments.user_input.is_empty() {
+            app.edit_assessments.user_input.push(AssessmentMaker::new());
+            save_and_reload_assessments(app);
+        }
     }
     ui.style_mut().spacing.scroll = egui::style::ScrollStyle::solid();
     ui.add_space(10.0);
@@ -80,52 +108,11 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
             }
             ui.add_space(10.0);
 
-            if ui.large_green_button("SAVE").clicked() {
-                let mut temp_assessments_data = AssessmentsData::default();
-                for assessment in app.edit_assessments.user_input.iter() {
-                    if !assessment.name.trim().is_empty() {
-                        temp_assessments_data
-                            .insert(assessment.name.clone(), assessment.into_assessment());
-                    }
-                }
-
-                match temp_assessments_data.to_json() {
-                    Ok(json) => {
-                        if let Err(e) =
-                            overwrite_file(Ok(app.edit_assessments.save_path.clone()), &json)
-                        {
-                            windows_error_dialog(e)
-                        } else {
-                            quick_error!(app.load_assessments());
-
-                            app.edit_assessments.save_finished = true;
-                        }
-                    }
-                    Err(e) => {
-                        windows_error_dialog(e);
-                    }
-                }
-            }
-            ui.add_space(5.0);
-
-            ui.return_button(app, |app| app.edit_assessments.save_finished = false);
+            ui.return_button(app, |app| {
+                save_and_reload_assessments(app);
+                app.edit_assessments.save_finished = false
+            });
             ui.add_space(10.0);
-
-            if app.edit_assessments.save_finished {
-                if app.data.client_loaded() {
-                    ui.monospace(
-                        RichText::new("Assessments Updated!")
-                            .heading()
-                            .color(Color32::GREEN),
-                    );
-                } else {
-                    ui.monospace(
-                        RichText::new("Assessments Created!")
-                            .heading()
-                            .color(Color32::GREEN),
-                    );
-                }
-            }
         });
     });
 }
@@ -213,11 +200,12 @@ impl EditAssessments {
             app.client_picker(ui);
             ui.add_space(15.0);
 
-            // ui.label("If a client is selected this page will automatically udpate\nthe assessments file for that client. If no client is selected you may\nsave the assessments file created here to the directory below.");
-            // ui.add_space(10.0);
+            ui.label("The assessments file for this client will update when you click RETURN.");
 
-            ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
-                ui.label("Save File To:");
+            ui.add_space(10.0);
+
+            ui.label("Save File To:");
+            ui.add_enabled_ui(false, |ui| {
                 ui.directory_picker(
                     &mut app.edit_assessments.file_dialog,
                     &app.edit_assessments.save_path,

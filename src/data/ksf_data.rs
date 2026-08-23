@@ -73,7 +73,7 @@ pub const ALLOWED_KSF_KEYS: [Key; 36] = [
     Key::Z,
 ];
 
-/// Key Specification File. A list of keybinds divided into Frequency and Duration.
+/// Keyboard Setup File. A list of keybinds divided into Frequency and Duration.
 /// All methods return with Frequency information before Duration.
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
 pub struct Ksf {
@@ -162,9 +162,7 @@ impl Ksf {
     }
 
     pub fn to_json(&self) -> Result<String> {
-        let raw_json =
-            serde_json::to_string_pretty(&self).context("unable to convert ksf to json")?;
-        Ok(raw_json)
+        serde_json::to_string_pretty(&self).context("unable to convert Ksf to json")
     }
 }
 
@@ -210,11 +208,11 @@ impl KsfsData {
 
     pub fn to_json(&self) -> Result<String> {
         let raw_json =
-            serde_json::to_string_pretty(&self).context("unable to convert KsfData to json")?;
+            serde_json::to_string_pretty(&self).context("unable to convert KsfsData to json")?;
         Ok(prettier_json(raw_json))
     }
 
-    pub fn initial_file() -> KsfsData {
+    pub fn example_file() -> KsfsData {
         let mut data = KsfsData::default();
         data.insert(String::from("Example"), Ksf::example_ksf());
         data

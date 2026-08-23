@@ -70,12 +70,12 @@ impl Sidebar {
                         }
                         ui.add_space(4.0);
 
-                        if ui.large_button("KSF").clicked() {
+                        if ui.large_button("Edit KSFs").clicked() {
                             app.display_info.go_to_new_ksf();
                         }
                         ui.add_space(4.0);
 
-                        if ui.large_button("Assessments").clicked() {
+                        if ui.large_button("Edit Assessments").clicked() {
                             app.display_info.go_to_new_assessments();
                         }
 

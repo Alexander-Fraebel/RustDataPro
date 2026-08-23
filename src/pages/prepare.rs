@@ -1,34 +1,25 @@
 use crate::{
-    app::DataPro,
-    data::{Assessment, DataType},
-    quick_error,
-    ui_elements::DataProUiElements,
+    app::DataPro, data::DataType, quick_error, ui_elements::DataProUiElements,
     utils::windows_error_dialog,
 };
 use egui::RichText;
 
 pub struct PrepareSession {
     pub can_start_session: bool,
-    pub session_start_error: String,
     pub edit_primary_therapist: bool,
     pub edit_case_manager: bool,
     pub edit_client_id: bool,
     pub edit_doa: bool,
-    pub limit_session_length: bool,
-    pub maximum_session_length: f32,
 }
 
 impl Default for PrepareSession {
     fn default() -> Self {
         Self {
             can_start_session: false,
-            session_start_error: String::from("configuration error, this should not be visible"),
             edit_primary_therapist: false,
             edit_case_manager: false,
             edit_client_id: false,
             edit_doa: false,
-            limit_session_length: false,
-            maximum_session_length: 0.0,
         }
     }
 }
@@ -40,26 +31,32 @@ impl PrepareSession {
                 .min_col_width(120.0)
                 .min_row_height(22.0)
                 .show(ui, |ui| {
+                    let mut need_to_check_if_session_can_start = false;
+
                     ui.label("Location");
-                    if ui
-                        .text_edit_singleline(&mut app.data.client.location)
-                        .lost_focus()
-                    {
+                    let location = ui.text_edit_singleline(&mut app.data.client.location);
+                    if location.lost_focus() {
                         quick_error!(app.overwrite_client_data());
+                    }
+                    if location.changed() {
+                        need_to_check_if_session_can_start = true;
                     }
                     ui.end_row();
 
                     ui.label("Date of Admission");
                     if app.prep_session.edit_doa {
-                        if ui
+                        let doa = ui
                             .add(egui::TextEdit::singleline(
                                 &mut app.data.client.date_of_admission,
                             ))
-                            .on_hover_text("format date as YYYY-MM-DD")
-                            .lost_focus()
-                        {
+                            .on_hover_text("format date as YYYY-MM-DD");
+                        if doa.lost_focus() {
                             quick_error!(app.overwrite_client_data());
                         }
+                        if doa.changed() {
+                            need_to_check_if_session_can_start = true;
+                        }
+                        // The rest of these are non-editable display versions of the DOA
                     } else {
                         match app.data.client.days_since_admission() {
                             Ok(n) => {
@@ -97,15 +94,18 @@ impl PrepareSession {
                     ui.end_row();
 
                     ui.label("Session Number");
-                    if ui
-                        .add(egui::DragValue::new(&mut app.data.current_session))
-                        .lost_focus()
-                    {
+                    let session_number = ui.add(
+                        egui::DragValue::new(&mut app.data.current_session).range(1..=u32::MAX),
+                    );
+                    if session_number.lost_focus() {
+                        quick_error!(app.overwrite_assessments());
+                    }
+                    if session_number.changed() {
                         let current_session = app.data.current_session;
                         if let Some(condtions) = app.data.active_assessment_data() {
                             condtions.session = current_session;
                         }
-                        quick_error!(app.overwrite_assessments());
+                        need_to_check_if_session_can_start = true;
                     }
                     ui.end_row();
 
@@ -137,11 +137,21 @@ impl PrepareSession {
                     ui.end_row();
 
                     ui.label("Session Therapist");
-                    ui.text_edit_singleline(&mut app.data.session.therapist);
+                    if ui
+                        .text_edit_singleline(&mut app.data.session.therapist)
+                        .changed()
+                    {
+                        need_to_check_if_session_can_start = true;
+                    }
                     ui.end_row();
 
                     ui.label("Data Collector");
-                    ui.text_edit_singleline(&mut app.data.session.data_collector);
+                    if ui
+                        .text_edit_singleline(&mut app.data.session.data_collector)
+                        .changed()
+                    {
+                        need_to_check_if_session_can_start = true;
+                    }
                     ui.end_row();
 
                     ui.label("Primary/Reliability");
@@ -166,17 +176,20 @@ impl PrepareSession {
                         true => egui::RichText::new(&app.data.session.chosen_assessment),
                         false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
                     };
-                    let assessment_box =
-                        ui.text_edit_singleline(&mut app.data.session.chosen_assessment);
-                    if assessment_box.changed() {
-                        app.data.session.chosen_condition.clear();
-                    };
-                    if assessment_box.lost_focus() {
-                        app.data
-                            .assessments
-                            .entry(app.data.session.chosen_assessment.clone())
-                            .or_insert(Assessment::default());
-                    }
+                    // TODO: delete this permanently in favor of using Assessment Page?
+                    // let assessment_box =
+                    //     ui.text_edit_singleline(&mut app.data.session.chosen_assessment);
+                    // if assessment_box.changed() {
+                    //     app.data.session.chosen_condition.clear();
+                    //     app.prep_session.can_start_session = app.ready_to_start_session()
+                    // };
+                    // if assessment_box.lost_focus() {
+                    //     app.data
+                    //         .assessments
+                    //         .entry(app.data.session.chosen_assessment.clone())
+                    //         .or_insert(Assessment::default());
+                    //     app.prep_session.can_start_session = app.ready_to_start_session()
+                    // }
                     egui::ComboBox::from_id_salt("assessment")
                         .selected_text(assessment_text)
                         .show_ui(ui, |ui| {
@@ -193,9 +206,10 @@ impl PrepareSession {
                                         assessment.first().unwrap_or(&String::new()).clone();
                                     app.data.current_session = assessment.session;
                                     if app.data.ksfs.contains_key(&assessment.preferred_ksf) {
-                                        app.data.session.chosen_ksf =
+                                        app.data.session.chosen_ksf_name =
                                             assessment.preferred_ksf.clone();
                                     }
+                                    need_to_check_if_session_can_start = true;
                                 }
                             }
                         });
@@ -206,19 +220,20 @@ impl PrepareSession {
                         true => egui::RichText::new(&app.data.session.chosen_condition),
                         false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
                     };
-                    let condition_box =
-                        ui.text_edit_singleline(&mut app.data.session.chosen_condition);
-                    if condition_box.lost_focus() {
-                        if let Some(conds) = app
-                            .data
-                            .assessments
-                            .get_mut(&app.data.session.chosen_assessment)
-                        {
-                            conds
-                                .conditions
-                                .insert(app.data.session.chosen_condition.clone());
-                        }
-                    }
+                    // TODO: delete this permanently in favor of using Assessment Page?
+                    // let condition_box =
+                    //     ui.text_edit_singleline(&mut app.data.session.chosen_condition);
+                    // if condition_box.lost_focus() {
+                    //     if let Some(conds) = app
+                    //         .data
+                    //         .assessments
+                    //         .get_mut(&app.data.session.chosen_assessment)
+                    //     {
+                    //         conds
+                    //             .conditions
+                    //             .insert(app.data.session.chosen_condition.clone());
+                    //     }
+                    // }
                     egui::ComboBox::from_id_salt("condition")
                         .selected_text(condition_text)
                         .show_ui(ui, |ui| {
@@ -226,41 +241,79 @@ impl PrepareSession {
                                 app.data.assessments.get(app.data.active_assessment_name())
                             {
                                 for cond in conds.conditions.iter() {
-                                    ui.selectable_value(
-                                        &mut app.data.session.chosen_condition,
-                                        cond.to_string(),
-                                        cond,
-                                    );
+                                    if ui
+                                        .selectable_value(
+                                            &mut app.data.session.chosen_condition,
+                                            cond.to_string(),
+                                            cond,
+                                        )
+                                        .clicked()
+                                    {
+                                        need_to_check_if_session_can_start = true;
+                                    }
                                 }
                             }
                         });
-
                     ui.end_row();
+
+                    if ui
+                        .checkbox(
+                            &mut app.data.session.limit_session_length,
+                            "Max Session Length",
+                        )
+                        .clicked()
+                    {
+                        need_to_check_if_session_can_start = true;
+                    };
+                    if ui
+                        .add_enabled(
+                            app.data.session.limit_session_length,
+                            egui::DragValue::new(&mut app.data.session.maximum_session_length)
+                                .suffix("  secs")
+                                .range(0.0..=999_999.0),
+                        )
+                        .changed()
+                    {
+                        need_to_check_if_session_can_start = true;
+                    };
+                    ui.end_row();
+
+                    if ui
+                        .checkbox(&mut app.data.session.limit_total_length, "Max Total Length")
+                        .clicked()
+                    {
+                        need_to_check_if_session_can_start = true;
+                    };
+                    if ui
+                        .add_enabled(
+                            app.data.session.limit_total_length,
+                            egui::DragValue::new(&mut app.data.session.maximum_total_length)
+                                .suffix("  secs")
+                                .range(0.0..=999_999.0),
+                        )
+                        .changed()
+                    {
+                        need_to_check_if_session_can_start = true;
+                    };
+
+                    if need_to_check_if_session_can_start {
+                        app.check_if_ready_to_start_session();
+                    }
                 });
             ui.add_space(10.0);
         });
     }
 
     fn ksf_display(app: &mut DataPro, ui: &mut egui::Ui) {
+        app.ksf_picker(ui);
+
         ui.spacing_mut().item_spacing = (0.0, 0.0).into();
 
-        let ksf_text = match app.data.ksf_loaded() {
-            true => egui::RichText::new(app.data.chosen_ksf().clone()),
-            false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
-        };
-
-        egui::ComboBox::from_id_salt("ksfs_dropdown")
-            .selected_text(ksf_text)
-            .show_ui(ui, |ui| {
-                for name in app.data.ksfs.iter().map(|(name, _ksf)| name).cloned() {
-                    ui.selectable_value(&mut app.data.session.chosen_ksf, name.clone(), name);
-                }
-            });
         ui.add_space(10.0);
         if app.data.ksf_loaded() {
             ui.group(|ui| {
                 ui.horizontal(|ui| {
-                    if let Some(ksf) = app.data.ksfs.get(app.data.chosen_ksf()) {
+                    if let Some(ksf) = app.data.ksfs.get(app.data.chosen_ksf_name()) {
                         let (freq, dura) = ksf.pairs();
                         ui.vertical(|ui| {
                             ui.strong("Frequency Keys");
@@ -300,7 +353,7 @@ impl PrepareSession {
 
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
         // TODO: This probably doesn't need to run every frame
-        app.prep_session.can_start_session = app.ready_to_start_session();
+        // app.prep_session.can_start_session = app.ready_to_start_session();
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
@@ -310,29 +363,26 @@ impl PrepareSession {
                     ui.add_space(5.0);
 
                     PrepareSession::client_and_session_information(app, ui);
-                    ui.add_space(5.0);
 
-                    ui.horizontal(|ui| {
-                        ui.add_enabled(
-                            app.prep_session.limit_session_length,
-                            egui::DragValue::new(&mut app.prep_session.maximum_session_length)
-                                .suffix("  secs")
-                                .range(0.0..=999_999.0),
-                        );
-
-                        ui.checkbox(
-                            &mut app.prep_session.limit_session_length,
-                            "Limit Session Length",
-                        );
-                    });
                     ui.add_space(5.0);
 
                     ui.add_enabled_ui(app.prep_session.can_start_session, |ui| {
                         if ui
                             .large_green_button("BEGIN SESSION")
-                            .on_disabled_hover_text(&app.prep_session.session_start_error)
+                            .on_disabled_hover_text(&app.data.misconfigs)
                             .clicked()
                         {
+                            // Final check to ensure session is ready to start.
+                            // This could be triggered by an oversight in live updating.
+                            app.check_if_ready_to_start_session();
+                            if !app.prep_session.can_start_session {
+                                windows_error_dialog(anyhow::anyhow!(format!(
+                                    "{}",
+                                    &app.data.misconfigs
+                                )))
+                            }
+
+                            // Try to update the client. This really shouldn't even fail so if it does we'll give an error and not start session.
                             if let Err(e) = app.overwrite_client_data() {
                                 windows_error_dialog(e)
                             } else {

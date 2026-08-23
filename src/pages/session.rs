@@ -130,12 +130,12 @@ impl DataPro {
         }
         let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
         for (t, bouts, k, _d) in self.session.dura_keys.iter() {
-            dur_map.insert(*k, (*bouts, rounded_f32(t.active_time())));
+            dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
         }
 
         serde_json::to_string(&OutputData {
             datetime: date_time_string(&self.session.start_time),
-            session_duration: rounded_f32(self.session.main_timer.active_time()),
+            session_duration: rounded_f32(self.session.main_timer.total_time()),
             session: self.data.session.clone(),
             duration: dur_map,
             frequency: fre_map,
@@ -143,7 +143,7 @@ impl DataPro {
             ksf: self
                 .data
                 .ksfs
-                .get(self.data.chosen_ksf())
+                .get(self.data.chosen_ksf_name())
                 .unwrap_or(&Ksf::default())
                 .clone(),
             client_name: self.data.client.name.clone(),
@@ -162,13 +162,12 @@ pub struct SessionPage {
     pub freq_keys: Vec<(u32, Key, String)>,
     pub dura_keys: Vec<(Timer, u32, Key, String)>,
     pub main_timer: Timer,
-    pub pause_timer: Timer,
     pub start_time: DateTime<Local>,
     pub timeline: Timeline,
     pub keypresses_display: Vec<&'static str>,
     pub clicked_keys: ClickedKeys,
     pub save_discard_open: bool,
-    pub confirm_end: bool,
+    pub confirm_end_open: bool,
     pub unpress_available: bool,
 }
 
@@ -176,7 +175,6 @@ impl Default for SessionPage {
     fn default() -> Self {
         Self {
             main_timer: Timer::default(),
-            pause_timer: Timer::default(),
             start_time: Local::now(),
             freq_keys: Vec::new(),
             dura_keys: Vec::new(),
@@ -184,7 +182,7 @@ impl Default for SessionPage {
             keypresses_display: Vec::from(["_"; 11]),
             clicked_keys: ClickedKeys::new(),
             save_discard_open: false,
-            confirm_end: false,
+            confirm_end_open: false,
             unpress_available: false,
         }
     }
@@ -204,7 +202,7 @@ impl SessionPage {
             }
             self.main_timer.stop();
             self.timeline
-                .push((Key::Escape, rounded_f32(self.main_timer.active_time())));
+                .push((Key::Escape, rounded_f32(self.main_timer.total_time())));
             self.keypresses_display.push("e");
         }
         self.unpress_available = false;
@@ -262,7 +260,7 @@ impl SessionPage {
 
     /// Create the counters and timers defined by the KSF to use in session
     pub fn load_ksf(&mut self, data: &Data) {
-        if let Some(active_ksf) = data.ksfs.get(data.chosen_ksf()) {
+        if let Some(active_ksf) = data.ksfs.get(data.chosen_ksf_name()) {
             let (freq, dura) = active_ksf.pairs();
 
             for (key, desc) in freq {
@@ -292,10 +290,19 @@ impl SessionPage {
 
 impl DataPro {
     pub fn view_session(&mut self, ui: &mut Ui) {
-        if self.prep_session.limit_session_length && self.session.main_timer.is_active() {
-            if self.session.main_timer.active_time() >= self.prep_session.maximum_session_length {
-                self.session.save_discard_open = true;
+        // Trigger only if the main timer is active
+        if self.data.session.limit_session_length && self.session.main_timer.is_active() {
+            if self.session.main_timer.active_time() >= self.data.session.maximum_session_length {
                 self.session.stop_all_timers();
+                self.session.save_discard_open = true;
+            }
+        }
+
+        // Trigger only if the timer is not already stopped
+        if self.data.session.limit_total_length && !self.session.main_timer.is_stopped() {
+            if self.session.main_timer.total_time() >= self.data.session.maximum_total_length {
+                self.session.stop_all_timers();
+                self.session.save_discard_open = true;
             }
         }
 
@@ -314,9 +321,9 @@ impl DataPro {
                 self.session.start_session();
             }
         }
-        // Stop timers and open the confirmation self.session_page.
+        // Stop timers and open the window to ask to confirm ending session
         if self.session.clicked_keys.contains(&egui::Key::Escape) {
-            self.session.confirm_end = true;
+            self.session.confirm_end_open = true;
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
         if self.session.clicked_keys.contains(&egui::Key::Space) {
@@ -342,13 +349,13 @@ impl DataPro {
                     if timer.is_active() {
                         *bouts += 1;
                     }
-                    record_keypress!(self.session, *key, self.session.main_timer.active_time());
+                    record_keypress!(self.session, *key, self.session.main_timer.total_time());
                 }
             }
             for (counter, key, _) in self.session.freq_keys.iter_mut() {
                 if self.session.clicked_keys.contains(key) {
                     *counter += 1;
-                    record_keypress!(self.session, *key, self.session.main_timer.active_time());
+                    record_keypress!(self.session, *key, self.session.main_timer.total_time());
                 }
             }
         }
@@ -357,18 +364,22 @@ impl DataPro {
         // ### Confirm End of Session Window ###
         // #####################################
         let session_was_started = self.session.main_timer.was_started();
-        if self.session.confirm_end {
+        if self.session.confirm_end_open {
             egui::Window::new("End Session?").show(ui, |ui| {
                 ui.columns(2, |columns| {
                     columns[0].set_height(50.0);
                     if columns[0].large_green_button("YES").clicked() {
-                        self.session.confirm_end = false;
-                        self.session.save_discard_open = true;
+                        self.session.confirm_end_open = false;
                         self.session.stop_all_timers();
+                        if session_was_started {
+                            self.session.save_discard_open = true;
+                        } else {
+                            self.session.leave_session(&mut self.display_info);
+                        }
                     }
                     columns[1].set_height(50.0);
                     if columns[1].large_red_button("NO").clicked() {
-                        self.session.confirm_end = false;
+                        self.session.confirm_end_open = false;
                     }
                 });
             });
@@ -381,16 +392,10 @@ impl DataPro {
             egui::Window::new("Save Data?").show(ui, |ui| {
                 ui.columns(2, |columns| {
                     columns[0].set_height(50.0);
-                    columns[0].add_enabled_ui(session_was_started, |ui| {
-                        if ui
-                            .large_green_button("SAVE")
-                            .on_disabled_hover_text("no data to save")
-                            .clicked()
-                        {
-                            quick_error!(self.save_new_output_data());
-                            self.session.leave_session(&mut self.display_info);
-                        }
-                    });
+                    if columns[0].large_green_button("SAVE").clicked() {
+                        quick_error!(self.save_new_output_data());
+                        self.session.leave_session(&mut self.display_info);
+                    }
                     columns[1].set_height(50.0);
                     if columns[1].large_red_button("DISCARD").clicked() {
                         self.session.leave_session(&mut self.display_info);
@@ -424,7 +429,7 @@ impl DataPro {
                             self.data.session.chosen_assessment
                         ));
                         ui.label(format!("Condition: {}", self.data.session.chosen_condition));
-                        ui.label(format!("KSF: {}", self.data.chosen_ksf()));
+                        ui.label(format!("KSF: {}", self.data.chosen_ksf_name()));
                         ui.label(format!(
                             "Data Type: {}",
                             self.data.session.data_collecion_type
@@ -570,12 +575,12 @@ impl DataPro {
                             ui.monospace("Session Time:");
                         }
                         view_stopwatch_ms(ui, &mut self.session.main_timer);
-                        if self.prep_session.limit_session_length {
+                        if self.data.session.limit_session_length {
                             ui.label(
                                 RichText::from(format!(
-                                    "  [{:.0}:{:05.2}]",
-                                    (self.prep_session.maximum_session_length / 60.0).trunc(),
-                                    self.prep_session.maximum_session_length % 60.0
+                                    "  [{:.0}:{:04.1}] (time limit)",
+                                    (self.data.session.maximum_session_length / 60.0).trunc(),
+                                    self.data.session.maximum_session_length % 60.0
                                 ))
                                 .strong()
                                 .monospace(),
@@ -597,6 +602,17 @@ impl DataPro {
                             ui.monospace("  Total Time:");
                         };
                         view_total_time_ms(ui, &mut self.session.main_timer);
+                        if self.data.session.limit_total_length {
+                            ui.label(
+                                RichText::from(format!(
+                                    "  [{:.0}:{:04.1}] (time limit)",
+                                    (self.data.session.maximum_total_length / 60.0).trunc(),
+                                    self.data.session.maximum_total_length % 60.0
+                                ))
+                                .strong()
+                                .monospace(),
+                            );
+                        }
                     });
                 });
             });

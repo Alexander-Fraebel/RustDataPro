@@ -186,25 +186,28 @@ impl DataPro {
             });
     }
 
-    pub fn ready_to_start_session(&mut self) -> bool {
-        self.prep_session.session_start_error = self.data.list_misconfigurations();
+    pub fn ksf_picker(&mut self, ui: &mut egui::Ui) {
+        let ksf_picker_text = match self.data.ksf_loaded() {
+            true => egui::RichText::new(self.data.chosen_ksf_name().clone()).strong(),
+            false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
+        };
 
-        if !self.time_limit_set() {
-            self.prep_session
-                .session_start_error
-                .push_str("time limit cannot be 0.0 seconds");
-        }
-
-        self.prep_session.session_start_error.is_empty()
+        egui::ComboBox::from_id_salt("ksf picker")
+            .width(200.0)
+            .selected_text(ksf_picker_text)
+            .show_ui(ui, |ui| {
+                for name in self.data.ksfs.keys() {
+                    ui.selectable_value(&mut self.data.session.chosen_ksf_name, name.clone(), name);
+                }
+            });
     }
 
-    /// Is a time limit set?
-    pub fn time_limit_set(&self) -> bool {
-        // It is false that: session length is limited and the maximum session length is zero
-        !(self.prep_session.limit_session_length && self.prep_session.maximum_session_length == 0.0)
+    pub fn check_if_ready_to_start_session(&mut self) {
+        self.data.update_misconfigurations();
+        self.prep_session.can_start_session = self.data.misconfigs.is_empty();
     }
 
-    /// Search inside the top of the active client folder for a file or folder name
+    /// Create the path to a file or folder that is inside the top of the active client folder. Returns an error if no client is loaded.
     pub fn path_to(&self, name: &str) -> Result<PathBuf> {
         if !self.data.client_loaded() {
             return Err(anyhow::anyhow!(
@@ -305,7 +308,7 @@ impl DataPro {
     }
 
     pub fn load_assessments(&mut self) -> Result<()> {
-        let assessments_path = self.path_to(ASSESSMENTS_FILE_NAME)?;
+        let assessments_path = self.path_to_assessments();
         match AssessmentsData::from_file(&assessments_path) {
             Ok(assessments_data) => {
                 self.data.assessments = assessments_data;
@@ -314,7 +317,11 @@ impl DataPro {
                 self.choose_first_assessment_and_condition();
             }
             Err(e) => {
-                windows_error_dialog(e.context(format!("unable to read {}", ASSESSMENTS_FILE_NAME)))
+                windows_error_dialog(e.context(format!(
+                    "unable to read {}, the file may be missing or corrupt",
+                    ASSESSMENTS_FILE_NAME
+                )));
+                self.overwrite_assessments()?;
             }
         }
         Ok(())
@@ -368,12 +375,13 @@ impl DataPro {
                         self.data.ksfs = ksf_data;
                         self.edit_ksfs.prepare(&self.data, ksf_path.clone());
                         if let Some((name, _)) = self.data.ksfs.first() {
-                            self.data.session.chosen_ksf = name.clone()
+                            self.data.session.chosen_ksf_name = name.clone()
                         }
                     }
-                    Err(e) => {
-                        windows_error_dialog(e.context(format!("unable to read {}", KSF_FILE_NAME)))
-                    }
+                    Err(e) => windows_error_dialog(e.context(format!(
+                        "unable to read {}, the file may be missing or corrupt",
+                        KSF_FILE_NAME
+                    ))),
                 };
 
                 // Load the Assessments Data
@@ -385,9 +393,10 @@ impl DataPro {
                             .prepare(&self.data, assessments_path.clone());
                         self.choose_first_assessment_and_condition();
                     }
-                    Err(e) => windows_error_dialog(
-                        e.context(format!("unable to read {}", ASSESSMENTS_FILE_NAME)),
-                    ),
+                    Err(e) => windows_error_dialog(e.context(format!(
+                        "unable to read {}, the file may be missing or corrupt",
+                        ASSESSMENTS_FILE_NAME
+                    ))),
                 }
 
                 self.ioa_page.prepare(
@@ -399,6 +408,7 @@ impl DataPro {
                     self.data.session.data_collector = String::from("EX");
                     self.data.session.therapist = String::from("EX");
                 }
+                self.check_if_ready_to_start_session();
             }
             Err(e) => {
                 self.unload_client();

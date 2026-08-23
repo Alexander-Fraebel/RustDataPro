@@ -2,12 +2,12 @@ use egui::{Color32, RichText, Ui};
 use std::time::Instant;
 
 /// Time display with minutes:seconds.hundredths
-/// Allocates space for 10 symbols in total.
-/// Max value before additional space is used is 9999:59.99 which is about 7 days
+/// Allocates space for 9 symbols in total.
+/// Max value before additional space is used is 9999:59.9 which is about 7 days
 macro_rules! timer_display_ms {
     ($time:expr) => {
         RichText::new(format!(
-            "{:4.0}:{:05.2}",
+            "{:4.0}:{:04.1}",
             ($time / 60.0).trunc(), // minutes, maybe negative
             ($time % 60.0).abs()    // seconds, always positive
         ))
@@ -23,11 +23,11 @@ macro_rules! timer_display_ms {
 
 // Timer display with hours:minutes:seconds.hundredths
 // Allocates space for 11 symbols in total.
-// Max value before additional space is used is 9:59:59.99 which is about 10 hours
+// Max value before additional space is used is 99:59:59.9 which is about 4 days
 macro_rules! timer_display_hms {
     ($time:expr) => {
         RichText::new(format!(
-            "{:2.0}:{:02.0}:{:05.2}",
+            "{:02.0}:{:02.0}:{:04.1}",
             ($time / 3600.0).trunc(),            // hours, maybe negative
             ($time.abs() / 60.0).trunc() % 60.0, // minutes, always positive
             $time.abs() % 60.0,                  // seconds, always positive
@@ -173,6 +173,7 @@ impl Timer {
     /// Push a new Stopped time to timestamps and update saved times.
     pub fn stop(&mut self) {
         self.timestamps.push(Timestamp::stopped());
+        self.cached.active.last = 0.0;
         self.update_saved_times();
     }
 
@@ -275,9 +276,8 @@ impl Timer {
     /// Most recent status added to timestamps. Returns Stopped if timestamps is empty.
     pub fn current_status(&self) -> TimerStatus {
         self.timestamps
-            .iter()
-            .map(|t| t.status)
             .last()
+            .map(|t| t.status)
             .unwrap_or(TimerStatus::Stopped)
     }
 
@@ -390,6 +390,16 @@ pub fn view_total_time_ms(ui: &mut Ui, timer: &Timer) {
     } else {
         ui.request_repaint();
         timer_display_ms!(ui, t, ACTIVE_COLOR);
+    }
+}
+
+pub fn view_total_time_hms(ui: &mut Ui, timer: &Timer) {
+    let t = timer.total_time();
+    if !timer.was_started() {
+        timer_display_hms!(ui, t);
+    } else {
+        ui.request_repaint();
+        timer_display_hms!(ui, t, ACTIVE_COLOR);
     }
 }
 

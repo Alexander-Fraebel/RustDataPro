@@ -32,10 +32,14 @@ impl DataType {
 pub struct SessionData {
     pub chosen_assessment: String,
     pub chosen_condition: String,
-    pub chosen_ksf: String,
+    pub chosen_ksf_name: String,
     pub therapist: String,
     pub data_collector: String,
     pub data_collecion_type: DataType,
+    pub limit_session_length: bool,
+    pub maximum_session_length: f32,
+    pub limit_total_length: bool,
+    pub maximum_total_length: f32,
 }
 
 impl SessionData {

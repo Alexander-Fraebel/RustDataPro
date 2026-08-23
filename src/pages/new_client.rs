@@ -40,7 +40,7 @@ impl NewClient {
         let client_path = Path::new(root_directory).join(self.client.id.to_string());
 
         // Do these first to catch errors before any files and folder and created.
-        let ksf = KsfsData::initial_file().to_json()?;
+        let ksf = KsfsData::example_file().to_json()?;
         let assessments = AssessmentsData::example().to_json()?;
         let client = self.client.to_json()?;
 
