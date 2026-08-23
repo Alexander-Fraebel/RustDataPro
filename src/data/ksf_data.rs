@@ -94,7 +94,7 @@ impl Ksf {
         (self.freq.iter(), self.dura.iter())
     }
 
-    /// All keys.
+    /// Frequency keys and duration keys.
     pub fn keys(&self) -> (impl Iterator<Item = &Key>, impl Iterator<Item = &Key>) {
         (
             self.freq.iter().map(|(k, _)| k),
@@ -102,7 +102,7 @@ impl Ksf {
         )
     }
 
-    /// All descriptions.
+    /// Frequency descriptions and duration descriptions.
     pub fn descriptions(&self) -> (impl Iterator<Item = &String>, impl Iterator<Item = &String>) {
         (
             self.freq.iter().map(|(_, d)| d),
@@ -110,7 +110,7 @@ impl Ksf {
         )
     }
 
-    /// Create an IndexMap by cloning the contents.
+    /// Create an IndexMap by cloning the contents of the Ksf.
     pub fn create_map(&self) -> IndexMap<Key, String> {
         let (f, d) = self.pairs();
         IndexMap::from_iter(f.chain(d).cloned())
@@ -190,7 +190,7 @@ impl KsfsData {
         for (name, ksf) in self.iter() {
             if !ksf.keys_unique() {
                 return Err(anyhow::anyhow!(
-                    "the KSF named `{name}` uses a key more than once"
+                    "the KSF named `{name}` uses the same key more than once"
                 ));
             }
         }

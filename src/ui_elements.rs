@@ -1,8 +1,7 @@
+use crate::app::DataPro;
 use egui::{Color32, Response, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use std::path::PathBuf;
-
-use crate::app::DataPro;
 
 macro_rules! simple_custom_button {
     ($ui:expr, $text:ident, $fill:expr) => {

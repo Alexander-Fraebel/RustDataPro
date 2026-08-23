@@ -3,7 +3,7 @@ use crate::{
     data::{Data, Ksf, output_data::OutputData, timeline::Timeline},
     display_control::DisplayControl,
     quick_error,
-    timer::{Timer, TimerStatus, view_paused_timer, view_stopwatch_ms, view_total_time_ms},
+    timer::{Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms},
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
 };
@@ -21,6 +21,10 @@ const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 
 const LEFT_MARGIN: f32 = 5.0;
 const TOP_MARGIN: f32 = 5.0;
+
+const STIME: &'static str = "Session Time: ";
+const PTIME: &'static str = " Paused Time: ";
+const TTIME: &'static str = "  Total Time: ";
 
 macro_rules! record_keypress {
     ($self:expr, $key:expr, $time:expr) => {
@@ -443,7 +447,30 @@ impl DataPro {
                             "Data Collector: {}",
                             self.data.session.data_collector
                         ));
+                        ui.label("");
+                        ui.label("");
+                    });
+                });
+                ui.group(|ui| {
+                    ui.vertical(|ui| {
+                        if self.data.session.limit_session_length {
+                            ui.label(format!(
+                                "Max Session Time: {}",
+                                self.data.session.maximum_session_length
+                            ));
+                        } else {
+                            ui.label("Max Session Time: N/A");
+                        }
 
+                        if self.data.session.limit_total_length {
+                            ui.label(format!(
+                                "Max Total Time: {}",
+                                self.data.session.maximum_total_length
+                            ));
+                        } else {
+                            ui.label("Max Total Time: N/A");
+                        }
+                        ui.label("");
                         ui.label("");
                     });
                 });
@@ -451,7 +478,7 @@ impl DataPro {
             ui.add_space(5.0);
 
             ui.horizontal(|ui| {
-                ui.add_space(LEFT_MARGIN);
+                ui.add_space(LEFT_MARGIN * 2.0);
                 ui.add_enabled_ui(self.session.main_timer.is_active(), |ui| {
                     ui.spacing_mut().item_spacing = (10.0, 0.0).into();
                     ui.vertical(|ui| {
@@ -570,49 +597,27 @@ impl DataPro {
                     });
                     ui.horizontal(|ui| {
                         if self.session.main_timer.was_started() {
-                            ui.monospace(RichText::new("Session Time:").color(ACTIVE_COLOR));
+                            ui.monospace(RichText::new(STIME).color(ACTIVE_COLOR));
                         } else {
-                            ui.monospace("Session Time:");
+                            ui.monospace(STIME);
                         }
-                        view_stopwatch_ms(ui, &mut self.session.main_timer);
-                        if self.data.session.limit_session_length {
-                            ui.label(
-                                RichText::from(format!(
-                                    "  [{:.0}:{:04.1}] (time limit)",
-                                    (self.data.session.maximum_session_length / 60.0).trunc(),
-                                    self.data.session.maximum_session_length % 60.0
-                                ))
-                                .strong()
-                                .monospace(),
-                            );
-                        }
+                        view_stopwatch_hms(ui, &mut self.session.main_timer);
                     });
                     ui.horizontal(|ui| {
                         if self.session.main_timer.was_started() {
-                            ui.monospace(RichText::new(" Paused Time:").color(ACTIVE_COLOR));
+                            ui.monospace(RichText::new(PTIME).color(ACTIVE_COLOR));
                         } else {
-                            ui.monospace(" Paused Time:");
+                            ui.monospace(PTIME);
                         };
-                        view_paused_timer(ui, &mut self.session.main_timer);
+                        view_paused_timer_hms(ui, &mut self.session.main_timer);
                     });
                     ui.horizontal(|ui| {
                         if self.session.main_timer.was_started() {
-                            ui.monospace(RichText::new("  Total Time:").color(ACTIVE_COLOR));
+                            ui.monospace(RichText::new(TTIME).color(ACTIVE_COLOR));
                         } else {
-                            ui.monospace("  Total Time:");
+                            ui.monospace(TTIME);
                         };
-                        view_total_time_ms(ui, &mut self.session.main_timer);
-                        if self.data.session.limit_total_length {
-                            ui.label(
-                                RichText::from(format!(
-                                    "  [{:.0}:{:04.1}] (time limit)",
-                                    (self.data.session.maximum_total_length / 60.0).trunc(),
-                                    self.data.session.maximum_total_length % 60.0
-                                ))
-                                .strong()
-                                .monospace(),
-                            );
-                        }
+                        view_total_time_hms(ui, &mut self.session.main_timer);
                     });
                 });
             });
@@ -620,7 +625,7 @@ impl DataPro {
 
             ui.add_enabled_ui(self.session.main_timer.is_active(), |ui| {
                 ui.horizontal(|ui| {
-                    ui.add_space(LEFT_MARGIN);
+                    ui.add_space(LEFT_MARGIN * 2.0);
                     ui.vertical(|ui| {
                         ui.group(|ui| {
                             ui.horizontal(|ui| {

@@ -1,29 +1,30 @@
 use egui::{Color32, RichText, Ui};
 use std::time::Instant;
 
-/// Time display with minutes:seconds.hundredths
+/// Time display with minutes:seconds.tenths
 /// Allocates space for 9 symbols in total.
 /// Max value before additional space is used is 9999:59.9 which is about 7 days
-macro_rules! timer_display_ms {
-    ($time:expr) => {
-        RichText::new(format!(
-            "{:4.0}:{:04.1}",
-            ($time / 60.0).trunc(), // minutes, maybe negative
-            ($time % 60.0).abs()    // seconds, always positive
-        ))
-        .monospace()
-    };
-    ($ui:ident, $time:expr) => {
-        $ui.label(timer_display_ms!($time))
-    };
-    ($ui:ident, $time:expr, $color:expr) => {
-        $ui.label(timer_display_ms!($time).color($color))
-    };
-}
+// macro_rules! timer_display_ms {
+//     ($time:expr) => {
+//         RichText::new(format!(
+//             "{:4.0}:{:04.1}",
+//             ($time / 60.0).trunc(), // minutes, maybe negative
+//             ($time % 60.0).abs()    // seconds, always positive
+//         ))
+//         .monospace()
+//     };
+//     ($ui:ident, $time:expr) => {
+//         $ui.label(timer_display_ms!($time))
+//     };
+//     ($ui:ident, $time:expr, $color:expr) => {
+//         $ui.label(timer_display_ms!($time).color($color))
+//     };
+// }
 
-// Timer display with hours:minutes:seconds.hundredths
-// Allocates space for 11 symbols in total.
-// Max value before additional space is used is 99:59:59.9 which is about 4 days
+/// Timer display with hours:minutes:seconds.tenths
+/// Allocates space for 10 symbols in total.
+/// Max value before additional space is used is 99:59:59.9
+/// Min value before additional space is used in -9:59:59.9
 macro_rules! timer_display_hms {
     ($time:expr) => {
         RichText::new(format!(
@@ -347,18 +348,6 @@ impl Timer {
     }
 }
 
-pub fn view_stopwatch_ms(ui: &mut Ui, timer: &Timer) {
-    let t = timer.active_time();
-    if !timer.was_started() {
-        timer_display_ms!(ui, t);
-    } else {
-        timer_display_ms!(ui, t, ACTIVE_COLOR);
-        if timer.is_active() {
-            ui.request_repaint()
-        }
-    }
-}
-
 pub fn view_stopwatch_hms(ui: &mut Ui, timer: &Timer) {
     let t = timer.active_time();
     if !timer.was_started() {
@@ -371,25 +360,15 @@ pub fn view_stopwatch_hms(ui: &mut Ui, timer: &Timer) {
     }
 }
 
-pub fn view_paused_timer(ui: &mut Ui, timer: &Timer) {
+pub fn view_paused_timer_hms(ui: &mut Ui, timer: &Timer) {
     let t = timer.paused_time();
     if !timer.was_started() {
-        timer_display_ms!(ui, t);
+        timer_display_hms!(ui, t);
     } else {
-        timer_display_ms!(ui, t, ACTIVE_COLOR);
+        timer_display_hms!(ui, t, ACTIVE_COLOR);
         if timer.is_paused() {
             ui.request_repaint()
         }
-    }
-}
-
-pub fn view_total_time_ms(ui: &mut Ui, timer: &Timer) {
-    let t = timer.total_time();
-    if !timer.was_started() {
-        timer_display_ms!(ui, t);
-    } else {
-        ui.request_repaint();
-        timer_display_ms!(ui, t, ACTIVE_COLOR);
     }
 }
 
@@ -400,23 +379,6 @@ pub fn view_total_time_hms(ui: &mut Ui, timer: &Timer) {
     } else {
         ui.request_repaint();
         timer_display_hms!(ui, t, ACTIVE_COLOR);
-    }
-}
-
-pub fn view_countdown_ms(ui: &mut Ui, timer: &Timer, countdown_from: f32) {
-    let t = countdown_from - timer.active_time();
-    if !timer.was_started() {
-        timer_display_ms!(ui, t);
-        return;
-    } else {
-        if timer.is_active() {
-            ui.request_repaint();
-        }
-        if t.is_sign_positive() {
-            timer_display_ms!(ui, t, ACTIVE_COLOR);
-        } else {
-            timer_display_ms!(ui, t, NEGATIVE_COLOR);
-        }
     }
 }
 

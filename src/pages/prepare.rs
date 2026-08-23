@@ -31,7 +31,7 @@ impl PrepareSession {
                 .min_col_width(120.0)
                 .min_row_height(22.0)
                 .show(ui, |ui| {
-                    let mut need_to_check_if_session_can_start = false;
+                    let mut check_if_session_can_start = false;
 
                     ui.label("Location");
                     let location = ui.text_edit_singleline(&mut app.data.client.location);
@@ -39,7 +39,7 @@ impl PrepareSession {
                         quick_error!(app.overwrite_client_data());
                     }
                     if location.changed() {
-                        need_to_check_if_session_can_start = true;
+                        check_if_session_can_start = true;
                     }
                     ui.end_row();
 
@@ -54,7 +54,7 @@ impl PrepareSession {
                             quick_error!(app.overwrite_client_data());
                         }
                         if doa.changed() {
-                            need_to_check_if_session_can_start = true;
+                            check_if_session_can_start = true;
                         }
                         // The rest of these are non-editable display versions of the DOA
                     } else {
@@ -105,7 +105,7 @@ impl PrepareSession {
                         if let Some(condtions) = app.data.active_assessment_data() {
                             condtions.session = current_session;
                         }
-                        need_to_check_if_session_can_start = true;
+                        check_if_session_can_start = true;
                     }
                     ui.end_row();
 
@@ -141,7 +141,7 @@ impl PrepareSession {
                         .text_edit_singleline(&mut app.data.session.therapist)
                         .changed()
                     {
-                        need_to_check_if_session_can_start = true;
+                        check_if_session_can_start = true;
                     }
                     ui.end_row();
 
@@ -150,7 +150,7 @@ impl PrepareSession {
                         .text_edit_singleline(&mut app.data.session.data_collector)
                         .changed()
                     {
-                        need_to_check_if_session_can_start = true;
+                        check_if_session_can_start = true;
                     }
                     ui.end_row();
 
@@ -211,7 +211,7 @@ impl PrepareSession {
                                         app.data.session.chosen_ksf_name =
                                             assessment.preferred_ksf.clone();
                                     }
-                                    need_to_check_if_session_can_start = true;
+                                    check_if_session_can_start = true;
                                 }
                             }
                         });
@@ -251,7 +251,7 @@ impl PrepareSession {
                                         )
                                         .clicked()
                                     {
-                                        need_to_check_if_session_can_start = true;
+                                        check_if_session_can_start = true;
                                     }
                                 }
                             }
@@ -265,7 +265,7 @@ impl PrepareSession {
                         )
                         .clicked()
                     {
-                        need_to_check_if_session_can_start = true;
+                        check_if_session_can_start = true;
                     };
                     if ui
                         .add_enabled(
@@ -276,7 +276,7 @@ impl PrepareSession {
                         )
                         .changed()
                     {
-                        need_to_check_if_session_can_start = true;
+                        check_if_session_can_start = true;
                     };
                     ui.end_row();
 
@@ -284,7 +284,7 @@ impl PrepareSession {
                         .checkbox(&mut app.data.session.limit_total_length, "Max Total Length")
                         .clicked()
                     {
-                        need_to_check_if_session_can_start = true;
+                        check_if_session_can_start = true;
                     };
                     if ui
                         .add_enabled(
@@ -295,10 +295,10 @@ impl PrepareSession {
                         )
                         .changed()
                     {
-                        need_to_check_if_session_can_start = true;
+                        check_if_session_can_start = true;
                     };
 
-                    if need_to_check_if_session_can_start {
+                    if check_if_session_can_start {
                         app.check_if_ready_to_start_session();
                     }
                 });
@@ -315,6 +315,7 @@ impl PrepareSession {
         if app.data.ksf_loaded() {
             ui.group(|ui| {
                 ui.horizontal(|ui| {
+                    ui.add_space(5.0);
                     if let Some(ksf) = app.data.ksfs.get(app.data.chosen_ksf_name()) {
                         let (freq, dura) = ksf.pairs();
                         ui.vertical(|ui| {
@@ -348,15 +349,13 @@ impl PrepareSession {
                                 .color(ui.visuals().error_fg_color),
                         );
                     }
+                    ui.add_space(5.0);
                 });
             });
         }
     }
 
     pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
-        // TODO: This probably doesn't need to run every frame
-        // app.prep_session.can_start_session = app.ready_to_start_session();
-
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
@@ -375,31 +374,34 @@ impl PrepareSession {
                             .clicked()
                         {
                             // Final check to ensure session is ready to start.
-                            // This could be triggered by an oversight in live updating.
+                            // This could be triggered by an oversight in the live updating.
                             app.check_if_ready_to_start_session();
-                            if !app.prep_session.can_start_session {
-                                windows_error_dialog(anyhow::anyhow!(format!(
+                            match app.prep_session.can_start_session {
+                                true => {
+                                    // Try to update the client. This really shouldn't ever fail so if it does we'll give an error and not start session.
+                                    if let Err(e) = app.overwrite_client_data() {
+                                        windows_error_dialog(e)
+                                    } else {
+                                        // Update the client file with any changes
+                                        // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
+                                        // If they do anything else the file will update when they switch selections
+                                        // Load the data and switch pages.
+                                        if let Some(conditions) = app
+                                            .data
+                                            .assessments
+                                            .get(app.data.active_assessment_name())
+                                        {
+                                            app.data.current_session = conditions.session;
+                                        }
+                                        app.session.load_ksf(&app.data);
+                                        app.timers.stop_all_timers();
+                                        app.display_info.go_to_run_session();
+                                    }
+                                }
+                                false => windows_error_dialog(anyhow::anyhow!(format!(
                                     "{}",
                                     &app.data.misconfigs
-                                )))
-                            }
-
-                            // Try to update the client. This really shouldn't even fail so if it does we'll give an error and not start session.
-                            if let Err(e) = app.overwrite_client_data() {
-                                windows_error_dialog(e)
-                            } else {
-                                // Update the client file with any changes
-                                // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
-                                // If they do anything else the file will update when they switch selections
-                                // Load the data and switch pages.
-                                if let Some(conditions) =
-                                    app.data.assessments.get(app.data.active_assessment_name())
-                                {
-                                    app.data.current_session = conditions.session;
-                                }
-                                app.session.load_ksf(&app.data);
-                                app.timers.stop_all_timers();
-                                app.display_info.go_to_run_session();
+                                ))),
                             }
                         }
                     })
