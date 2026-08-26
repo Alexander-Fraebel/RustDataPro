@@ -19,5 +19,4 @@ pub use prepare::*;
 pub use session::*;
 pub use settings::*;
 pub use shuffler::*;
-pub use sidebar::*;
 pub use timers::*;

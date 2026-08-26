@@ -12,30 +12,28 @@ use crate::{
 use anyhow::Result;
 use chrono::Local;
 use egui::{Color32, RichText};
-use rand::{RngExt, make_rng, rngs::StdRng};
+use rand::RngExt;
 use std::{
     fs::File,
     io::{BufWriter, Write},
     path::{Path, PathBuf},
 };
 
-pub struct NewClient {
-    prng: StdRng,
+pub struct CreateClient {
     client: ClientData,
     created: bool,
 }
 
-impl Default for NewClient {
+impl Default for CreateClient {
     fn default() -> Self {
         Self {
-            prng: make_rng(),
             client: ClientData::default(),
             created: false,
         }
     }
 }
 
-impl NewClient {
+impl CreateClient {
     fn create_new_client_folder(&mut self, root_directory: &PathBuf) -> Result<()> {
         let client_path = Path::new(root_directory).join(self.client.id.to_string());
 
@@ -72,8 +70,10 @@ impl NewClient {
 
         Ok(())
     }
+}
 
-    pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
+impl DataPro {
+    pub fn view_create_client(&mut self, ui: &mut egui::Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Create a New Client");
             ui.add_space(10.0);
@@ -83,93 +83,91 @@ impl NewClient {
                 .show(ui, |ui| {
                     ui.monospace("Client ID");
                     if ui
-                        .text_edit_singleline(&mut app.new_client_page.client.id)
+                        .text_edit_singleline(&mut self.new_client_page.client.id)
                         .changed()
                     {
-                        app.new_client_page.created = false;
+                        self.new_client_page.created = false;
                     };
                     if ui.button("random").clicked() {
-                        app.new_client_page.client.id = format!(
+                        self.new_client_page.client.id = format!(
                             "{:0<10}",
-                            app.new_client_page
-                                .prng
-                                .random_range(1000000000_i64..=9999999999) // collisions become higly likely after created 94868 IDs, alphanumeric might be better
+                            self.rng.random_range(1000000000_i64..=9999999999) // collisions become higly likely after created 94868 IDs, alphanumeric might be better
                         );
-                        app.new_client_page.created = false;
+                        self.new_client_page.created = false;
                     }
                     ui.end_row();
 
                     ui.monospace("Client Name");
                     if ui
-                        .text_edit_singleline(&mut app.new_client_page.client.name)
+                        .text_edit_singleline(&mut self.new_client_page.client.name)
                         .changed()
                     {
-                        app.new_client_page.created = false;
+                        self.new_client_page.created = false;
                     }
                     ui.end_row();
 
                     ui.monospace("Case Manager");
                     if ui
-                        .text_edit_singleline(&mut app.new_client_page.client.case_manager)
+                        .text_edit_singleline(&mut self.new_client_page.client.case_manager)
                         .changed()
                     {
-                        app.new_client_page.created = false;
+                        self.new_client_page.created = false;
                     }
                     ui.end_row();
 
                     ui.monospace("Primary Therapist");
                     if ui
-                        .text_edit_singleline(&mut app.new_client_page.client.primary_therapist)
+                        .text_edit_singleline(&mut self.new_client_page.client.primary_therapist)
                         .changed()
                     {
-                        app.new_client_page.created = false;
+                        self.new_client_page.created = false;
                     }
                     ui.end_row();
 
                     ui.monospace("Date of Admission\n(YYYY-MM-DD)");
                     if ui
-                        .text_edit_singleline(&mut app.new_client_page.client.date_of_admission)
+                        .text_edit_singleline(&mut self.new_client_page.client.date_of_admission)
                         .changed()
                     {
-                        app.new_client_page.created = false;
+                        self.new_client_page.created = false;
                     }
                     if ui.button("today").clicked() {
-                        app.new_client_page.client.date_of_admission =
+                        self.new_client_page.client.date_of_admission =
                             Local::now().date_naive().format("%Y-%m-%d").to_string();
-                        app.new_client_page.created = false;
+                        self.new_client_page.created = false;
                     }
                     ui.end_row();
 
                     ui.monospace("Location");
                     if ui
-                        .text_edit_singleline(&mut app.new_client_page.client.location)
+                        .text_edit_singleline(&mut self.new_client_page.client.location)
                         .changed()
                     {
-                        app.new_client_page.created = false;
+                        self.new_client_page.created = false;
                     }
                     ui.end_row();
                 });
 
-            ui.add_enabled_ui(!app.new_client_page.client.id.is_empty(), |ui| {
+            ui.add_enabled_ui(!self.new_client_page.client.id.is_empty(), |ui| {
                 if ui
                     .large_green_button("SAVE")
                     .on_disabled_hover_text("client must have an ID assigned")
                     .clicked()
                 {
-                    app.new_client_page.client.trim_all_fields();
+                    self.new_client_page.client.trim_all_fields();
                     quick_error!(
-                        app.new_client_page
-                            .create_new_client_folder(&app.root_directory)
+                        self.new_client_page
+                            .create_new_client_folder(&self.root_directory)
                     );
-                    app.new_client_page.created = true;
+                    self.new_client_page.created = true;
                 }
             });
             ui.add_space(5.0);
 
-            ui.return_button(app, |_| {});
+            ui.return_button(self, |_| {});
             ui.add_space(5.0);
 
-            if app.new_client_page.created {
+            if self.new_client_page.created {
                 ui.monospace(
                     RichText::new("New Client Created!")
                         .heading()

@@ -1,3 +1,5 @@
+use crate::app::DataPro;
+
 pub struct DisplayControl {
     pub active_page: Page,
     pub timers_open: bool,
@@ -12,69 +14,69 @@ pub enum Page {
     RunSession,
     Ioa,
     CreateClient,
-    CreateKsf,
-    CreateAssessments,
+    EditKsfs,
+    EditAssessments,
     Settings,
     Credits,
     PreferenceAssessment,
 }
 
-impl DisplayControl {
+impl DataPro {
     pub fn go_to_prep_session(&mut self) {
-        self.active_page = Page::PrepareSession;
-        self.sidebar_open = true;
+        self.display_info.active_page = Page::PrepareSession;
+        self.display_info.sidebar_open = true;
     }
 
     pub fn go_to_run_session(&mut self) {
-        self.active_page = Page::RunSession;
-        self.sidebar_open = false;
-        self.timers_open = false;
-        self.random_open = false;
+        self.display_info.active_page = Page::RunSession;
+        self.display_info.sidebar_open = false;
+        self.display_info.timers_open = false;
+        self.display_info.random_open = false;
     }
 
     pub fn go_to_ioa(&mut self) {
-        self.active_page = Page::Ioa;
-        self.sidebar_open = false;
+        self.display_info.active_page = Page::Ioa;
+        self.display_info.sidebar_open = true;
     }
 
-    pub fn go_to_new_client(&mut self) {
-        self.active_page = Page::CreateClient;
-        self.sidebar_open = false;
+    pub fn go_to_create_client(&mut self) {
+        self.display_info.active_page = Page::CreateClient;
+        self.display_info.sidebar_open = true;
     }
 
-    pub fn go_to_new_assessments(&mut self) {
-        self.active_page = Page::CreateAssessments;
-        self.sidebar_open = false;
+    pub fn go_to_edit_assessments(&mut self) {
+        self.display_info.active_page = Page::EditAssessments;
+        self.display_info.sidebar_open = true;
     }
 
-    pub fn go_to_new_ksf(&mut self) {
-        self.active_page = Page::CreateKsf;
-        self.sidebar_open = false;
+    pub fn go_to_edit_ksf(&mut self) {
+        self.display_info.active_page = Page::EditKsfs;
+        self.display_info.sidebar_open = true;
     }
 
     pub fn go_to_settings(&mut self) {
-        self.active_page = Page::Settings;
-        self.sidebar_open = false;
+        self.display_info.active_page = Page::Settings;
+        self.display_info.sidebar_open = true;
     }
 
     pub fn go_to_credits(&mut self) {
-        self.active_page = Page::Credits;
-        self.sidebar_open = false;
+        self.display_info.active_page = Page::Credits;
+        self.display_info.sidebar_open = true;
     }
 
     pub fn go_to_preference_assessment(&mut self) {
-        self.active_page = Page::PreferenceAssessment;
+        self.display_info.active_page = Page::PreferenceAssessment;
     }
 
     pub fn toggle_debug_display(&mut self) {
-        self.debug_open = !self.debug_open;
+        self.display_info.debug_open = !self.display_info.debug_open;
     }
 
     pub fn toggle_timer_display(&mut self) {
-        self.timers_open = !self.timers_open;
+        self.display_info.timers_open = !self.display_info.timers_open;
     }
 
     pub fn toggle_random_display(&mut self) {
-        self.random_open = !self.random_open;
+        self.display_info.random_open = !self.display_info.random_open;
     }
 }

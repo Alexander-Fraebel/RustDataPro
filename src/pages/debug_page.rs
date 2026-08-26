@@ -1,5 +1,4 @@
 use crate::app::DataPro;
-use egui::warn_if_debug_build;
 
 pub struct DebugPage {}
 
@@ -10,7 +9,6 @@ impl DebugPage {
             egui::ScrollArea::vertical()
                 .id_salt("debug scroller")
                 .show(ui, |ui| {
-                    warn_if_debug_build(ui);
                     ui.add_space(10.0);
 
                     ui.monospace(format!("{:#?}", app.data));

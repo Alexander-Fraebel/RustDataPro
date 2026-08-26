@@ -1,7 +1,6 @@
 use crate::{
     app::DataPro,
     data::{Data, Ksf, output_data::OutputData, timeline::Timeline},
-    display_control::DisplayControl,
     quick_error,
     timer::{Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms},
     ui_elements::DataProUiElements,
@@ -285,11 +284,11 @@ impl SessionPage {
         self.keypresses_display.push("t");
     }
 
-    /// Reset the session page and return to the prep session page.
-    fn leave_session(&mut self, display_info: &mut DisplayControl) {
-        self.reset();
-        display_info.go_to_prep_session();
-    }
+    // /// Reset the session page and return to the prep session page.
+    // fn leave_session(&mut self, display_info: &mut DisplayControl) {
+    //     self.reset();
+    //     self.go_to_prep_session();
+    // }
 }
 
 impl DataPro {
@@ -378,7 +377,8 @@ impl DataPro {
                         if session_was_started {
                             self.session.save_discard_open = true;
                         } else {
-                            self.session.leave_session(&mut self.display_info);
+                            self.session.reset();
+                            self.go_to_prep_session();
                         }
                     }
                     columns[1].set_height(50.0);
@@ -398,11 +398,13 @@ impl DataPro {
                     columns[0].set_height(50.0);
                     if columns[0].large_green_button("SAVE").clicked() {
                         quick_error!(self.save_new_output_data());
-                        self.session.leave_session(&mut self.display_info);
+                        self.session.reset();
+                        self.go_to_prep_session();
                     }
                     columns[1].set_height(50.0);
                     if columns[1].large_red_button("DISCARD").clicked() {
-                        self.session.leave_session(&mut self.display_info);
+                        self.session.reset();
+                        self.go_to_prep_session();
                     }
                 });
             });

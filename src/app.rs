@@ -8,8 +8,8 @@ use crate::{
     display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
-        EditAssessments, EditKsfData, NewClient, PrepareSession, SessionPage, Settings, Shuffler,
-        Sidebar, Timers, credits::Credits, debug_page::DebugPage,
+        CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Settings,
+        Shuffler, Timers, credits::Credits, debug_page::DebugPage,
     },
     preference_assessment::PreferenceAssessment,
     quick_error,
@@ -38,7 +38,7 @@ pub struct DataPro {
     pub session: SessionPage,
 
     pub ioa_page: IoaPage,
-    pub new_client_page: NewClient,
+    pub new_client_page: CreateClient,
     pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
     pub settings: Settings,
@@ -85,7 +85,7 @@ impl Default for DataPro {
             session: SessionPage::default(),
 
             ioa_page: IoaPage::default(),
-            new_client_page: NewClient::default(),
+            new_client_page: CreateClient::default(),
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
             settings: Settings {
@@ -519,7 +519,7 @@ impl eframe::App for DataPro {
         // To show it must go before any other panel
         // It must be not to rendered (even if not shown) when Session is active because it may capture keypresses
         if self.display_info.sidebar_open {
-            Sidebar::view(self, ui);
+            self.view_sidebar(ui)
         };
 
         // ### Main Panel ###
@@ -527,9 +527,9 @@ impl eframe::App for DataPro {
             Page::RunSession => self.view_session(ui),
             Page::Ioa => self.view_ioa(ui),
             Page::PrepareSession => self.view_prep(ui),
-            Page::CreateClient => NewClient::view(self, ui),
-            Page::CreateKsf => EditKsfData::view(self, ui),
-            Page::CreateAssessments => EditAssessments::view(self, ui),
+            Page::CreateClient => self.view_create_client(ui),
+            Page::EditKsfs => self.view_edit_ksf_page(ui),
+            Page::EditAssessments => self.view_edit_assessments_page(ui),
             Page::Settings => self.view_settings(ui),
             Page::Credits => Credits::view(self, ui),
             Page::PreferenceAssessment => PreferenceAssessment::view(self, ui),

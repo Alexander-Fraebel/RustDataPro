@@ -200,16 +200,18 @@ impl EditAssessments {
             self.user_input.push(AssessmentMaker::new());
         }
     }
+}
 
-    pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
-        app.edit_assessments.file_dialog.update(ui.ctx());
-        if let Some(pathbuf) = app.edit_assessments.file_dialog.take_picked() {
-            app.edit_assessments.save_path = pathbuf;
+impl DataPro {
+    pub fn view_edit_assessments_page(&mut self, ui: &mut egui::Ui) {
+        self.edit_assessments.file_dialog.update(ui.ctx());
+        if let Some(pathbuf) = self.edit_assessments.file_dialog.take_picked() {
+            self.edit_assessments.save_path = pathbuf;
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Assessments File");
-            app.client_picker(ui);
+            self.client_picker(ui);
             ui.add_space(15.0);
 
             ui.label("The assessments file for this client will update when you click RETURN.");
@@ -219,13 +221,13 @@ impl EditAssessments {
             ui.label("Save File To:");
             ui.add_enabled_ui(false, |ui| {
                 ui.directory_picker(
-                    &mut app.edit_assessments.file_dialog,
-                    &app.edit_assessments.save_path,
+                    &mut self.edit_assessments.file_dialog,
+                    &self.edit_assessments.save_path,
                 );
             });
             ui.add_space(10.0);
 
-            assessments_controller(app, ui)
+            assessments_controller(self, ui)
         });
     }
 }

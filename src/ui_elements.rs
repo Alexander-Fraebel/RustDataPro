@@ -76,7 +76,7 @@ impl DataProUiElements for Ui {
     {
         if self.large_red_button("RETURN").clicked() {
             closure(app);
-            app.display_info.go_to_prep_session();
+            app.go_to_prep_session();
         }
     }
 }

@@ -274,25 +274,27 @@ impl EditKsfData {
             self.user_input.push(Default::default());
         }
     }
+}
 
-    pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
-        app.edit_ksfs.file_dialog.update(ui.ctx());
-        if let Some(pathbuf) = app.edit_ksfs.file_dialog.take_picked() {
-            app.edit_ksfs.save_path = pathbuf;
+impl DataPro {
+    pub fn view_edit_ksf_page(&mut self, ui: &mut egui::Ui) {
+        self.edit_ksfs.file_dialog.update(ui.ctx());
+        if let Some(pathbuf) = self.edit_ksfs.file_dialog.take_picked() {
+            self.edit_ksfs.save_path = pathbuf;
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Keyboard Setup File");
-            app.client_picker(ui);
+            self.client_picker(ui);
             ui.add_space(10.0);
 
-            ui.add_enabled_ui(!app.data.client_loaded(), |ui| {
+            ui.add_enabled_ui(!self.data.client_loaded(), |ui| {
                 ui.label("Save File To:");
-                ui.directory_picker(&mut app.edit_ksfs.file_dialog, &app.edit_ksfs.save_path);
+                ui.directory_picker(&mut self.edit_ksfs.file_dialog, &self.edit_ksfs.save_path);
             });
             ui.add_space(10.0);
 
-            ksf_controller(app, ui)
+            ksf_controller(self, ui)
         });
     }
 }

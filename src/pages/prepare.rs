@@ -397,7 +397,7 @@ impl DataPro {
                                         }
                                         self.session.load_ksf(&self.data);
                                         self.timers.stop_all_timers();
-                                        self.display_info.go_to_run_session();
+                                        self.go_to_run_session();
                                     }
                                 }
                                 false => windows_error_dialog(anyhow::anyhow!(format!(
