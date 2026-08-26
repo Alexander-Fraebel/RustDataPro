@@ -11,28 +11,6 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use std::path::PathBuf;
 
-fn save_and_reload_assessments(app: &mut DataPro) {
-    let mut temp_assessments_data = AssessmentsData::default();
-    for assessment in app.edit_assessments.user_input.iter() {
-        if !assessment.name.trim().is_empty() {
-            temp_assessments_data.insert(assessment.name.clone(), assessment.into_assessment());
-        }
-    }
-
-    match temp_assessments_data.to_json() {
-        Ok(json) => {
-            if let Err(e) = overwrite_file(Ok(app.edit_assessments.save_path.clone()), &json) {
-                windows_error_dialog(e)
-            } else {
-                quick_error!(app.load_assessments());
-            }
-        }
-        Err(e) => {
-            windows_error_dialog(e);
-        }
-    }
-}
-
 fn assessment_scroller(
     app: &mut DataPro,
     ui: &mut egui::Ui,
@@ -42,7 +20,7 @@ fn assessment_scroller(
         app.edit_assessments.deleted_row = None;
         if app.edit_assessments.user_input.is_empty() {
             app.edit_assessments.user_input.push(AssessmentMaker::new());
-            save_and_reload_assessments(app);
+            app.save_and_reload_assessments();
         }
     }
     ui.style_mut().spacing.scroll = egui::style::ScrollStyle::solid();
@@ -118,12 +96,12 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
             }
             ui.add_space(10.0);
 
-            ui.return_button(app, |app| {
-                if app.edit_assessments.changes_made {
-                    save_and_reload_assessments(app);
-                    app.edit_assessments.changes_made = false
-                }
-            });
+            // ui.return_button(app, |app| {
+            //     if app.edit_assessments.changes_made {
+            //         save_and_reload_assessments(app);
+            //         app.edit_assessments.changes_made = false
+            //     }
+            // });
             ui.add_space(10.0);
         });
     });
@@ -214,8 +192,9 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("The assessments file for this client will update when you click RETURN.");
-
+            ui.label(
+                "The assessments file for this client will update when you click Prepare Session.",
+            );
             ui.add_space(10.0);
 
             ui.label("Save File To:");
@@ -229,5 +208,27 @@ impl DataPro {
 
             assessments_controller(self, ui)
         });
+    }
+
+    pub fn save_and_reload_assessments(&mut self) {
+        let mut temp_assessments_data = AssessmentsData::default();
+        for assessment in self.edit_assessments.user_input.iter() {
+            if !assessment.name.trim().is_empty() {
+                temp_assessments_data.insert(assessment.name.clone(), assessment.into_assessment());
+            }
+        }
+
+        match temp_assessments_data.to_json() {
+            Ok(json) => {
+                if let Err(e) = overwrite_file(Ok(self.edit_assessments.save_path.clone()), &json) {
+                    windows_error_dialog(e)
+                } else {
+                    quick_error!(self.load_assessments());
+                }
+            }
+            Err(e) => {
+                windows_error_dialog(e);
+            }
+        }
     }
 }

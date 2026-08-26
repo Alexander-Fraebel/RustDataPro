@@ -23,6 +23,12 @@ pub enum Page {
 
 impl DataPro {
     pub fn go_to_prep_session(&mut self) {
+        if self.edit_ksfs.changes_made {
+            self.save_and_reload_ksfs();
+        }
+        if self.edit_assessments.changes_made {
+            self.save_and_reload_assessments();
+        }
         self.display_info.active_page = Page::PrepareSession;
         self.display_info.sidebar_open = true;
     }
@@ -45,11 +51,14 @@ impl DataPro {
     }
 
     pub fn go_to_edit_assessments(&mut self) {
+        self.edit_assessments
+            .prepare(&self.data, self.path_to_assessments());
         self.display_info.active_page = Page::EditAssessments;
         self.display_info.sidebar_open = true;
     }
 
     pub fn go_to_edit_ksf(&mut self) {
+        self.edit_ksfs.prepare(&self.data, self.path_to_ksf_data());
         self.display_info.active_page = Page::EditKsfs;
         self.display_info.sidebar_open = true;
     }

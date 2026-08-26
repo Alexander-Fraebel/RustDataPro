@@ -1,9 +1,7 @@
-use crate::{app::DataPro, ui_elements::DataProUiElements};
+use crate::app::DataPro;
 
-pub struct Credits {}
-
-impl Credits {
-    pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
+impl DataPro {
+    pub fn view_credits(&mut self, ui: &mut egui::Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
             ui.horizontal(|ui| {
@@ -18,8 +16,6 @@ impl Credits {
                 ui.label(".");
             });
             ui.add_space(10.0);
-
-            ui.return_button(app, |_| {});
         });
     }
 }

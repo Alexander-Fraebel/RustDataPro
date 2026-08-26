@@ -62,11 +62,11 @@ impl DataPro {
             ui.separator();
             ui.add_space(10.0);
 
-            ui.return_button(self, |app| {
-                app.settings
-                    .update_config_file()
-                    .unwrap_or_else(|e| windows_error_dialog(e))
-            });
+            // ui.return_button(self, |app| {
+            //     app.settings
+            //         .update_config_file()
+            //         .unwrap_or_else(|e| windows_error_dialog(e))
+            // });
         });
     }
 }

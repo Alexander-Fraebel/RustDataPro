@@ -9,7 +9,7 @@ use crate::{
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Settings,
-        Shuffler, Timers, credits::Credits, debug_page::DebugPage,
+        Shuffler, Timers, debug_page::DebugPage,
     },
     preference_assessment::PreferenceAssessment,
     quick_error,
@@ -401,7 +401,7 @@ impl DataPro {
                             .contains("The system cannot find the file specified")
                         {
                             windows_error_dialog(anyhow::anyhow!(format!(
-                                "{} could not be found, a default file has been created",
+                                "{} could not be found\na default file has been created",
                                 KSF_FILE_NAME
                             )));
                             match self.create_example_ksfs_file() {
@@ -419,7 +419,7 @@ impl DataPro {
                             }
                         } else {
                             windows_error_dialog(e.context(format!(
-                                "unable to read {}, the file may be corrupt",
+                                "unable to read {}\nthe file may be corrupt",
                                 KSF_FILE_NAME
                             )));
                         }
@@ -441,7 +441,7 @@ impl DataPro {
                             .contains("The system cannot find the file specified")
                         {
                             windows_error_dialog(anyhow::anyhow!(format!(
-                                "{} could not be found, a default file has been created",
+                                "{} could not be found\na default file has been created",
                                 ASSESSMENTS_FILE_NAME
                             )));
                             match self.create_example_assessments_file() {
@@ -458,7 +458,7 @@ impl DataPro {
                             }
                         } else {
                             windows_error_dialog(e.context(format!(
-                                "unable to read {}, the file may be corrupt",
+                                "unable to read {}\nthe file may be corrupt",
                                 ASSESSMENTS_FILE_NAME
                             )));
                         }
@@ -531,7 +531,7 @@ impl eframe::App for DataPro {
             Page::EditKsfs => self.view_edit_ksf_page(ui),
             Page::EditAssessments => self.view_edit_assessments_page(ui),
             Page::Settings => self.view_settings(ui),
-            Page::Credits => Credits::view(self, ui),
+            Page::Credits => self.view_credits(ui),
             Page::PreferenceAssessment => PreferenceAssessment::view(self, ui),
         }
     }

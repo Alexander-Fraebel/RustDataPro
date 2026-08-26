@@ -5,7 +5,7 @@ use crate::{
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
 use anyhow::Result;
-use egui::{Color32, Key, RichText, TextStyle};
+use egui::{Key, RichText, TextStyle};
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
 use std::path::PathBuf;
@@ -42,7 +42,7 @@ fn parse_line(s: &str) -> Result<(Key, String)> {
     Ok((key, desc))
 }
 
-fn entry_row(ui: &mut egui::Ui, string: &mut String, save_finished: &mut bool, label: &str) {
+fn entry_row(ui: &mut egui::Ui, string: &mut String, changes_made: &mut bool, label: &str) {
     ui.label(label);
     if ui
         .add(
@@ -52,61 +52,7 @@ fn entry_row(ui: &mut egui::Ui, string: &mut String, save_finished: &mut bool, l
         )
         .changed()
     {
-        *save_finished = false;
-    }
-}
-
-fn save_button(app: &mut DataPro, ui: &mut egui::Ui) {
-    if ui.large_green_button("SAVE").clicked() {
-        let mut write_succeeded = true;
-        let mut temp_ksf_data = KsfsData::default();
-
-        // Check if each KSF builds
-        for input in app.edit_ksfs.user_input.iter() {
-            match input.into_ksf() {
-                Ok(ksf) => {
-                    temp_ksf_data.insert(input.name.clone(), ksf);
-                }
-                Err(e) => {
-                    windows_error_dialog(e);
-                    write_succeeded = false;
-                    app.edit_ksfs.save_finished = false;
-                }
-            }
-        }
-        // Check if each KSF is valid
-        if let Err(e) = temp_ksf_data.all_keys_unique() {
-            windows_error_dialog(e);
-            write_succeeded = false;
-            app.edit_ksfs.save_finished = false;
-        }
-        // Check if the JSON builds
-        let mut output_json = String::new();
-        match temp_ksf_data.to_json() {
-            Ok(json) => output_json = json,
-            Err(e) => {
-                windows_error_dialog(e);
-                write_succeeded = false;
-                app.edit_ksfs.save_finished = false;
-            }
-        }
-        // Write the file
-        if write_succeeded {
-            match overwrite_file(Ok(app.edit_ksfs.save_path.clone()), &output_json) {
-                Ok(_) => {
-                    app.edit_ksfs.save_finished = true;
-                    if !app.data.ksf_loaded() {
-                        app.load_ksf(&app.path_to_ksf_data());
-                    } else {
-                        app.data.ksfs = temp_ksf_data;
-                    }
-                }
-                Err(e) => {
-                    windows_error_dialog(e.context("error while saving KsfData"));
-                    app.edit_ksfs.save_finished = false;
-                }
-            }
-        }
+        *changes_made = true;
     }
 }
 
@@ -136,7 +82,7 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                         )
                         .changed()
                     {
-                        app.edit_ksfs.save_finished = false;
+                        app.edit_ksfs.changes_made = true;
                     }
                     if ui.small_button("delete").clicked() {
                         if are_you_sure_dialog("Delete this KSF?") {
@@ -149,7 +95,7 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                 entry_row(
                     ui,
                     &mut ksf_maker.freq,
-                    &mut app.edit_ksfs.save_finished,
+                    &mut app.edit_ksfs.changes_made,
                     "Frequency Keys",
                 );
                 ui.add_space(5.0);
@@ -157,7 +103,7 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                 entry_row(
                     ui,
                     &mut ksf_maker.dura,
-                    &mut app.edit_ksfs.save_finished,
+                    &mut app.edit_ksfs.changes_made,
                     "Duration Keys",
                 );
                 ui.add_space(30.0);
@@ -177,28 +123,6 @@ fn ksf_controller(app: &mut DataPro, ui: &mut egui::Ui) {
                 app.edit_ksfs.user_input.push(KsfMaker::default());
             }
             ui.add_space(10.0);
-
-            save_button(app, ui);
-            ui.add_space(5.0);
-
-            ui.return_button(app, |app| app.edit_ksfs.save_finished = false);
-            ui.add_space(10.0);
-
-            if app.edit_ksfs.save_finished {
-                if app.data.client_loaded() {
-                    ui.monospace(
-                        RichText::new("KSF Updated!")
-                            .heading()
-                            .color(Color32::GREEN),
-                    );
-                } else {
-                    ui.monospace(
-                        RichText::new("KSF Created!")
-                            .heading()
-                            .color(Color32::GREEN),
-                    );
-                }
-            }
         });
     });
 }
@@ -247,7 +171,7 @@ impl KsfMaker {
 #[derive(Default)]
 pub struct EditKsfData {
     pub user_input: Vec<KsfMaker>,
-    pub save_finished: bool,
+    pub changes_made: bool,
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
     pub save_path: PathBuf,
@@ -284,8 +208,11 @@ impl DataPro {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading("Keyboard Setup File");
+            ui.heading("Keyboard Setup Files");
             self.client_picker(ui);
+            ui.add_space(15.0);
+
+            ui.label("The KSFs file for this client will update when you click Prepare Session.");
             ui.add_space(10.0);
 
             ui.add_enabled_ui(!self.data.client_loaded(), |ui| {
@@ -296,5 +223,53 @@ impl DataPro {
 
             ksf_controller(self, ui)
         });
+    }
+
+    pub fn save_and_reload_ksfs(&mut self) {
+        let mut write_succeeded = true;
+        let mut temp_ksf_data = KsfsData::default();
+
+        // Check if each KSF builds
+        for input in self.edit_ksfs.user_input.iter() {
+            match input.into_ksf() {
+                Ok(ksf) => {
+                    temp_ksf_data.insert(input.name.clone(), ksf);
+                }
+                Err(e) => {
+                    windows_error_dialog(e);
+                    write_succeeded = false;
+                }
+            }
+        }
+        // Check if each KSF is valid
+        if let Err(e) = temp_ksf_data.all_keys_unique() {
+            windows_error_dialog(e);
+            write_succeeded = false;
+        }
+        // Check if the JSON builds
+        let mut output_json = String::new();
+        match temp_ksf_data.to_json() {
+            Ok(json) => output_json = json,
+            Err(e) => {
+                windows_error_dialog(e);
+                write_succeeded = false;
+            }
+        }
+        // Write the file
+        if write_succeeded {
+            match overwrite_file(Ok(self.edit_ksfs.save_path.clone()), &output_json) {
+                Ok(_) => {
+                    if !self.data.ksf_loaded() {
+                        self.load_ksf(&self.path_to_ksf_data());
+                    } else {
+                        self.data.ksfs = temp_ksf_data;
+                    }
+                }
+                Err(e) => {
+                    windows_error_dialog(e.context("error while saving KsfData"));
+                    self.edit_ksfs.changes_made = false;
+                }
+            }
+        }
     }
 }
