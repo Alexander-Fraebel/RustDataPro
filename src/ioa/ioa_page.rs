@@ -145,30 +145,32 @@ impl IoaPage {
 
         Ok(())
     }
+}
 
-    pub fn view(app: &mut DataPro, ui: &mut Ui) {
-        app.ioa_page.select_file_dialog.update(ui.ctx());
-        if let Some(pathbuf) = app.ioa_page.select_file_dialog.take_picked() {
-            app.ioa_page
-                .prepare(pathbuf, app.ioa_page.save_path.clone());
+impl DataPro {
+    pub fn view_ioa(&mut self, ui: &mut Ui) {
+        self.ioa_page.select_file_dialog.update(ui.ctx());
+        if let Some(pathbuf) = self.ioa_page.select_file_dialog.take_picked() {
+            self.ioa_page
+                .prepare(pathbuf, self.ioa_page.save_path.clone());
         }
 
-        app.ioa_page.save_file_dialog.update(ui.ctx());
-        if let Some(pathbuf) = app.ioa_page.save_file_dialog.take_picked() {
-            app.ioa_page
-                .prepare(app.ioa_page.select_path.clone(), pathbuf);
+        self.ioa_page.save_file_dialog.update(ui.ctx());
+        if let Some(pathbuf) = self.ioa_page.save_file_dialog.take_picked() {
+            self.ioa_page
+                .prepare(self.ioa_page.select_path.clone(), pathbuf);
         }
-        if let Some(bufs) = app.ioa_page.select_file_dialog.take_picked_multiple() {
-            app.ioa_page.prepare(
-                app.path_to_session_records_dir(),
-                app.path_to_ioa_data_dir(),
+        if let Some(bufs) = self.ioa_page.select_file_dialog.take_picked_multiple() {
+            self.ioa_page.prepare(
+                self.path_to_session_records_dir(),
+                self.path_to_ioa_data_dir(),
             );
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match OutputData::from_file(buf.as_path()) {
                     Ok(data) => match data.session.data_collecion_type {
-                        DataType::Primary => app.ioa_page.prim_data.push((data, buf)),
-                        DataType::Reliability => app.ioa_page.reli_data.push((data, buf)),
+                        DataType::Primary => self.ioa_page.prim_data.push((data, buf)),
+                        DataType::Reliability => self.ioa_page.reli_data.push((data, buf)),
                     },
                     Err(_) => (),
                 }
@@ -177,22 +179,25 @@ impl IoaPage {
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Calculate IOA");
-            app.client_picker(ui);
+            self.client_picker(ui);
             ui.add_space(15.0);
 
             ui.label("Select Files From:");
             ui.directory_picker(
-                &mut app.ioa_page.select_file_dialog,
-                &app.ioa_page.select_path,
+                &mut self.ioa_page.select_file_dialog,
+                &self.ioa_page.select_path,
             );
             ui.add_space(10.0);
 
             ui.label("Save IOA To:");
-            ui.directory_picker(&mut app.ioa_page.save_file_dialog, &app.ioa_page.save_path);
+            ui.directory_picker(
+                &mut self.ioa_page.save_file_dialog,
+                &self.ioa_page.save_path,
+            );
             ui.add_space(15.0);
 
             if ui.large_button("Select Data").clicked() {
-                app.ioa_page.select_file_dialog.pick_multiple();
+                self.ioa_page.select_file_dialog.pick_multiple();
             }
             ui.add_space(5.0);
             ui.horizontal(|ui| {
@@ -203,7 +208,7 @@ impl IoaPage {
                             .content_margin(10.0)
                             .id_salt("prim_info_area")
                             .show(ui, |ui| {
-                                for (_, path) in app.ioa_page.prim_data.iter() {
+                                for (_, path) in self.ioa_page.prim_data.iter() {
                                     ui.strong(format!("{}", quick_file_name(&path)));
                                 }
                             });
@@ -216,7 +221,7 @@ impl IoaPage {
                             .id_salt("reli_info_area")
                             .content_margin(10.0)
                             .show(ui, |ui| {
-                                for (_, path) in app.ioa_page.reli_data.iter() {
+                                for (_, path) in self.ioa_page.reli_data.iter() {
                                     ui.strong(format!("{}", quick_file_name(&path)));
                                 }
                             });
@@ -226,15 +231,15 @@ impl IoaPage {
             ui.add_space(20.0);
 
             if ui.large_green_button("Calculate IOA").clicked() {
-                app.save_new_ioa_data()
+                self.save_new_ioa_data()
                     .unwrap_or_else(|e| windows_error_dialog(e))
             }
             ui.add_space(5.0);
 
-            ui.return_button(app, |_| ());
+            ui.return_button(self, |_| ());
             ui.add_space(10.0);
 
-            if app.ioa_page.ioa_finished {
+            if self.ioa_page.ioa_finished {
                 ui.monospace(
                     RichText::new("IOA Calculated and Saved!")
                         .heading()

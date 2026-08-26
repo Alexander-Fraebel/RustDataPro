@@ -354,53 +354,55 @@ impl PrepareSession {
             });
         }
     }
+}
 
-    pub fn view(app: &mut DataPro, ui: &mut egui::Ui) {
+impl DataPro {
+    pub fn view_prep(&mut self, ui: &mut egui::Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     ui.add_space(15.0);
-                    app.client_picker(ui);
+                    self.client_picker(ui);
                     ui.add_space(5.0);
 
-                    PrepareSession::client_and_session_information(app, ui);
+                    PrepareSession::client_and_session_information(self, ui);
 
                     ui.add_space(5.0);
 
-                    ui.add_enabled_ui(app.prep_session.can_start_session, |ui| {
+                    ui.add_enabled_ui(self.prep_session.can_start_session, |ui| {
                         if ui
                             .large_green_button("BEGIN SESSION")
-                            .on_disabled_hover_text(&app.data.misconfigs)
+                            .on_disabled_hover_text(&self.data.misconfigs)
                             .clicked()
                         {
                             // Final check to ensure session is ready to start.
                             // This could be triggered by an oversight in the live updating.
-                            app.check_if_ready_to_start_session();
-                            match app.prep_session.can_start_session {
+                            self.check_if_ready_to_start_session();
+                            match self.prep_session.can_start_session {
                                 true => {
                                     // Try to update the client. This really shouldn't ever fail so if it does we'll give an error and not start session.
-                                    if let Err(e) = app.overwrite_client_data() {
+                                    if let Err(e) = self.overwrite_client_data() {
                                         windows_error_dialog(e)
                                     } else {
                                         // Update the client file with any changes
                                         // This is only relevant if the user changes a client field and then immediately clicks BEGIN SESSION
                                         // If they do anything else the file will update when they switch selections
                                         // Load the data and switch pages.
-                                        if let Some(conditions) = app
+                                        if let Some(conditions) = self
                                             .data
                                             .assessments
-                                            .get(app.data.active_assessment_name())
+                                            .get(self.data.active_assessment_name())
                                         {
-                                            app.data.current_session = conditions.session;
+                                            self.data.current_session = conditions.session;
                                         }
-                                        app.session.load_ksf(&app.data);
-                                        app.timers.stop_all_timers();
-                                        app.display_info.go_to_run_session();
+                                        self.session.load_ksf(&self.data);
+                                        self.timers.stop_all_timers();
+                                        self.display_info.go_to_run_session();
                                     }
                                 }
                                 false => windows_error_dialog(anyhow::anyhow!(format!(
                                     "{}",
-                                    &app.data.misconfigs
+                                    &self.data.misconfigs
                                 ))),
                             }
                         }
@@ -409,10 +411,10 @@ impl PrepareSession {
                 ui.add_space(50.0);
                 ui.vertical(|ui| {
                     ui.add_space(15.0);
-                    ui.add_enabled_ui(app.data.client_loaded(), |ui| {
+                    ui.add_enabled_ui(self.data.client_loaded(), |ui| {
                         ui.heading("Choose Keyboard Setup File (KSF)");
                         ui.add_space(5.0);
-                        PrepareSession::ksf_display(app, ui);
+                        PrepareSession::ksf_display(self, ui);
                     });
                 });
             });

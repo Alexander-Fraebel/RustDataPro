@@ -525,12 +525,12 @@ impl eframe::App for DataPro {
         // ### Main Panel ###
         match self.display_info.active_page {
             Page::RunSession => self.view_session(ui),
-            Page::Ioa => IoaPage::view(self, ui),
-            Page::PrepareSession => PrepareSession::view(self, ui),
+            Page::Ioa => self.view_ioa(ui),
+            Page::PrepareSession => self.view_prep(ui),
             Page::CreateClient => NewClient::view(self, ui),
             Page::CreateKsf => EditKsfData::view(self, ui),
             Page::CreateAssessments => EditAssessments::view(self, ui),
-            Page::Settings => Settings::view(self, ui),
+            Page::Settings => self.view_settings(ui),
             Page::Credits => Credits::view(self, ui),
             Page::PreferenceAssessment => PreferenceAssessment::view(self, ui),
         }
