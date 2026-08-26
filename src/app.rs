@@ -9,7 +9,7 @@ use crate::{
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Settings,
-        Shuffler, Timers, debug_page::DebugPage,
+        Shuffler, Timers,
     },
     preference_assessment::PreferenceAssessment,
     quick_error,
@@ -490,7 +490,7 @@ impl eframe::App for DataPro {
         // ### Windows ###
         Timers::view(self, ui);
         Shuffler::view(self, ui);
-        DebugPage::view(self, ui);
+        self.view_debug_page(ui);
 
         // ### Top Bar ###
         // To go fully across it must be specified before any other panel
@@ -532,7 +532,7 @@ impl eframe::App for DataPro {
             Page::EditAssessments => self.view_edit_assessments_page(ui),
             Page::Settings => self.view_settings(ui),
             Page::Credits => self.view_credits(ui),
-            Page::PreferenceAssessment => PreferenceAssessment::view(self, ui),
+            Page::PreferenceAssessment => self.view_edit_assessments_page(ui),
         }
     }
 }

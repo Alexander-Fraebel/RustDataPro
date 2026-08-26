@@ -10,7 +10,6 @@ pub mod shuffler;
 pub mod sidebar;
 pub mod timers;
 
-pub use debug_page::*;
 pub use edit_assessments::*;
 pub use edit_ksfs::*;
 pub use new_client::*;

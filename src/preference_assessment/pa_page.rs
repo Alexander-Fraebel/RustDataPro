@@ -169,9 +169,11 @@ impl PreferenceAssessment {
             quick_error!(overwrite_file(Ok(path), &data));
         }
     }
+}
 
-    pub fn view(app: &mut DataPro, ui: &mut Ui) {
-        app.preference_assessment.import_export(ui);
+impl DataPro {
+    pub fn view_preference_assessment(&mut self, ui: &mut Ui) {
+        self.preference_assessment.import_export(ui);
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
@@ -180,41 +182,41 @@ impl PreferenceAssessment {
                     ui.horizontal(|ui| {
                         ui.heading("Paired Choice");
                         if ui.button("Import").clicked() {
-                            app.preference_assessment.import_dialog.pick_file();
+                            self.preference_assessment.import_dialog.pick_file();
                         }
                         if ui.button("Export").clicked() {
-                            app.preference_assessment.save_pairs_dialog.save_file();
+                            self.preference_assessment.save_pairs_dialog.save_file();
                         }
                     });
                     ui.label("Put each condition on a new line.");
                     if ui
                         .add(
                             egui::TextEdit::multiline(
-                                &mut app.preference_assessment.conditions_string,
+                                &mut self.preference_assessment.conditions_string,
                             )
                             .hint_text(RichText::from("Condition 1\nCondition 2\nCondition 3")),
                         )
                         .changed()
                     {
-                        app.preference_assessment.update_conditions();
+                        self.preference_assessment.update_conditions();
                     }
                     ui.add_space(5.0);
 
                     ui.label(format!(
                         "With {} conditions there are {} pairs.",
-                        app.preference_assessment.conditions.len(),
-                        app.preference_assessment.conditions.len()
-                            * app.preference_assessment.conditions.len()
-                            - app.preference_assessment.conditions.len() // app.preference_assessment.all_pairs.len()
+                        self.preference_assessment.conditions.len(),
+                        self.preference_assessment.conditions.len()
+                            * self.preference_assessment.conditions.len()
+                            - self.preference_assessment.conditions.len() // app.preference_assessment.all_pairs.len()
                     ));
                     ui.add_space(10.0);
 
                     if ui.button("Shuffle").clicked() {
-                        app.preference_assessment.shuffle_pairs(&mut app.rng);
+                        self.preference_assessment.shuffle_pairs(&mut self.rng);
                     }
                     ui.add_space(10.0);
 
-                    ui.return_button(app, |_| {});
+                    ui.return_button(self, |_| {});
                 });
 
                 ui.vertical(|ui| {
@@ -231,7 +233,7 @@ impl PreferenceAssessment {
                                 .body(|mut body| {
                                     let mut changes = false;
                                     for (n, (a, b, abool, bbool)) in
-                                        app.preference_assessment.all_pairs.iter_mut().enumerate()
+                                        self.preference_assessment.all_pairs.iter_mut().enumerate()
                                     {
                                         body.row(20.0, |mut row| {
                                             row.col(|ui| {
@@ -252,7 +254,7 @@ impl PreferenceAssessment {
                                         });
                                     }
                                     if changes {
-                                        app.preference_assessment.update_counts();
+                                        self.preference_assessment.update_counts();
                                     }
                                 });
                         });
@@ -260,9 +262,9 @@ impl PreferenceAssessment {
 
                 ui.vertical(|ui| {
                     if ui.button("Save Results").clicked() {
-                        app.preference_assessment.save_results_dialog.save_file();
+                        self.preference_assessment.save_results_dialog.save_file();
                     }
-                    for (item, count) in app.preference_assessment.conditions.iter() {
+                    for (item, count) in self.preference_assessment.conditions.iter() {
                         ui.label(format!("{}: {}", item, count));
                     }
                 });

@@ -1,6 +1,5 @@
-use egui::RichText;
-
 use crate::app::DataPro;
+use egui::RichText;
 
 impl DataPro {
     pub fn view_credits(&mut self, ui: &mut egui::Ui) {
