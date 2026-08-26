@@ -9,7 +9,7 @@ impl DataPro {
             self.data.clear();
             self.root_directory = pathbuf.clone();
         }
-        egui::Panel::left("welcome_panel")
+        egui::Panel::left("sidebar")
             .default_size(170.0)
             .min_size(170.0)
             .max_size(170.0)
@@ -18,7 +18,6 @@ impl DataPro {
                 egui::ScrollArea::vertical()
                     .id_salt("sidebar scroller")
                     .show(ui, |ui| {
-                        ui.strong("Welcome to RustDataPro!");
                         ui.add_space(4.0);
 
                         ui.label("Clients Directory");

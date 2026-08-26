@@ -68,7 +68,7 @@ impl Default for DataPro {
             rng: make_rng(),
 
             display_info: DisplayControl {
-                active_page: Page::PrepareSession,
+                active_page: Page::Credits,
                 timers_open: false,
                 random_open: false,
                 sidebar_open: true,
