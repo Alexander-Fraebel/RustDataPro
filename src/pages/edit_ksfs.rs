@@ -216,7 +216,7 @@ impl DataPro {
             ui.add_space(10.0);
 
             ui.add_enabled_ui(!self.data.client_loaded(), |ui| {
-                ui.label("Save File To:");
+                ui.label("Save To:");
                 ui.directory_picker(&mut self.edit_ksfs.file_dialog, &self.edit_ksfs.save_path);
             });
             ui.add_space(10.0);

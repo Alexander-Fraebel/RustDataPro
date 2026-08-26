@@ -69,8 +69,6 @@ impl Default for DataPro {
 
             display_info: DisplayControl {
                 active_page: Page::Credits,
-                timers_open: false,
-                shuffler_open: false,
                 sidebar_open: true,
                 debug_open: false,
             },
@@ -488,8 +486,6 @@ impl DataPro {
 impl eframe::App for DataPro {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // ### Windows ###
-        self.view_timers(ui);
-        self.view_shuffler(ui);
         self.view_debug_page(ui);
 
         // ### Top Bar ###
@@ -533,6 +529,8 @@ impl eframe::App for DataPro {
             Page::Settings => self.view_settings(ui),
             Page::Credits => self.view_credits(ui),
             Page::PreferenceAssessment => self.view_edit_assessments_page(ui),
+            Page::Shuffler => self.view_shuffler(ui),
+            Page::Timers => self.view_timers(ui),
         }
     }
 }

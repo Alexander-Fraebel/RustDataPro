@@ -1,7 +1,6 @@
 use crate::{
     app::DataPro,
     quick_error,
-    ui_elements::DataProUiElements,
     utils::{overwrite_file, windows_error_dialog},
 };
 use anyhow::Result;
@@ -33,16 +32,6 @@ impl Display for PaType {
         }
     }
 }
-
-// example conditions
-// teddy bear
-// drum kit
-// book
-// iPad
-// rattle
-// ball
-// animal toys
-// trampoline
 
 pub struct PreferenceAssessment {
     pub conditions_string: String,
@@ -215,8 +204,6 @@ impl DataPro {
                         self.preference_assessment.shuffle_pairs(&mut self.rng);
                     }
                     ui.add_space(10.0);
-
-                    ui.return_button(self, |_| {});
                 });
 
                 ui.vertical(|ui| {

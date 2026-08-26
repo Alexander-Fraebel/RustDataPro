@@ -82,10 +82,9 @@ impl Timers {
 
 impl DataPro {
     pub fn view_timers(&mut self, ui: &mut Ui) {
-        let open = &mut self.display_info.timers_open;
-        let mut accept_keyboard_controls = *open;
+        let mut accept_keyboard_controls = true;
 
-        egui::Window::new("Timers").open(open).show(ui, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
 
             ui.strong("Controls:");

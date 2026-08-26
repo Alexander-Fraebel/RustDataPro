@@ -6,11 +6,15 @@ impl DataPro {
         egui::Window::new("Debug Data").open(open).show(ui, |ui| {
             egui::ScrollArea::vertical()
                 .id_salt("debug scroller")
+                .max_height(200.0)
+                .min_scrolled_height(200.0)
                 .show(ui, |ui| {
-                    ui.add_space(10.0);
-
                     ui.monospace(format!("{:#?}", self.data));
                 });
+
+            ui.label("Quick Font Test");
+            ui.label("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+            ui.monospace("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
         });
     }
 }

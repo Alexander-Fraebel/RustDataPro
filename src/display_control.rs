@@ -2,8 +2,6 @@ use crate::app::DataPro;
 
 pub struct DisplayControl {
     pub active_page: Page,
-    pub timers_open: bool,
-    pub shuffler_open: bool,
     pub sidebar_open: bool,
     pub debug_open: bool,
 }
@@ -19,6 +17,8 @@ pub enum Page {
     Settings,
     Credits,
     PreferenceAssessment,
+    Shuffler,
+    Timers,
 }
 
 impl DataPro {
@@ -36,8 +36,6 @@ impl DataPro {
     pub fn go_to_run_session(&mut self) {
         self.display_info.active_page = Page::RunSession;
         self.display_info.sidebar_open = false;
-        self.display_info.timers_open = false;
-        self.display_info.shuffler_open = false;
     }
 
     pub fn go_to_ioa(&mut self) {
@@ -82,10 +80,12 @@ impl DataPro {
     }
 
     pub fn toggle_timer_window(&mut self) {
-        self.display_info.timers_open = !self.display_info.timers_open;
+        self.display_info.active_page = Page::Timers;
+        self.display_info.sidebar_open = true;
     }
 
     pub fn toggle_shuffler_window(&mut self) {
-        self.display_info.shuffler_open = !self.display_info.shuffler_open;
+        self.display_info.active_page = Page::Shuffler;
+        self.display_info.sidebar_open = true;
     }
 }

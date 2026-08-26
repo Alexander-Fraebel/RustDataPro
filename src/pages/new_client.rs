@@ -164,9 +164,6 @@ impl DataPro {
             });
             ui.add_space(5.0);
 
-            ui.return_button(self, |_| {});
-            ui.add_space(5.0);
-
             if self.new_client_page.created {
                 ui.monospace(
                     RichText::new("New Client Created!")

@@ -1,4 +1,3 @@
-use crate::app::DataPro;
 use egui::{Color32, Response, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use std::path::PathBuf;
@@ -20,9 +19,6 @@ pub trait DataProUiElements {
     fn large_blue_button(&mut self, text: &'static str) -> Response;
     fn lock_unlock_button(&mut self, condition: &mut bool);
     fn directory_picker(&mut self, file_dialog: &mut FileDialog, directory_name: &PathBuf);
-    fn return_button<F>(&mut self, app: &mut DataPro, closure: F)
-    where
-        F: FnMut(&mut DataPro);
 }
 
 impl DataProUiElements for Ui {
@@ -70,13 +66,13 @@ impl DataProUiElements for Ui {
         }
     }
 
-    fn return_button<F>(&mut self, app: &mut DataPro, mut closure: F)
-    where
-        F: FnMut(&mut DataPro),
-    {
-        if self.large_red_button("RETURN").clicked() {
-            closure(app);
-            app.go_to_prep_session();
-        }
-    }
+    // fn return_button<F>(&mut self, app: &mut DataPro, mut closure: F)
+    // where
+    //     F: FnMut(&mut DataPro),
+    // {
+    //     if self.large_red_button("RETURN").clicked() {
+    //         closure(app);
+    //         app.go_to_prep_session();
+    //     }
+    // }
 }

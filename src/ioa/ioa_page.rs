@@ -236,9 +236,6 @@ impl DataPro {
             }
             ui.add_space(5.0);
 
-            ui.return_button(self, |_| ());
-            ui.add_space(10.0);
-
             if self.ioa_page.ioa_finished {
                 ui.monospace(
                     RichText::new("IOA Calculated and Saved!")
