@@ -528,7 +528,7 @@ impl eframe::App for DataPro {
             Page::EditAssessments => self.view_edit_assessments_page(ui),
             Page::Settings => self.view_settings(ui),
             Page::Credits => self.view_credits(ui),
-            Page::PreferenceAssessment => self.view_edit_assessments_page(ui),
+            Page::PreferenceAssessment => self.view_preference_assessment(ui),
             Page::Shuffler => self.view_shuffler(ui),
             Page::Timers => self.view_timers(ui),
         }

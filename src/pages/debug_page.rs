@@ -11,9 +11,13 @@ impl DataPro {
                 .show(ui, |ui| {
                     ui.monospace(format!("{:#?}", self.data));
                 });
+            ui.add_space(5.0);
 
-            ui.label("Quick Font Test");
+            ui.label("Proportional Font");
             ui.label("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+            ui.add_space(5.0);
+
+            ui.monospace("Monospace Font");
             ui.monospace("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
         });
     }
