@@ -15,27 +15,27 @@ impl Default for Shuffler {
     }
 }
 
-impl Shuffler {
-    pub fn view(app: &mut DataPro, ui: &mut Ui) {
+impl DataPro {
+    pub fn view_shuffler(&mut self, ui: &mut Ui) {
         egui::Window::new("Shuffler")
-            .open(&mut app.display_info.random_open)
+            .open(&mut self.display_info.shuffler_open)
             .show(ui, |ui| {
                 ui.add_space(10.0);
                 ui.label("Separate items with commas.");
                 ui.add_space(10.0);
                 if ui.button("Shuffle").clicked() {
-                    let mut list: Vec<&str> = app.randomness_page.csv_list.split(',').collect();
-                    list.shuffle(&mut app.rng);
+                    let mut list: Vec<&str> = self.randomness_page.csv_list.split(',').collect();
+                    list.shuffle(&mut self.rng);
                     let rep = list
                         .iter()
                         .map(|s| s.trim())
                         .filter(|s| s.len() > 0)
                         .join(", ");
-                    app.randomness_page.csv_list = rep;
+                    self.randomness_page.csv_list = rep;
                 }
                 ui.add_space(5.0);
                 ui.add(
-                    TextEdit::multiline(&mut app.randomness_page.csv_list)
+                    TextEdit::multiline(&mut self.randomness_page.csv_list)
                         .hint_text("a, b, c, 1, 2, 3")
                         .desired_width(300.0)
                         .desired_rows(4),

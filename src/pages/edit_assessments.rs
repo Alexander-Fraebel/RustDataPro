@@ -95,14 +95,6 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
                 app.edit_assessments.changes_made = true;
             }
             ui.add_space(10.0);
-
-            // ui.return_button(app, |app| {
-            //     if app.edit_assessments.changes_made {
-            //         save_and_reload_assessments(app);
-            //         app.edit_assessments.changes_made = false
-            //     }
-            // });
-            ui.add_space(10.0);
         });
     });
 }

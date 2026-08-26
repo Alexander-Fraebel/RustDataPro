@@ -78,9 +78,11 @@ impl Timers {
             timer.timer.reset();
         }
     }
+}
 
-    pub fn view(app: &mut DataPro, ui: &mut Ui) {
-        let open = &mut app.display_info.timers_open;
+impl DataPro {
+    pub fn view_timers(&mut self, ui: &mut Ui) {
+        let open = &mut self.display_info.timers_open;
         let mut accept_keyboard_controls = *open;
 
         egui::Window::new("Timers").open(open).show(ui, |ui| {
@@ -95,7 +97,7 @@ impl Timers {
             egui::Grid::new("timers_page_grid")
                 .striped(true)
                 .show(ui, |ui| {
-                    for (n, timer) in app.timers.timers.iter_mut().enumerate() {
+                    for (n, timer) in self.timers.timers.iter_mut().enumerate() {
                         ui.horizontal(|ui| {
                             if ui
                                 .add_sized(
@@ -163,19 +165,19 @@ impl Timers {
         });
         if accept_keyboard_controls {
             ui.ctx().input_mut(|input| {
-                app.timers.clicked_keys.update(input);
+                self.timers.clicked_keys.update(input);
 
-                if app.timers.clicked_keys.contains(&Key::Space) {
-                    app.timers.stop_all_timers();
+                if self.timers.clicked_keys.contains(&Key::Space) {
+                    self.timers.stop_all_timers();
                 }
 
-                if app.timers.clicked_keys.contains(&Key::R) {
-                    app.timers.reset_all_timers();
+                if self.timers.clicked_keys.contains(&Key::R) {
+                    self.timers.reset_all_timers();
                 }
 
                 // Detect toggle linked
-                if app.timers.clicked_keys.contains(&Key::Num0) {
-                    for timer in app.timers.timers.iter_mut() {
+                if self.timers.clicked_keys.contains(&Key::Num0) {
+                    for timer in self.timers.timers.iter_mut() {
                         if timer.linked {
                             timer.timer.toggle();
                         }
@@ -187,8 +189,8 @@ impl Timers {
                     .iter()
                     .enumerate()
                 {
-                    if app.timers.clicked_keys.contains(key) {
-                        app.timers.timers[idx].timer.toggle()
+                    if self.timers.clicked_keys.contains(key) {
+                        self.timers.timers[idx].timer.toggle()
                     }
                 }
             });

@@ -89,12 +89,12 @@ impl DataPro {
                         ui.add_space(8.0);
 
                         if ui.large_button("Shuffle List").clicked() {
-                            self.toggle_random_display();
+                            self.toggle_shuffler_window();
                         }
                         ui.add_space(4.0);
 
                         if ui.large_button("Timers").clicked() {
-                            self.toggle_timer_display();
+                            self.toggle_timer_window();
                         }
                         ui.add_space(4.0);
 
