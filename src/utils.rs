@@ -10,7 +10,6 @@ use std::{
     io::{BufWriter, Write},
     path::{Path, PathBuf},
 };
-use win_msgbox::{Okay, YesNo};
 
 /// Round an f32 to one decimal. To be used for rounding times only.
 pub fn rounded_f32(n: f32) -> f32 {
@@ -110,7 +109,7 @@ pub fn overwrite_file(pathbuf: Result<PathBuf>, data: &str) -> Result<()> {
 
 // Create a windows style error dialog
 pub fn windows_error_dialog(message: anyhow::Error) {
-    win_msgbox::error::<Okay>(&message.chain().map(|e| e.to_string()).join("\n"))
+    win_msgbox::error::<win_msgbox::Okay>(&message.chain().map(|e| e.to_string()).join("\n"))
         .title("Error")
         .set_foreground()
         .show()
@@ -119,7 +118,7 @@ pub fn windows_error_dialog(message: anyhow::Error) {
 
 // Ask if the user is sure. Return true if they click Yes and return false if they click No.
 pub fn are_you_sure_dialog(message: &str) -> bool {
-    win_msgbox::warning::<YesNo>(message)
+    win_msgbox::warning::<win_msgbox::YesNo>(message)
         .title("Are you sure?")
         .set_foreground()
         .show()
@@ -127,12 +126,19 @@ pub fn are_you_sure_dialog(message: &str) -> bool {
         == win_msgbox::YesNo::Yes
 }
 
-/// Pop up an error dialog if an error occurs.
+/// Pop up an error dialog if the Result is Err while ignoring Ok.
 #[macro_export]
 macro_rules! quick_error {
     ($result:expr) => {
         if let Err(e) = $result {
-            windows_error_dialog(e)
+            win_msgbox::error::<win_msgbox::Okay>(&itertools::Itertools::join(
+                &mut e.chain().map(|e| e.to_string()),
+                "\n",
+            ))
+            .title("Error")
+            .set_foreground()
+            .show()
+            .expect("unable to create dialog box");
         }
     };
 }

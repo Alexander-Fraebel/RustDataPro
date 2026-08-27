@@ -1,8 +1,7 @@
 use crate::{
     config::{
         ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, DEFAULT_DIRECTORY, DEFAULT_ZOOM,
-        HARDCODED_ROOT_DIR, HARDCODED_ZOOM, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
-        SESSION_DATA_FOLDER_NAME,
+        HARDCODED_ROOT_DIR, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME, SESSION_DATA_FOLDER_NAME,
     },
     data::{AssessmentsData, ClientData, Data, KsfsData, NO_CLIENT},
     display_control::{DisplayControl, Page},
@@ -57,10 +56,7 @@ impl Default for DataPro {
             quick_error!(std::fs::create_dir(&root_dir).context("cannot create root directory"));
         }
 
-        let config = Config {
-            zoom: *DEFAULT_ZOOM.get_or_init(|| HARDCODED_ZOOM),
-            root_dir: root_dir.clone(),
-        };
+        let config = Config::from_current_dir();
 
         let mut app = Self {
             data: Data::default(),

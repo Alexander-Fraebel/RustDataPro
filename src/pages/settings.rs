@@ -1,4 +1,9 @@
-use crate::{app::DataPro, config::Config};
+use crate::{
+    app::DataPro,
+    config::{Config, path_to_config_file},
+    quick_error,
+    utils::overwrite_file,
+};
 
 #[derive(Default)]
 pub struct Settings {
@@ -29,12 +34,22 @@ impl DataPro {
                     .lost_focus()
                 {
                     ui.ctx().set_pixels_per_point(self.settings.config.zoom);
+                    if let Ok(json) = self.settings.config.to_json() {
+                        quick_error!(overwrite_file(path_to_config_file(), &json))
+                    }
                 }
             });
             ui.add_space(10.0);
 
             ui.label("Default Root Directory");
-            ui.text_edit_singleline(&mut self.settings.default_root_dir_string);
+            if ui
+                .text_edit_singleline(&mut self.settings.default_root_dir_string)
+                .lost_focus()
+            {
+                if let Ok(json) = self.settings.config.to_json() {
+                    quick_error!(overwrite_file(path_to_config_file(), &json))
+                }
+            }
             ui.add_space(10.0);
         });
     }

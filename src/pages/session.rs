@@ -4,7 +4,7 @@ use crate::{
     quick_error,
     timer::{Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms},
     ui_elements::DataProUiElements,
-    utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32, windows_error_dialog},
+    utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32},
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};

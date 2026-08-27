@@ -52,7 +52,7 @@ pub struct Timers {
 impl Default for Timers {
     fn default() -> Self {
         let mut timers = Vec::new();
-        for _ in 0..5 {
+        for _ in 0..6 {
             timers.push(UserTimer::new());
         }
         timers[0].linked = true;
@@ -89,21 +89,21 @@ impl DataPro {
 
             ui.strong("Controls:");
             ui.label(
-                "1-5 to toggle timers.\n0 to toggle linked timers.\nSpace to pause all timers.\nR to reset all timers.",
+                "1-6 to toggle timers.\n0 to toggle linked timers.\nSpace to pause all timers.\nR to reset all timers.",
             );
             ui.add_space(15.0);
 
             egui::Grid::new("timers_page_grid")
-                .striped(true)
+                .striped(true).min_row_height(25.0)
                 .show(ui, |ui| {
                     for (n, timer) in self.timers.timers.iter_mut().enumerate() {
-                        ui.horizontal(|ui| {
+                        ui.horizontal_centered(|ui| {
                             if ui
                                 .add_sized(
-                                    (110.0, 20.0),
+                                    (125.0, 20.0),
                                     egui::TextEdit::singleline(&mut timer.description)
                                         .prefix(format!("{})", n + 1))
-                                        .char_limit(11)
+                                        .char_limit(12)
                                         .font(TextStyle::Monospace),
                                 )
                                 .has_focus()
@@ -111,16 +111,18 @@ impl DataPro {
                                 accept_keyboard_controls = false;
                             };
                             ui.add_space(10.0);
-                            if timer.timer_type == TimerType::Countdown {
-                                view_countdown_hms(ui, &timer.timer, timer.countdown_from);
-                            } else {
-                                view_stopwatch_hms(ui, &timer.timer);
+
+                            match timer.timer_type {
+                                TimerType::Countdown => view_countdown_hms(ui, &timer.timer, timer.countdown_from),
+                                TimerType::Stopwatch => view_stopwatch_hms(ui, &timer.timer),
                             }
                             ui.add_space(5.0);
+
                             if ui.button("↺").on_hover_text("reset").clicked() {
                                 timer.timer.reset();
                             }
                             ui.add_space(5.0);
+
                             if timer.linked {
                                 ui.checkbox(&mut timer.linked, "").on_hover_text("linked");
                             } else {
@@ -129,34 +131,36 @@ impl DataPro {
                             ui.add_space(5.0);
 
                             let counter_adjust_size = (50.0,20.0);
-                            if timer.timer_type == TimerType::Countdown {
-                                let draginfo = ui.add_sized(counter_adjust_size,
-                                    egui::DragValue::new(&mut timer.countdown_from)
+                            match timer.timer_type {
+                                TimerType::Countdown => {
+                                    let draginfo = ui.add_sized(counter_adjust_size,
+                                        egui::DragValue::new(&mut timer.countdown_from)
                                         .range(0.0..=99999.0),
-                                );
-                                if draginfo.has_focus() {
-                                    accept_keyboard_controls = false;
-                                }
-                                if draginfo.changed() {
-                                    timer.timer.reset();
-                                }
-                            } else {
-                                    ui.add_sized(counter_adjust_size,egui::Label::new("")
-                                );
-                            }
-                        egui::ComboBox::from_id_salt(format!("timer_mode{n}"))
-                        .selected_text(timer.timer_type.to_string())
-                        .show_ui(ui, |ui| {
-                            if ui.selectable_value(&mut timer.timer_type, TimerType::Countdown, "Countdown").clicked() {
-                                timer.timer.reset();
-                            }
-                            if ui.selectable_value(&mut timer.timer_type, TimerType::Stopwatch, "Stopwatch").clicked() {
-                                timer.timer.reset();
-                            }
-                        });
+                                    );
+                                    if draginfo.has_focus() {
+                                        accept_keyboard_controls = false;
+                                    }
+                                    if draginfo.changed() {
+                                        timer.timer.reset();
+                                    }
+                                },
+                                TimerType::Stopwatch => {
+                                    ui.add_sized(counter_adjust_size,egui::Label::new(""));
+                                },
+                            }                            
                             ui.add_space(5.0);
-                        });
 
+                            egui::ComboBox::from_id_salt(format!("timer_mode{n}"))
+                                .selected_text(timer.timer_type.to_string())
+                                .show_ui(ui, |ui| {
+                                    if ui.selectable_value(&mut timer.timer_type, TimerType::Countdown, "Countdown").clicked() {
+                                        timer.timer.reset();
+                                    }
+                                    if ui.selectable_value(&mut timer.timer_type, TimerType::Stopwatch, "Stopwatch").clicked() {
+                                        timer.timer.reset();
+                                    }
+                                });
+                        });                        
                         ui.end_row();
                     }
                 });
@@ -184,7 +188,7 @@ impl DataPro {
                 }
 
                 // Detect toggle each
-                for (idx, key) in [Key::Num1, Key::Num2, Key::Num3, Key::Num4, Key::Num5]
+                for (idx, key) in [Key::Num1, Key::Num2, Key::Num3, Key::Num4, Key::Num5, Key::Num6]
                     .iter()
                     .enumerate()
                 {

@@ -7,7 +7,6 @@ use crate::{
     data::{AssessmentsData, ClientData, KsfsData},
     quick_error,
     ui_elements::DataProUiElements,
-    utils::windows_error_dialog,
 };
 use anyhow::Result;
 use chrono::Local;

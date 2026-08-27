@@ -58,8 +58,9 @@ impl Config {
                 Err(e) => {
                     if e.kind() == std::io::ErrorKind::NotFound {
                         windows_error_dialog(anyhow::anyhow!(
-                            "unable to find {}, a default config file will be created",
-                            CONFIG_FILE_NAME
+                            "unable to read {}\na default config file will be created at {}",
+                            CONFIG_FILE_NAME,
+                            path_to_config.to_string_lossy()
                         ));
                         overwrite_file(Ok(path_to_config.clone()), &Self::default().to_json()?)?;
                     }
