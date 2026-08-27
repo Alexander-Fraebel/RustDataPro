@@ -19,9 +19,25 @@ impl DataPro {
                     );
                     ui.label(".");
                 });
-            });
+            });          
+            if ui.button("Manually Set Dark Mode").clicked() {
+                ui.ctx().set_visuals(egui::Visuals::dark());
+            }
             ui.add_space(10.0);
-            ui.label("Empowering you to accurately track client data with ease.")
+
+            ui.label("Empowering you to accurately track client data with ease!");            
+            ui.add_space(15.0);
+
+            ui.label("Dark mode available for reduced eye strain in observation rooms.\nYou can control Assessment and KSF files directly in the application without needing to edit files.\nData output in ready to use Excel files (.xlsx) and a compact format accepted everywhere (.txt files following JSON formatting).\nUse the Shuffler for instant crytographic quality randomization.\nOn the Timers page you can name stopwatches and countdowns for improved usability and even synchronize timer that need to begin simultaneously by linking them.");
+            ui.add_space(5.0);
+
+            ui.label("COMING SOON: Preference Assessments (MSWO, Free Operant, Paired Choice)");
+            ui.add_space(5.0);
+
+            ui.label("IN THE FUTURE?: graphing");
+            ui.add_space(10.0);
+
+
         });
     }
 }

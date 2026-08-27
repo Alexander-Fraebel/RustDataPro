@@ -34,9 +34,8 @@ impl DataPro {
             ui.add_space(5.0);
             ui.add(
                 TextEdit::multiline(&mut self.randomness_page.csv_list)
-                    .hint_text("a, b, c, 1, 2, 3")
-                    .desired_width(300.0)
-                    .desired_rows(4),
+                    .desired_width(400.0)
+                    .desired_rows(6),
             );
         });
     }
