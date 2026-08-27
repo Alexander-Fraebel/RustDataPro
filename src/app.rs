@@ -47,20 +47,20 @@ pub struct DataPro {
 
 impl Default for DataPro {
     fn default() -> Self {
-        // provided directory should always be valid on Windows and we are not handling any other OS
+        // The provided directory should always be valid on Windows and we are not handling any other OS
         let root_dir = DEFAULT_DIRECTORY
             .get_or_init(|| HARDCODED_ROOT_DIR.into())
             .clone();
+
+        // If the default directory doesn't exist then create it.
+        if !root_dir.exists() {
+            quick_error!(std::fs::create_dir(&root_dir).context("cannot create root directory"));
+        }
 
         let config = Config {
             zoom: *DEFAULT_ZOOM.get_or_init(|| HARDCODED_ZOOM),
             root_dir: root_dir.clone(),
         };
-
-        // If the default directory doesn't exist create it.
-        if !root_dir.exists() {
-            quick_error!(std::fs::create_dir(&root_dir).context("cannot create root directory"));
-        }
 
         let mut app = Self {
             data: Data::default(),
@@ -343,14 +343,14 @@ impl DataPro {
         }
     }
 
-    pub fn create_example_ksfs_file(&self) -> Result<()> {
+    pub fn try_create_example_ksfs_file(&self) -> Result<()> {
         let mut writer = std::fs::File::create_new(Path::new(&&self.path_to_ksf_data()))?;
         std::io::Write::write_all(&mut writer, KsfsData::example().to_json()?.as_bytes())?;
         std::io::Write::flush(&mut writer)?;
         Ok(())
     }
 
-    pub fn create_example_assessments_file(&self) -> Result<()> {
+    pub fn try_create_example_assessments_file(&self) -> Result<()> {
         let mut writer = std::fs::File::create_new(Path::new(&self.path_to_assessments()))?;
         std::io::Write::write_all(
             &mut writer,
@@ -399,10 +399,10 @@ impl DataPro {
                             .contains("The system cannot find the file specified")
                         {
                             windows_error_dialog(anyhow::anyhow!(format!(
-                                "{} could not be found\na default file has been created",
+                                "{} could not be found\na default will be created",
                                 KSF_FILE_NAME
                             )));
-                            match self.create_example_ksfs_file() {
+                            match self.try_create_example_ksfs_file() {
                                 Ok(_) => match KsfsData::from_file(&ksf_path) {
                                     Ok(new_data) => {
                                         self.data.ksfs = new_data;
@@ -439,10 +439,10 @@ impl DataPro {
                             .contains("The system cannot find the file specified")
                         {
                             windows_error_dialog(anyhow::anyhow!(format!(
-                                "{} could not be found\na default file has been created",
+                                "{} could not be found\na default file will be created",
                                 ASSESSMENTS_FILE_NAME
                             )));
-                            match self.create_example_assessments_file() {
+                            match self.try_create_example_assessments_file() {
                                 Ok(_) => match AssessmentsData::from_file(&assessments_path) {
                                     Ok(new_data) => {
                                         self.data.assessments = new_data;

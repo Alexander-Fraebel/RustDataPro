@@ -2,6 +2,8 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read, path::PathBuf, sync::OnceLock};
 
+use crate::utils::{overwrite_file, windows_error_dialog};
+
 pub const HARDCODED_ZOOM: f32 = 1.0;
 pub const HARDCODED_ROOT_DIR: &'static str = "C:\\DataProClients";
 
@@ -50,16 +52,30 @@ impl Config {
     /// Search the directory the program is in for a config file and try to load it
     pub fn try_from_current_dir() -> Result<Self> {
         if let Ok(path_buf) = std::env::current_dir() {
-            let mut file = File::open(&path_buf.join(CONFIG_FILE_NAME))?;
+            let path_to_config = path_buf.join(CONFIG_FILE_NAME);
+            let mut file = match File::open(&path_to_config) {
+                Ok(f) => f,
+                Err(e) => {
+                    if e.kind() == std::io::ErrorKind::NotFound {
+                        windows_error_dialog(anyhow::anyhow!(
+                            "unable to find {}, a default config file will be created",
+                            CONFIG_FILE_NAME
+                        ));
+                        overwrite_file(Ok(path_to_config.clone()), &Self::default().to_json()?)?;
+                    }
+                    File::open(&path_to_config).unwrap()
+                }
+            };
             let mut s = String::new();
             file.read_to_string(&mut s)?;
             let configs: Config = serde_json::from_str(&s)?;
-            return Ok(configs);
-        };
-        Err(anyhow::anyhow!(
-            "current directory could not be accessed while looking for {}",
-            CONFIG_FILE_NAME
-        ))
+            Ok(configs)
+        } else {
+            Err(anyhow::anyhow!(
+                "current directory could not be accessed while looking for {}",
+                CONFIG_FILE_NAME
+            ))
+        }
     }
 
     /// Search the directory the program is in for a config file and load it or create the default config

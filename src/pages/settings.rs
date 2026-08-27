@@ -1,10 +1,4 @@
-use crate::{
-    app::DataPro,
-    config::{Config, path_to_config_file},
-    ui_elements::DataProUiElements,
-    utils::{overwrite_file, windows_error_dialog},
-};
-use anyhow::Result;
+use crate::{app::DataPro, config::Config};
 
 #[derive(Default)]
 pub struct Settings {
@@ -12,12 +6,7 @@ pub struct Settings {
     pub default_root_dir_string: String,
 }
 
-impl Settings {
-    pub fn update_config_file(&mut self) -> Result<()> {
-        self.config.root_dir = self.default_root_dir_string.clone().into();
-        overwrite_file(path_to_config_file(), &self.config.to_json()?)
-    }
-}
+impl Settings {}
 
 impl DataPro {
     pub fn view_settings(&mut self, ui: &mut egui::Ui) {
@@ -46,27 +35,7 @@ impl DataPro {
 
             ui.label("Default Root Directory");
             ui.text_edit_singleline(&mut self.settings.default_root_dir_string);
-
-            if ui.large_blue_button("Create Config File").clicked() {
-                self.settings
-                    .update_config_file()
-                    .unwrap_or_else(|e| windows_error_dialog(e))
-            }
-            ui.label(format!(
-                "saves to:\n{}",
-                path_to_config_file()
-                    .map_or("NOT FOUND".into(), |pb| pb.to_string_lossy().to_string()),
-            ));
             ui.add_space(10.0);
-
-            ui.separator();
-            ui.add_space(10.0);
-
-            // ui.return_button(self, |app| {
-            //     app.settings
-            //         .update_config_file()
-            //         .unwrap_or_else(|e| windows_error_dialog(e))
-            // });
         });
     }
 }
