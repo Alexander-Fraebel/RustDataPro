@@ -1,7 +1,7 @@
 use crate::{
     config::{
-        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, DEFAULT_DIRECTORY, DEFAULT_ZOOM,
-        HARDCODED_ROOT_DIR, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME, SESSION_DATA_FOLDER_NAME,
+        ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
+        SESSION_DATA_FOLDER_NAME,
     },
     data::{AssessmentsData, ClientData, Data, KsfsData, NO_CLIENT},
     display_control::{DisplayControl, Page},
@@ -25,7 +25,7 @@ pub struct DataPro {
     pub pick_root_directory: FileDialog,
     pub root_directory: PathBuf,
 
-    pub rng: StdRng, // StdRng is currently ChaCha12 initalized from SysRng, any similar rng is more than sufficient
+    pub rng: StdRng, // StdRng is currently ChaCha12 initalized from SysRng, any similar prng is more than sufficient
 
     pub data: Data,
     pub display_info: DisplayControl,
@@ -46,17 +46,15 @@ pub struct DataPro {
 
 impl Default for DataPro {
     fn default() -> Self {
+        let config = Config::from_current_dir();
+
         // The provided directory should always be valid on Windows and we are not handling any other OS
-        let root_dir = DEFAULT_DIRECTORY
-            .get_or_init(|| HARDCODED_ROOT_DIR.into())
-            .clone();
+        let root_dir = PathBuf::from(&config.root_dir);
 
         // If the default directory doesn't exist then create it.
         if !root_dir.exists() {
             quick_error!(std::fs::create_dir(&root_dir).context("cannot create root directory"));
         }
-
-        let config = Config::from_current_dir();
 
         let mut app = Self {
             data: Data::default(),
@@ -82,14 +80,11 @@ impl Default for DataPro {
             new_client_page: CreateClient::default(),
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
-            settings: Settings {
-                config,
-                default_root_dir_string: root_dir.clone().to_string_lossy().to_string(),
-            },
+            settings: Settings { config },
             preference_assessment: PreferenceAssessment::default(),
         };
 
-        // Initialize pages by unloading
+        // Initialize everything by "unloading" the client
         app.unload_client();
         app
     }
@@ -99,9 +94,7 @@ impl DataPro {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Load the config file information before the application loads
         let configs = Config::from_current_dir();
-        DEFAULT_DIRECTORY.get_or_init(|| configs.root_dir);
-        cc.egui_ctx
-            .set_pixels_per_point(*DEFAULT_ZOOM.get_or_init(|| configs.zoom));
+        cc.egui_ctx.set_pixels_per_point(configs.zoom);
 
         cc.egui_ctx.set_visuals(Visuals::dark());
 
@@ -109,34 +102,30 @@ impl DataPro {
         let mut font_defs = FontDefinitions::default();
         font_defs.font_data.insert(
             "AtkinsonMono".into(),
-            std::sync::Arc::new(
-                // .ttf and .otf supported
-                egui::FontData::from_static(include_bytes!(
-                    "..\\AtkinsonHyperlegibleMono-VariableFont_wght.ttf"
-                )),
-            ),
+            std::sync::Arc::new(egui::FontData::from_static(include_bytes!(
+                "..\\AtkinsonHyperlegibleMono-VariableFont_wght.ttf"
+            ))),
         );
         font_defs.font_data.insert(
             "AtkinsonNext".into(),
-            std::sync::Arc::new(
-                // .ttf and .otf supported
-                egui::FontData::from_static(include_bytes!(
-                    "..\\AtkinsonHyperlegibleNext-VariableFont_wght.ttf"
-                )),
-            ),
+            std::sync::Arc::new(egui::FontData::from_static(include_bytes!(
+                "..\\AtkinsonHyperlegibleNext-VariableFont_wght.ttf"
+            ))),
         );
+
         font_defs
             .families
             .get_mut(&egui::FontFamily::Monospace)
             .unwrap()
             .insert(0, "AtkinsonMono".to_owned());
-
         font_defs
             .families
             .get_mut(&egui::FontFamily::Proportional)
             .unwrap()
             .insert(0, "AtkinsonNext".to_owned());
+
         cc.egui_ctx.set_fonts(font_defs);
+
         Default::default()
     }
 
@@ -201,6 +190,10 @@ impl DataPro {
         self.prep_session.can_start_session = self.data.misconfigs.is_empty();
     }
 
+    pub fn root_dir(&self) -> PathBuf {
+        PathBuf::from(&self.settings.config.root_dir)
+    }
+
     /// Create the path to a file or folder that is inside the top of the active client folder. Returns an error if no client is loaded.
     pub fn path_to(&self, name: &str) -> Result<PathBuf> {
         if !self.data.client_loaded() {
@@ -218,47 +211,32 @@ impl DataPro {
 
     /// Path to client_data.txt if a client has been chosen or the default directory otherwise.
     pub fn path_to_client_data(&self) -> PathBuf {
-        self.path_to(CLIENT_DATA_FILE_NAME).unwrap_or_else(|_| {
-            DEFAULT_DIRECTORY
-                .get_or_init(|| HARDCODED_ROOT_DIR.into())
-                .clone()
-        })
+        self.path_to(CLIENT_DATA_FILE_NAME)
+            .unwrap_or_else(|_| self.root_dir())
     }
 
     /// Path to assessments.txt if a client has been chosen or the default directory otherwise.
     pub fn path_to_assessments(&self) -> PathBuf {
-        self.path_to(ASSESSMENTS_FILE_NAME).unwrap_or_else(|_| {
-            DEFAULT_DIRECTORY
-                .get_or_init(|| HARDCODED_ROOT_DIR.into())
-                .clone()
-        })
+        self.path_to(ASSESSMENTS_FILE_NAME)
+            .unwrap_or_else(|_| self.root_dir())
     }
 
     /// Path to ksf_data.txt if a client has been chosen or the default directory otherwise.
     pub fn path_to_ksf_data(&self) -> PathBuf {
-        self.path_to(KSF_FILE_NAME).unwrap_or_else(|_| {
-            DEFAULT_DIRECTORY
-                .get_or_init(|| HARDCODED_ROOT_DIR.into())
-                .clone()
-        })
+        self.path_to(KSF_FILE_NAME)
+            .unwrap_or_else(|_| self.root_dir())
     }
 
     /// Path to Session Records if a client has been chosen or the default directory otherwise.
     pub fn path_to_session_records_dir(&self) -> PathBuf {
-        self.path_to(SESSION_DATA_FOLDER_NAME).unwrap_or_else(|_| {
-            DEFAULT_DIRECTORY
-                .get_or_init(|| HARDCODED_ROOT_DIR.into())
-                .clone()
-        })
+        self.path_to(SESSION_DATA_FOLDER_NAME)
+            .unwrap_or_else(|_| self.root_dir())
     }
 
     /// Path to IOA Data if a client has been chosen or the default directory otherwise.
     pub fn path_to_ioa_data_dir(&self) -> PathBuf {
-        self.path_to(IOA_DATA_FOLDER_NAME).unwrap_or_else(|_| {
-            DEFAULT_DIRECTORY
-                .get_or_init(|| HARDCODED_ROOT_DIR.into())
-                .clone()
-        })
+        self.path_to(IOA_DATA_FOLDER_NAME)
+            .unwrap_or_else(|_| self.root_dir())
     }
 
     pub fn save_new_ioa_data(&mut self) -> Result<()> {
@@ -358,9 +336,7 @@ impl DataPro {
 
     pub fn unload_client(&mut self) {
         self.data.clear();
-        let default_dir = DEFAULT_DIRECTORY
-            .get_or_init(|| HARDCODED_ROOT_DIR.into())
-            .clone();
+        let default_dir = self.root_dir();
         self.edit_assessments
             .prepare(&self.data, default_dir.clone());
         self.edit_ksfs.prepare(&self.data, default_dir.clone());

@@ -1,14 +1,7 @@
+use crate::utils::{overwrite_file, windows_error_dialog};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Read, path::PathBuf, sync::OnceLock};
-
-use crate::utils::{overwrite_file, windows_error_dialog};
-
-pub const HARDCODED_ZOOM: f32 = 1.0;
-pub const HARDCODED_ROOT_DIR: &'static str = "C:\\DataProClients";
-
-pub static DEFAULT_ZOOM: OnceLock<f32> = OnceLock::new();
-pub static DEFAULT_DIRECTORY: OnceLock<PathBuf> = OnceLock::new();
+use std::{fs::File, io::Read, path::PathBuf};
 
 pub const CLIENT_DATA_FILE_NAME: &'static str = "client_data.txt";
 pub const ASSESSMENTS_FILE_NAME: &'static str = "assessments.txt";
@@ -24,11 +17,11 @@ pub fn path_to_config_file() -> Result<PathBuf> {
 }
 
 fn default_zoom() -> f32 {
-    HARDCODED_ZOOM
+    1.0
 }
 
-fn default_root_dir() -> PathBuf {
-    HARDCODED_ROOT_DIR.into()
+fn default_root_dir() -> String {
+    String::from("C:\\DataProClients")
 }
 
 #[derive(Serialize, Deserialize)]
@@ -36,14 +29,14 @@ pub struct Config {
     #[serde(default = "default_zoom")]
     pub zoom: f32,
     #[serde(default = "default_root_dir")]
-    pub root_dir: PathBuf,
+    pub root_dir: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            zoom: HARDCODED_ZOOM,
-            root_dir: HARDCODED_ROOT_DIR.into(),
+            zoom: default_zoom(),
+            root_dir: default_root_dir(),
         }
     }
 }

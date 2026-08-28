@@ -160,7 +160,7 @@ impl DataPro {
                                         timer.timer.reset();
                                     }
                                 });
-                        });                        
+                        });
                         ui.end_row();
                     }
                 });

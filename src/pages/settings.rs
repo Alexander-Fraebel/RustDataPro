@@ -8,10 +8,8 @@ use crate::{
 #[derive(Default)]
 pub struct Settings {
     pub config: Config,
-    pub default_root_dir_string: String,
+    // pub default_root_dir_string: String,
 }
-
-impl Settings {}
 
 impl DataPro {
     pub fn view_settings(&mut self, ui: &mut egui::Ui) {
@@ -43,7 +41,7 @@ impl DataPro {
 
             ui.label("Default Root Directory");
             if ui
-                .text_edit_singleline(&mut self.settings.default_root_dir_string)
+                .text_edit_singleline(&mut self.settings.config.root_dir)
                 .lost_focus()
             {
                 if let Ok(json) = self.settings.config.to_json() {
