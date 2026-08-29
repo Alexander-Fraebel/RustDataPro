@@ -56,16 +56,14 @@ impl IoaData {
             Ok(())
         } else {
             Err(anyhow::anyhow!(
-                "attempted to normalize IoaData after it was already normalize"
+                "attempted to normalize IoaData after it was already normalized"
             ))
         }
     }
 
-    pub fn from_file_path(file_path: &Path) -> Result<Self> {
-        crate::from_file_path!(self, "unable to make IoaData from file", file_path)
-    }
-
-    pub fn to_json(&self) -> Result<String> {
-        crate::to_json!(self, "unable to convert IoaData to json")
-    }
+    crate::to_and_from_json!(
+        self,
+        "unable to make IoaData from file",
+        "unable to convert IoaData to json"
+    );
 }

@@ -43,20 +43,19 @@ pub fn restore_num_names_in_ksf(text: &str) -> String {
 }
 
 #[macro_export]
-macro_rules! to_json {
-    ($self:expr, $context:literal) => {
-        Ok(crate::data::prettier_json_for_ksf(
-            &serde_json::to_string_pretty(&$self).context($context)?,
-        ))
-    };
-}
+macro_rules! to_and_from_json {
+    ($self:expr, $context1:literal, $context2:literal) => {
+        pub fn from_file_path(file_path: &Path) -> Result<Self> {
+            serde_json::from_str(&crate::data::restore_num_names_in_ksf(
+                &std::fs::read_to_string(file_path)?,
+            ))
+            .context($context2)
+        }
 
-#[macro_export]
-macro_rules! from_file_path {
-    ($self:expr, $context:literal, $path:expr) => {
-        serde_json::from_str(&crate::data::restore_num_names_in_ksf(
-            &std::fs::read_to_string($path)?,
-        ))
-        .context($context)
+        pub fn to_json(&self) -> Result<String> {
+            Ok(crate::data::prettier_json_for_ksf(
+                &serde_json::to_string_pretty(&self).context($context1)?,
+            ))
+        }
     };
 }

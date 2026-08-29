@@ -122,16 +122,11 @@ impl Ksf {
         .unwrap()
     }
 
-    pub fn from_file_path(file_path: &Path) -> Result<Self> {
-        serde_json::from_str(&super::restore_num_names_in_ksf(&std::fs::read_to_string(
-            file_path,
-        )?))
-        .context("unable to make Ksf from file")
-    }
-
-    pub fn to_json(&self) -> Result<String> {
-        crate::to_json!(self, "unable to convert Ksf to json")
-    }
+    crate::to_and_from_json!(
+        self,
+        "unable to make Ksf from file",
+        "unable to convert Ksf to json"
+    );
 }
 
 /// A map of KSFs kept in insertion order and index by name.
@@ -165,13 +160,11 @@ impl KsfsData {
         Ok(())
     }
 
-    pub fn from_file_path(file_path: &Path) -> Result<Self> {
-        crate::from_file_path!(self, "unable to make KsfsData from file", file_path)
-    }
-
-    pub fn to_json(&self) -> Result<String> {
-        crate::to_json!(self, "unable to convert KsfsData to json")
-    }
+    crate::to_and_from_json!(
+        self,
+        "unable to make KsfsData from file",
+        "unable to convert KsfsData to json"
+    );
 
     pub fn example() -> KsfsData {
         let mut data = KsfsData::default();

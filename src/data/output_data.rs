@@ -45,13 +45,11 @@ impl OutputData {
             .join("")
     }
 
-    pub fn from_file_path(file_path: &Path) -> Result<Self> {
-        crate::from_file_path!(self, "unable to make OutputData from file", file_path)
-    }
-
-    pub fn to_json(&self) -> Result<String> {
-        crate::to_json!(self, "unable to convert OutputData to json")
-    }
+    crate::to_and_from_json!(
+        self,
+        "unable to make OutputData from file",
+        "unable to convert OutputData to json"
+    );
 }
 
 #[test]

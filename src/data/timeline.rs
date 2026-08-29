@@ -25,11 +25,9 @@ impl DerefMut for Timeline {
 }
 
 impl Timeline {
-    pub fn from_file_path(file_path: &Path) -> Result<Self> {
-        crate::from_file_path!(self, "unable to make Timeline from file", file_path)
-    }
-
-    pub fn to_json(&self) -> Result<String> {
-        crate::to_json!(self, "unable to convert Timeline to json")
-    }
+    crate::to_and_from_json!(
+        self,
+        "unable to make Timeline from file",
+        "unable to convert Timeline to json"
+    );
 }
