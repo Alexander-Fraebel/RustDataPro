@@ -1,12 +1,11 @@
 use crate::{
-    data::{AssessmentsData, KsfsData, prettier_json_for_ksf},
+    data::{AssessmentsData, KsfsData},
     utils::{overwrite_file, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
-    io::Read,
     path::{Path, PathBuf},
 };
 
@@ -85,17 +84,9 @@ impl Config {
         }
     }
 
-    pub fn from_file_path(file_path: &Path) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        let ksf: Config = serde_json::from_str(&crate::data::restore_num_names_in_ksf(&s))?;
-        Ok(ksf)
-    }
-
-    pub fn to_json(&self) -> Result<String> {
-        let raw_json =
-            serde_json::to_string_pretty(&self).context("unable to convert Config to json")?;
-        Ok(prettier_json_for_ksf(&raw_json))
-    }
+    crate::to_and_from_json!(
+        self,
+        "unable to make Config from file",
+        "unable to convert Config to json"
+    );
 }

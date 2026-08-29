@@ -96,7 +96,7 @@ impl Ksf {
     }
 
     pub fn example() -> Ksf {
-        serde_json::from_str(&super::restore_num_names_in_ksf(
+        serde_json::from_str(&super::expand_num_names(
             r#"{
                 "frequency": [
                     ["A", "Aggression"],
