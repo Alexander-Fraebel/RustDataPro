@@ -1,5 +1,5 @@
 use crate::{
-    data::{AssessmentsData, KsfsData},
+    data::{AssessmentsData, KsfsData, prettier_json},
     utils::{overwrite_file, windows_error_dialog},
 };
 use anyhow::{Context, Result};
@@ -95,7 +95,8 @@ impl Config {
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self)
-            .context(format!("unable to create {}", CONFIG_FILE_NAME))
+        let raw_json =
+            serde_json::to_string_pretty(&self).context("unable to convert Config to json")?;
+        Ok(prettier_json(raw_json))
     }
 }

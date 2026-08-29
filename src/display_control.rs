@@ -8,15 +8,15 @@ pub struct DisplayControl {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Page {
+    About,
+    CreateClient,
+    EditAssessments,
+    EditKsfs,
+    Ioa,
+    PreferenceAssessment,
     PrepareSession,
     RunSession,
-    Ioa,
-    CreateClient,
-    EditKsfs,
-    EditAssessments,
     Settings,
-    Credits,
-    PreferenceAssessment,
     Shuffler,
     Timers,
 }
@@ -67,7 +67,7 @@ impl DataPro {
     }
 
     pub fn go_to_credits(&mut self) {
-        self.display_info.active_page = Page::Credits;
+        self.display_info.active_page = Page::About;
         self.display_info.sidebar_open = true;
     }
 

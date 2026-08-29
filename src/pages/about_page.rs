@@ -2,7 +2,7 @@ use crate::app::DataPro;
 use egui::RichText;
 
 impl DataPro {
-    pub fn view_credits(&mut self, ui: &mut egui::Ui) {
+    pub fn view_about_page(&mut self, ui: &mut egui::Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
             ui.label(RichText::from("Welcome to RustDataPro").heading().strong());
@@ -25,7 +25,8 @@ impl DataPro {
                     ui.hyperlink_to("Rust", "https://rust-lang.org/");
                     ui.label(".");
                 });
-            });          
+            });                      
+            ui.add_space(5.0);
             if ui.button("Manually Set Dark Mode").clicked() {
                 ui.ctx().set_visuals(egui::Visuals::dark());
             }

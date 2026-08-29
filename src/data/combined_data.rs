@@ -1,4 +1,6 @@
-use crate::data::{Assessment, AssessmentsData, ClientData, Ksf, KsfsData, SessionData};
+use crate::data::{
+    Assessment, AssessmentsData, ClientData, Ksf, KsfsData, SessionData, prettier_json,
+};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
@@ -28,8 +30,9 @@ pub struct ClientAndSessionData {
 
 impl ClientAndSessionData {
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self)
-            .context("unable to convert ClientAndSessionData to json")
+        let raw_json = serde_json::to_string_pretty(&self)
+            .context("unable to convert ClientAndSessionData to json")?;
+        Ok(prettier_json(raw_json))
     }
 
     pub fn clear(&mut self) {

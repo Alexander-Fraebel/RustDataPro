@@ -13,14 +13,14 @@ use std::{
 };
 
 const LEAF_PAIR_FIND: LazyCell<Regex> =
-    LazyCell::new(|| Regex::new(r#"\s*\[\s*(".+"),\s*(".+")\s*]"#).unwrap());
-const LEAF_PAIR_REPLACE: &'static str = "\n        [$1, $2]";
+    LazyCell::new(|| Regex::new(r#"(\s*)\[\s*(".+")\s*,\s*(".+")\s*]"#).unwrap());
+const LEAF_PAIR_REPLACE: &'static str = r"$1[$2, $3]";
 
 const NUM_NAME_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"Num([0123456789])").unwrap());
-const NUM_NAME_REPLACE: &'static str = "$1";
+const NUM_NAME_REPLACE: &'static str = r"$1";
 
 /// Renames Egui number key names to just the number (which is easier to read) and makes the representation more compact.
-fn prettier_json(text: String) -> String {
+pub fn prettier_json(text: String) -> String {
     let pass1 = LEAF_PAIR_FIND.replace_all(&text, LEAF_PAIR_REPLACE);
     let pass2 = NUM_NAME_FIND.replace_all(&pass1, NUM_NAME_REPLACE);
     pass2.to_string()

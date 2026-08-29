@@ -1,4 +1,4 @@
-pub mod credits;
+pub mod about_page;
 pub mod debug_page;
 pub mod edit_assessments;
 pub mod edit_ksfs;

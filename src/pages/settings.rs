@@ -4,11 +4,6 @@ impl DataPro {
     pub fn view_settings(&mut self, ui: &mut egui::Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
-            if ui.button("Manually Set Dark Mode").clicked() {
-                ui.ctx().set_visuals(egui::Visuals::dark());
-            }
-
-            ui.add_space(10.0);
             ui.horizontal(|ui| {
                 ui.label("UI Scaling");
                 if ui
