@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, fs::File, io::Read, path::Path};
+use std::{fmt::Display, path::Path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum DataType {
@@ -43,14 +43,11 @@ pub struct SessionData {
 }
 
 impl SessionData {
-    pub fn from_file(file_path: &Path) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        Ok(serde_json::from_str(&s)?)
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(self, "unable to make SessionData from file", file_path)
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self).context("unable to convert session data to json")
+        crate::to_json!(self, "unable to convert SessionData to json")
     }
 }

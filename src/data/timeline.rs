@@ -2,8 +2,6 @@ use anyhow::{Context, Result};
 use egui::Key;
 use serde::{Deserialize, Serialize};
 use std::{
-    fs::File,
-    io::Read,
     ops::{Deref, DerefMut},
     path::Path,
 };
@@ -27,14 +25,11 @@ impl DerefMut for Timeline {
 }
 
 impl Timeline {
-    pub fn from_file(file_path: &Path) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        Ok(serde_json::from_str(&s)?)
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(self, "unable to make Timeline from file", file_path)
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string(&self).context("unable to convert timeline data to json")
+        crate::to_json!(self, "unable to convert Timeline to json")
     }
 }

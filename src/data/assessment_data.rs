@@ -2,10 +2,8 @@ use anyhow::{Context, Result};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use std::{
-    fs::File,
-    io::Read,
     ops::{Deref, DerefMut},
-    path::PathBuf,
+    path::Path,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -52,8 +50,12 @@ impl Assessment {
         self.conditions.first()
     }
 
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(self, "unable to make Assessment from file", file_path)
+    }
+
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self).context("unable to convert Assessment to json")
+        crate::to_json!(self, "unable to convert Assessment to json")
     }
 
     pub fn example() -> Self {
@@ -93,15 +95,12 @@ impl DerefMut for AssessmentsData {
 }
 
 impl AssessmentsData {
-    pub fn from_file(file_path: &PathBuf) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        Ok(serde_json::from_str(&s)?)
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(self, "unable to make AssessmentsData from file", file_path)
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self).context("unable to convert AssessmentsData to json")
+        crate::to_json!(self, "unable to convert AssessmentsData to json")
     }
 
     pub fn example() -> Self {

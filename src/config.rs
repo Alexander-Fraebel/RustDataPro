@@ -4,7 +4,11 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Read, path::PathBuf};
+use std::{
+    fs::File,
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 pub const CLIENT_DATA_FILE_NAME: &'static str = "client_data.txt";
 pub const ASSESSMENTS_FILE_NAME: &'static str = "assessments.txt";
@@ -63,30 +67,30 @@ impl Config {
     pub fn try_from_current_dir() -> Result<Self> {
         if let Ok(path_buf) = std::env::current_dir() {
             let path_to_config = path_buf.join(CONFIG_FILE_NAME);
-            let mut file = match File::open(&path_to_config) {
-                Ok(f) => f,
-                Err(e) => {
-                    if e.kind() == std::io::ErrorKind::NotFound {
-                        windows_error_dialog(anyhow::anyhow!(
-                            "unable to read {}\na default config file will be created at {}",
-                            CONFIG_FILE_NAME,
-                            path_to_config.to_string_lossy()
-                        ));
-                        overwrite_file(Ok(path_to_config.clone()), &Self::default().to_json()?)?;
-                    }
-                    File::open(&path_to_config)?
-                }
-            };
-            let mut s = String::new();
-            file.read_to_string(&mut s)?;
-            let configs: Config = serde_json::from_str(&crate::data::restore_num_names_in_ksf(&s))?;
-            Ok(configs)
+            if File::open(&path_to_config).is_err() {
+                windows_error_dialog(anyhow::anyhow!(
+                    "unable to read {}\na default config file will be created at {}",
+                    CONFIG_FILE_NAME,
+                    path_to_config.to_string_lossy()
+                ));
+                overwrite_file(Ok(path_to_config.clone()), &Self::default().to_json()?)?;
+                return Ok(Self::default());
+            }
+            Config::from_file_path(&path_to_config)
         } else {
             Err(anyhow::anyhow!(
                 "current directory could not be accessed while looking for {}",
                 CONFIG_FILE_NAME
             ))
         }
+    }
+
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        let mut file = File::open(&file_path)?;
+        let mut s = String::new();
+        file.read_to_string(&mut s)?;
+        let ksf: Config = serde_json::from_str(&crate::data::restore_num_names_in_ksf(&s))?;
+        Ok(ksf)
     }
 
     pub fn to_json(&self) -> Result<String> {

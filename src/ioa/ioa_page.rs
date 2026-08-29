@@ -167,7 +167,7 @@ impl DataPro {
             );
             // Simultaneously parse and filter the input files.
             for buf in bufs {
-                match OutputData::from_file(buf.as_path()) {
+                match OutputData::from_file_path(buf.as_path()) {
                     Ok(data) => match data.session.data_collecion_type {
                         DataType::Primary => self.ioa_page.prim_data.push((data, buf)),
                         DataType::Reliability => self.ioa_page.reli_data.push((data, buf)),

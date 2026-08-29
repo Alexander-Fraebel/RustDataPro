@@ -8,7 +8,7 @@ use egui::Key;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Read, path::Path};
+use std::path::Path;
 
 /// Output of a single session. Includes the Client and Session data along with the recorded keypresses and times, and the KSF to translate those.
 #[derive(Serialize, Deserialize, Clone)]
@@ -45,15 +45,12 @@ impl OutputData {
             .join("")
     }
 
-    pub fn from_file(file_path: &Path) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        Ok(serde_json::from_str(&s)?)
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(self, "unable to make OutputData from file", file_path)
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string(&self).context("unable to convert session data to json")
+        crate::to_json!(self, "unable to convert OutputData to json")
     }
 }
 
@@ -62,6 +59,7 @@ fn create_test_data() {
     use crate::{data::ClientData, utils::rounded_f32};
     use egui::Key;
     use rand::{RngExt, make_rng, rngs::StdRng, seq::IndexedRandom};
+    use std::fs::File;
 
     let mut rng: StdRng = make_rng();
 

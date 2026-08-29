@@ -1,6 +1,6 @@
-use crate::data::{
-    Assessment, AssessmentsData, ClientData, Ksf, KsfsData, SessionData, prettier_json_for_ksf,
-};
+use std::path::Path;
+
+use crate::data::{Assessment, AssessmentsData, ClientData, Ksf, KsfsData, SessionData};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
@@ -29,10 +29,16 @@ pub struct ClientAndSessionData {
 }
 
 impl ClientAndSessionData {
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(
+            self,
+            "unable to make ClientAndSessionData from file",
+            file_path
+        )
+    }
+
     pub fn to_json(&self) -> Result<String> {
-        let raw_json = serde_json::to_string_pretty(&self)
-            .context("unable to convert ClientAndSessionData to json")?;
-        Ok(prettier_json_for_ksf(&raw_json))
+        crate::to_json!(self, "unable to convert ClientAndSessionData to json")
     }
 
     pub fn clear(&mut self) {

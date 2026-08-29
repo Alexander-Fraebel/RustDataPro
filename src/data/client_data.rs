@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use chrono::{Datelike, Local, NaiveDate};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Read, path::PathBuf};
+use std::path::Path;
 
 /// Client information that persists between sessions.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -53,14 +53,11 @@ impl ClientData {
         self.location = self.location.trim().to_owned();
     }
 
-    pub fn from_file(file_path: &PathBuf) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        Ok(serde_json::from_str(&s)?)
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(self, "unable to make ClientData from file", file_path)
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self).context("unable to convert ClientData to json")
+        crate::to_json!(self, "unable to convert ClientData to json")
     }
 }

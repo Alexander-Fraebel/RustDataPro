@@ -2,37 +2,11 @@ use anyhow::{Context, Result};
 use egui::Key;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::LazyCell,
-    fs::File,
-    io::Read,
     ops::{Deref, DerefMut},
     path::Path,
 };
-
-const LEAF_PAIR_FIND: LazyCell<Regex> =
-    LazyCell::new(|| Regex::new(r#"(\s*)\[\s*(".+")\s*,\s*(".+")\s*]"#).unwrap());
-const LEAF_PAIR_REPLACE: &'static str = r"$1[$2, $3]";
-
-const NUM_NAME_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"Num([0123456789])").unwrap());
-const NUM_NAME_REPLACE: &'static str = r"$1";
-
-/// Renames Egui number key names to just the number (which is easier to read) and makes the representation more compact.
-pub fn prettier_json_for_ksf(text: &str) -> String {
-    let t = LEAF_PAIR_FIND.replace_all(&text, LEAF_PAIR_REPLACE);
-    let t = NUM_NAME_FIND.replace_all(&t, NUM_NAME_REPLACE);
-    t.to_string()
-}
-
-const NUM_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r#""([0123456789])""#).unwrap());
-const NUM_REPLACE: &'static str = "\"Num$1\"";
-
-/// Rename numbers to number key names that Egui will recognize
-pub fn restore_num_names_in_ksf(text: &str) -> String {
-    NUM_FIND.replace_all(&text, NUM_REPLACE).to_string()
-}
 
 pub const ALLOWED_KSF_KEYS: [Key; 36] = [
     Key::Num0,
@@ -73,8 +47,7 @@ pub const ALLOWED_KSF_KEYS: [Key; 36] = [
     Key::Z,
 ];
 
-/// Keyboard Setup File. A list of keybinds divided into Frequency and Duration.
-/// All methods return with Frequency information before Duration.
+/// Keyboard Setup File. Two list of keybinds with their descriptions: Frequency and Duration.
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
 pub struct Ksf {
     #[serde(rename(serialize = "frequency", deserialize = "frequency"))]
@@ -123,7 +96,7 @@ impl Ksf {
     }
 
     pub fn example() -> Ksf {
-        serde_json::from_str(&restore_num_names_in_ksf(
+        serde_json::from_str(&super::restore_num_names_in_ksf(
             r#"{
                 "frequency": [
                     ["A", "Aggression"],
@@ -141,28 +114,23 @@ impl Ksf {
                 ],
                 "duration": [
                     ["K", "Toy Engage"],
-                    ["Num4", "Sr+"],
-                    ["Num6", "Sdelta"]
+                    ["4", "Sr+"],
+                    ["6", "Sdelta"]
                 ]
             }"#,
         ))
         .unwrap()
     }
 
-    pub fn from_file(file_path: &Path) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        let ksf: Ksf = serde_json::from_str(&s)?;
-        if !ksf.keys_unique() {
-            Err(anyhow::anyhow!("KSF contains duplicate keys"))
-        } else {
-            Ok(ksf)
-        }
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        serde_json::from_str(&super::restore_num_names_in_ksf(&std::fs::read_to_string(
+            file_path,
+        )?))
+        .context("unable to make Ksf from file")
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(&self).context("unable to convert Ksf to json")
+        crate::to_json!(self, "unable to convert Ksf to json")
     }
 }
 
@@ -197,18 +165,12 @@ impl KsfsData {
         Ok(())
     }
 
-    pub fn from_file(file_path: &Path) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        let ksf: KsfsData = serde_json::from_str(&restore_num_names_in_ksf(&s))?;
-        Ok(ksf)
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(self, "unable to make KsfsData from file", file_path)
     }
 
     pub fn to_json(&self) -> Result<String> {
-        let raw_json =
-            serde_json::to_string_pretty(&self).context("unable to convert KsfsData to json")?;
-        Ok(prettier_json_for_ksf(&raw_json))
+        crate::to_json!(self, "unable to convert KsfsData to json")
     }
 
     pub fn example() -> KsfsData {

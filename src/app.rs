@@ -275,7 +275,7 @@ impl DataPro {
     }
 
     pub fn load_ksf(&mut self, path: &PathBuf) {
-        match KsfsData::from_file(&path) {
+        match KsfsData::from_file_path(&path) {
             Ok(ksf) => {
                 self.data.ksfs = ksf;
             }
@@ -288,7 +288,7 @@ impl DataPro {
 
     pub fn load_assessments(&mut self) -> Result<()> {
         let assessments_path = self.path_to_assessments();
-        match AssessmentsData::from_file(&assessments_path) {
+        match AssessmentsData::from_file_path(&assessments_path) {
             Ok(assessments_data) => {
                 self.data.assessments = assessments_data;
                 self.edit_assessments
@@ -356,7 +356,7 @@ impl DataPro {
 
     pub fn load_client(&mut self, path: &PathBuf) {
         // Determine if the client file exists
-        match ClientData::from_file(&Path::new(path).join(CLIENT_DATA_FILE_NAME))
+        match ClientData::from_file_path(&Path::new(path).join(CLIENT_DATA_FILE_NAME))
             .context("error reading client_data.txt")
         {
             Ok(client) => {
@@ -367,7 +367,7 @@ impl DataPro {
 
                 // Load the KSF Data
                 let ksf_path = self.path_to_ksf_data();
-                match KsfsData::from_file(&ksf_path) {
+                match KsfsData::from_file_path(&ksf_path) {
                     Ok(ksf_data) => {
                         self.data.ksfs = ksf_data;
                         self.edit_ksfs.prepare(&self.data, ksf_path.clone());
@@ -385,7 +385,7 @@ impl DataPro {
                                 KSF_FILE_NAME
                             )));
                             match self.try_create_example_ksfs_file() {
-                                Ok(_) => match KsfsData::from_file(&ksf_path) {
+                                Ok(_) => match KsfsData::from_file_path(&ksf_path) {
                                     Ok(new_data) => {
                                         self.data.ksfs = new_data;
                                         self.edit_ksfs.prepare(&self.data, ksf_path.clone());
@@ -408,7 +408,7 @@ impl DataPro {
 
                 // Load the Assessments Data
                 let assessments_path = self.path_to_assessments();
-                match AssessmentsData::from_file(&assessments_path) {
+                match AssessmentsData::from_file_path(&assessments_path) {
                     Ok(assessments_data) => {
                         self.data.assessments = assessments_data;
                         self.edit_assessments
@@ -425,7 +425,7 @@ impl DataPro {
                                 ASSESSMENTS_FILE_NAME
                             )));
                             match self.try_create_example_assessments_file() {
-                                Ok(_) => match AssessmentsData::from_file(&assessments_path) {
+                                Ok(_) => match AssessmentsData::from_file_path(&assessments_path) {
                                     Ok(new_data) => {
                                         self.data.assessments = new_data;
                                         self.edit_assessments

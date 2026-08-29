@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use egui::Key;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Read, path::Path};
+use std::path::Path;
 
 /// Summary of IOA data.
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -61,14 +61,11 @@ impl IoaData {
         }
     }
 
-    pub fn from_file(file_path: &Path) -> Result<Self> {
-        let mut file = File::open(&file_path)?;
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-        Ok(serde_json::from_str(&s)?)
+    pub fn from_file_path(file_path: &Path) -> Result<Self> {
+        crate::from_file_path!(self, "unable to make IoaData from file", file_path)
     }
 
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string(&self).context("unable to convert IoaData to json")
+        crate::to_json!(self, "unable to convert IoaData to json")
     }
 }
