@@ -46,7 +46,10 @@ pub struct DataPro {
 
 impl Default for DataPro {
     fn default() -> Self {
-        let config = Config::from_current_dir();
+        let config = match Config::try_from_current_dir() {
+            Ok(c) => c,
+            Err(e) => panic!("{e}"),
+        };
 
         // The provided directory should always be valid on Windows and we are not handling any other OS
         let root_dir = PathBuf::from(&config.root_dir);
@@ -94,8 +97,11 @@ impl Default for DataPro {
 impl DataPro {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Load the config file information before the application loads
-        let configs = Config::from_current_dir();
-        cc.egui_ctx.set_pixels_per_point(configs.zoom);
+        let config = match Config::try_from_current_dir() {
+            Ok(c) => c,
+            Err(e) => panic!("{e}"),
+        };
+        cc.egui_ctx.set_pixels_per_point(config.zoom);
 
         cc.egui_ctx.set_visuals(Visuals::dark());
 

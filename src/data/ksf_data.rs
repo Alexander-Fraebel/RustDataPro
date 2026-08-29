@@ -20,7 +20,7 @@ const NUM_NAME_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"Num([012345
 const NUM_NAME_REPLACE: &'static str = r"$1";
 
 /// Renames Egui number key names to just the number (which is easier to read) and makes the representation more compact.
-pub fn prettier_json(text: String) -> String {
+pub fn prettier_json_for_ksf(text: String) -> String {
     let pass1 = LEAF_PAIR_FIND.replace_all(&text, LEAF_PAIR_REPLACE);
     let pass2 = NUM_NAME_FIND.replace_all(&pass1, NUM_NAME_REPLACE);
     pass2.to_string()
@@ -30,7 +30,7 @@ const NUM_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r#""([0123456789])
 const NUM_REPLACE: &'static str = "\"Num$1\"";
 
 /// Rename numbers to number key names that Egui will recognize
-fn restore_num_names(text: String) -> String {
+pub fn restore_num_names_in_ksf(text: String) -> String {
     NUM_FIND.replace_all(&text, NUM_REPLACE).to_string()
 }
 
@@ -201,7 +201,7 @@ impl KsfsData {
         let mut file = File::open(&file_path)?;
         let mut s = String::new();
         file.read_to_string(&mut s)?;
-        s = restore_num_names(s);
+        s = restore_num_names_in_ksf(s);
         let ksf: KsfsData = serde_json::from_str(&s)?;
         Ok(ksf)
     }
@@ -209,7 +209,7 @@ impl KsfsData {
     pub fn to_json(&self) -> Result<String> {
         let raw_json =
             serde_json::to_string_pretty(&self).context("unable to convert KsfsData to json")?;
-        Ok(prettier_json(raw_json))
+        Ok(prettier_json_for_ksf(raw_json))
     }
 
     pub fn example() -> KsfsData {

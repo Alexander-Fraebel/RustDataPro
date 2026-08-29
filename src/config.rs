@@ -1,5 +1,5 @@
 use crate::{
-    data::{AssessmentsData, KsfsData, prettier_json},
+    data::{AssessmentsData, KsfsData, prettier_json_for_ksf},
     utils::{overwrite_file, windows_error_dialog},
 };
 use anyhow::{Context, Result};
@@ -74,12 +74,12 @@ impl Config {
                         ));
                         overwrite_file(Ok(path_to_config.clone()), &Self::default().to_json()?)?;
                     }
-                    File::open(&path_to_config).unwrap()
+                    File::open(&path_to_config)?
                 }
             };
             let mut s = String::new();
             file.read_to_string(&mut s)?;
-            let configs: Config = serde_json::from_str(&s)?;
+            let configs: Config = serde_json::from_str(&crate::data::restore_num_names_in_ksf(s))?;
             Ok(configs)
         } else {
             Err(anyhow::anyhow!(
@@ -89,14 +89,14 @@ impl Config {
         }
     }
 
-    /// Search the directory the program is in for a config file and load it or create the default config
-    pub fn from_current_dir() -> Self {
-        Self::try_from_current_dir().unwrap_or_default()
-    }
+    // /// Search the directory the program is in for a config file and load it or create the default config
+    // pub fn from_current_dir() -> Self {
+    //     Self::try_from_current_dir().unwrap_or_default()
+    // }
 
     pub fn to_json(&self) -> Result<String> {
         let raw_json =
             serde_json::to_string_pretty(&self).context("unable to convert Config to json")?;
-        Ok(prettier_json(raw_json))
+        Ok(prettier_json_for_ksf(raw_json))
     }
 }
