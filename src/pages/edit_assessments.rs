@@ -189,8 +189,8 @@ impl DataPro {
             );
             ui.add_space(10.0);
 
-            ui.label("Save To:");
             ui.add_enabled_ui(false, |ui| {
+                ui.label("Save To:");
                 ui.directory_picker(
                     &mut self.edit_assessments.file_dialog,
                     &self.edit_assessments.save_path,

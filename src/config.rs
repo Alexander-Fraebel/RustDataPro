@@ -1,4 +1,7 @@
-use crate::utils::{overwrite_file, windows_error_dialog};
+use crate::{
+    data::{AssessmentsData, KsfsData},
+    utils::{overwrite_file, windows_error_dialog},
+};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read, path::PathBuf};
@@ -16,27 +19,41 @@ pub fn path_to_config_file() -> Result<PathBuf> {
         .join(CONFIG_FILE_NAME))
 }
 
-fn default_zoom() -> f32 {
+fn hardcoded_zoom() -> f32 {
     1.0
 }
 
-fn default_root_dir() -> String {
+fn hardcoded_root_dir() -> String {
     String::from("C:\\DataProClients")
+}
+
+fn hardcoded_ksfs_data() -> String {
+    KsfsData::example().to_json().unwrap()
+}
+
+fn hardcoded_assessments_data() -> String {
+    AssessmentsData::example().to_json().unwrap()
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    #[serde(default = "default_zoom")]
+    #[serde(default = "hardcoded_zoom")]
     pub zoom: f32,
-    #[serde(default = "default_root_dir")]
+    #[serde(default = "hardcoded_root_dir")]
     pub root_dir: String,
+    #[serde(default = "hardcoded_ksfs_data")]
+    pub default_ksfs_data: String,
+    #[serde(default = "hardcoded_assessments_data")]
+    pub default_assessments_data: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            zoom: default_zoom(),
-            root_dir: default_root_dir(),
+            zoom: hardcoded_zoom(),
+            root_dir: hardcoded_root_dir(),
+            default_ksfs_data: hardcoded_ksfs_data(),
+            default_assessments_data: hardcoded_assessments_data(),
         }
     }
 }

@@ -7,8 +7,7 @@ use crate::{
     display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
-        CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Settings,
-        Shuffler, Timers,
+        CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
     },
     preference_assessment::PreferenceAssessment,
     quick_error,
@@ -22,6 +21,8 @@ use rand::{make_rng, rngs::StdRng};
 use std::path::{Path, PathBuf};
 
 pub struct DataPro {
+    pub config: Config,
+
     pub pick_root_directory: FileDialog,
     pub root_directory: PathBuf,
 
@@ -40,7 +41,6 @@ pub struct DataPro {
     pub new_client_page: CreateClient,
     pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
-    pub settings: Settings,
     pub preference_assessment: PreferenceAssessment,
 }
 
@@ -57,6 +57,8 @@ impl Default for DataPro {
         }
 
         let mut app = Self {
+            config,
+
             data: Data::default(),
 
             rng: make_rng(),
@@ -80,7 +82,6 @@ impl Default for DataPro {
             new_client_page: CreateClient::default(),
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
-            settings: Settings { config },
             preference_assessment: PreferenceAssessment::default(),
         };
 
@@ -191,7 +192,7 @@ impl DataPro {
     }
 
     pub fn root_dir(&self) -> PathBuf {
-        PathBuf::from(&self.settings.config.root_dir)
+        PathBuf::from(&self.config.root_dir)
     }
 
     /// Create the path to a file or folder that is inside the top of the active client folder. Returns an error if no client is loaded.
@@ -319,17 +320,14 @@ impl DataPro {
 
     pub fn try_create_example_ksfs_file(&self) -> Result<()> {
         let mut writer = std::fs::File::create_new(Path::new(&&self.path_to_ksf_data()))?;
-        std::io::Write::write_all(&mut writer, KsfsData::example().to_json()?.as_bytes())?;
+        std::io::Write::write_all(&mut writer, self.config.default_ksfs_data.as_bytes())?;
         std::io::Write::flush(&mut writer)?;
         Ok(())
     }
 
     pub fn try_create_example_assessments_file(&self) -> Result<()> {
         let mut writer = std::fs::File::create_new(Path::new(&self.path_to_assessments()))?;
-        std::io::Write::write_all(
-            &mut writer,
-            AssessmentsData::example().to_json()?.as_bytes(),
-        )?;
+        std::io::Write::write_all(&mut writer, self.config.default_assessments_data.as_bytes())?;
         std::io::Write::flush(&mut writer)?;
         Ok(())
     }

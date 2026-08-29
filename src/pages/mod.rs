@@ -15,6 +15,5 @@ pub use edit_ksfs::*;
 pub use new_client::*;
 pub use prepare::*;
 pub use session::*;
-pub use settings::*;
 pub use shuffler::*;
 pub use timers::*;
