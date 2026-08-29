@@ -32,7 +32,7 @@ impl ClientAndSessionData {
     pub fn to_json(&self) -> Result<String> {
         let raw_json = serde_json::to_string_pretty(&self)
             .context("unable to convert ClientAndSessionData to json")?;
-        Ok(prettier_json_for_ksf(raw_json))
+        Ok(prettier_json_for_ksf(&raw_json))
     }
 
     pub fn clear(&mut self) {

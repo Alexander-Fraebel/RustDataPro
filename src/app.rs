@@ -88,7 +88,7 @@ impl Default for DataPro {
             preference_assessment: PreferenceAssessment::default(),
         };
 
-        // Initialize everything by "unloading" the client
+        // Initialize everything by "unloading" a client
         app.unload_client();
         app
     }

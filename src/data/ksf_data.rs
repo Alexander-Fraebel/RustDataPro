@@ -20,17 +20,17 @@ const NUM_NAME_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"Num([012345
 const NUM_NAME_REPLACE: &'static str = r"$1";
 
 /// Renames Egui number key names to just the number (which is easier to read) and makes the representation more compact.
-pub fn prettier_json_for_ksf(text: String) -> String {
-    let pass1 = LEAF_PAIR_FIND.replace_all(&text, LEAF_PAIR_REPLACE);
-    let pass2 = NUM_NAME_FIND.replace_all(&pass1, NUM_NAME_REPLACE);
-    pass2.to_string()
+pub fn prettier_json_for_ksf(text: &str) -> String {
+    let t = LEAF_PAIR_FIND.replace_all(&text, LEAF_PAIR_REPLACE);
+    let t = NUM_NAME_FIND.replace_all(&t, NUM_NAME_REPLACE);
+    t.to_string()
 }
 
 const NUM_FIND: LazyCell<Regex> = LazyCell::new(|| Regex::new(r#""([0123456789])""#).unwrap());
 const NUM_REPLACE: &'static str = "\"Num$1\"";
 
 /// Rename numbers to number key names that Egui will recognize
-pub fn restore_num_names_in_ksf(text: String) -> String {
+pub fn restore_num_names_in_ksf(text: &str) -> String {
     NUM_FIND.replace_all(&text, NUM_REPLACE).to_string()
 }
 
@@ -84,7 +84,7 @@ pub struct Ksf {
 }
 
 impl Ksf {
-    /// All key/description pairs.
+    /// All frequency (Key, Description) pairs and all duration (Key, Description) pairs.
     pub fn pairs(
         &self,
     ) -> (
@@ -123,7 +123,7 @@ impl Ksf {
     }
 
     pub fn example() -> Ksf {
-        serde_json::from_str(
+        serde_json::from_str(&restore_num_names_in_ksf(
             r#"{
                 "frequency": [
                     ["A", "Aggression"],
@@ -145,7 +145,7 @@ impl Ksf {
                     ["Num6", "Sdelta"]
                 ]
             }"#,
-        )
+        ))
         .unwrap()
     }
 
@@ -201,15 +201,14 @@ impl KsfsData {
         let mut file = File::open(&file_path)?;
         let mut s = String::new();
         file.read_to_string(&mut s)?;
-        s = restore_num_names_in_ksf(s);
-        let ksf: KsfsData = serde_json::from_str(&s)?;
+        let ksf: KsfsData = serde_json::from_str(&restore_num_names_in_ksf(&s))?;
         Ok(ksf)
     }
 
     pub fn to_json(&self) -> Result<String> {
         let raw_json =
             serde_json::to_string_pretty(&self).context("unable to convert KsfsData to json")?;
-        Ok(prettier_json_for_ksf(raw_json))
+        Ok(prettier_json_for_ksf(&raw_json))
     }
 
     pub fn example() -> KsfsData {

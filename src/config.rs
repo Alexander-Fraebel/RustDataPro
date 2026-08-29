@@ -79,7 +79,7 @@ impl Config {
             };
             let mut s = String::new();
             file.read_to_string(&mut s)?;
-            let configs: Config = serde_json::from_str(&crate::data::restore_num_names_in_ksf(s))?;
+            let configs: Config = serde_json::from_str(&crate::data::restore_num_names_in_ksf(&s))?;
             Ok(configs)
         } else {
             Err(anyhow::anyhow!(
@@ -89,14 +89,9 @@ impl Config {
         }
     }
 
-    // /// Search the directory the program is in for a config file and load it or create the default config
-    // pub fn from_current_dir() -> Self {
-    //     Self::try_from_current_dir().unwrap_or_default()
-    // }
-
     pub fn to_json(&self) -> Result<String> {
         let raw_json =
             serde_json::to_string_pretty(&self).context("unable to convert Config to json")?;
-        Ok(prettier_json_for_ksf(raw_json))
+        Ok(prettier_json_for_ksf(&raw_json))
     }
 }
