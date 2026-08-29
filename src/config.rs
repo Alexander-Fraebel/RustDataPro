@@ -27,24 +27,24 @@ fn hardcoded_root_dir() -> String {
     String::from("C:\\DataProClients")
 }
 
-fn hardcoded_ksfs_data() -> String {
-    KsfsData::example().to_json().unwrap()
+fn hardcoded_ksfs_data() -> KsfsData {
+    KsfsData::example()
 }
 
-fn hardcoded_assessments_data() -> String {
-    AssessmentsData::example().to_json().unwrap()
+fn hardcoded_assessments_data() -> AssessmentsData {
+    AssessmentsData::example()
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     #[serde(default = "hardcoded_zoom")]
     pub zoom: f32,
     #[serde(default = "hardcoded_root_dir")]
     pub root_dir: String,
     #[serde(default = "hardcoded_ksfs_data")]
-    pub default_ksfs_data: String,
+    pub default_ksfs_data: KsfsData,
     #[serde(default = "hardcoded_assessments_data")]
-    pub default_assessments_data: String,
+    pub default_assessments_data: AssessmentsData,
 }
 
 impl Default for Config {

@@ -3,7 +3,7 @@ use crate::{
         ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
     },
-    data::{AssessmentsData, ClientData, Data, KsfsData, NO_CLIENT},
+    data::{AssessmentsData, ClientAndSessionData, ClientData, KsfsData, NO_CLIENT},
     display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
@@ -28,7 +28,7 @@ pub struct DataPro {
 
     pub rng: StdRng, // StdRng is currently ChaCha12 initalized from SysRng, any similar prng is more than sufficient
 
-    pub data: Data,
+    pub data: ClientAndSessionData,
     pub display_info: DisplayControl,
 
     pub randomness_page: Shuffler,
@@ -59,7 +59,7 @@ impl Default for DataPro {
         let mut app = Self {
             config,
 
-            data: Data::default(),
+            data: ClientAndSessionData::default(),
 
             rng: make_rng(),
 
@@ -320,14 +320,20 @@ impl DataPro {
 
     pub fn try_create_example_ksfs_file(&self) -> Result<()> {
         let mut writer = std::fs::File::create_new(Path::new(&&self.path_to_ksf_data()))?;
-        std::io::Write::write_all(&mut writer, self.config.default_ksfs_data.as_bytes())?;
+        std::io::Write::write_all(
+            &mut writer,
+            self.config.default_ksfs_data.to_json()?.as_bytes(),
+        )?;
         std::io::Write::flush(&mut writer)?;
         Ok(())
     }
 
     pub fn try_create_example_assessments_file(&self) -> Result<()> {
         let mut writer = std::fs::File::create_new(Path::new(&self.path_to_assessments()))?;
-        std::io::Write::write_all(&mut writer, self.config.default_assessments_data.as_bytes())?;
+        std::io::Write::write_all(
+            &mut writer,
+            self.config.default_assessments_data.to_json()?.as_bytes(),
+        )?;
         std::io::Write::flush(&mut writer)?;
         Ok(())
     }

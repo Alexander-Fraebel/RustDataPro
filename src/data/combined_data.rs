@@ -1,4 +1,6 @@
 use crate::data::{Assessment, AssessmentsData, ClientData, Ksf, KsfsData, SessionData};
+use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 
 pub const NO_CLIENT: &'static str = "no Client loaded";
 pub const NO_KSF: &'static str = "no KSF loaded";
@@ -14,8 +16,8 @@ pub const INVALID_SESSION: &'static str = "Session Number cannot be 0";
 pub const INVALID_MAX_SESSION: &'static str = "Max Session Length cannot be 0.0 seconds";
 pub const INVALID_MAX_TOTAL: &'static str = "Max Total Length cannot be 0.0 seconds";
 
-#[derive(Debug, Default)]
-pub struct Data {
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct ClientAndSessionData {
     pub client: ClientData,
     pub session: SessionData,
     pub assessments: AssessmentsData,
@@ -24,7 +26,12 @@ pub struct Data {
     pub misconfigs: String,
 }
 
-impl Data {
+impl ClientAndSessionData {
+    pub fn to_json(&self) -> Result<String> {
+        serde_json::to_string_pretty(&self)
+            .context("unable to convert ClientAndSessionData to json")
+    }
+
     pub fn clear(&mut self) {
         *self = Self::default()
     }

@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{Data, Ksf, output_data::OutputData, timeline::Timeline},
+    data::{ClientAndSessionData, Ksf, output_data::OutputData, timeline::Timeline},
     quick_error,
     timer::{Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms},
     ui_elements::DataProUiElements,
@@ -262,7 +262,7 @@ impl SessionPage {
     }
 
     /// Create the counters and timers defined by the KSF to use in session
-    pub fn load_ksf(&mut self, data: &Data) {
+    pub fn load_ksf(&mut self, data: &ClientAndSessionData) {
         if let Some(active_ksf) = data.ksfs.get(data.chosen_ksf_name()) {
             let (freq, dura) = active_ksf.pairs();
 

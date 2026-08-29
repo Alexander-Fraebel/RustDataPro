@@ -1,4 +1,85 @@
 {
   "zoom": 1.5,
-  "root_dir": "C:\\DataProClients"
+  "root_dir": "C:\\DataProClients",
+  "default_ksfs_data": {
+    "Example": {
+      "frequency": [
+        [
+          "A",
+          "Aggression"
+        ],
+        [
+          "D",
+          "Disruption"
+        ],
+        [
+          "S",
+          "SIB"
+        ],
+        [
+          "I",
+          "Instruction"
+        ],
+        [
+          "C",
+          "Compliance"
+        ],
+        [
+          "M",
+          "Mand"
+        ],
+        [
+          "L",
+          "Elope"
+        ],
+        [
+          "V",
+          "Neg Voc"
+        ],
+        [
+          "Z",
+          "Inapp Voc"
+        ],
+        [
+          "F",
+          "Ind FCR"
+        ],
+        [
+          "G",
+          "Prompt FCR"
+        ],
+        [
+          "H",
+          "Inacc FCR"
+        ]
+      ],
+      "duration": [
+        [
+          "K",
+          "Toy Engage"
+        ],
+        [
+          "Num4",
+          "Sr+"
+        ],
+        [
+          "Num6",
+          "Sdelta"
+        ]
+      ]
+    }
+  },
+  "default_assessments_data": {
+    "FA": {
+      "session": 1,
+      "preferred_ksf": "",
+      "conditions": [
+        "Alone",
+        "Tangible",
+        "Demand",
+        "Attention",
+        "Toy Play"
+      ]
+    }
+  }
 }
