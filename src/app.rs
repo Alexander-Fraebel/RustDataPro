@@ -1,7 +1,7 @@
 use crate::{
     config::{
         ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
-        SESSION_DATA_FOLDER_NAME,
+        SESSION_DATA_FOLDER_NAME, path_to_config_file,
     },
     data::{AssessmentsData, ClientAndSessionData, ClientData, KsfsData, NO_CLIENT},
     display_control::{DisplayControl, Page},
@@ -201,6 +201,16 @@ impl DataPro {
         PathBuf::from(&self.config.root_dir)
     }
 
+    pub fn reload_config(&mut self, ui: &mut egui::Ui) {
+        match Config::try_from_current_dir() {
+            Ok(config) => {
+                self.config = config;
+                ui.ctx().set_pixels_per_point(self.config.zoom);
+            }
+            Err(e) => windows_error_dialog(e),
+        }
+    }
+
     /// Create the path to a file or folder that is inside the top of the active client folder. Returns an error if no client is loaded.
     pub fn path_to(&self, name: &str) -> Result<PathBuf> {
         if !self.data.client_loaded() {
@@ -272,6 +282,10 @@ impl DataPro {
 
     pub fn overwrite_ksf_data(&self) -> Result<()> {
         overwrite_file(Ok(self.path_to_ksf_data()), &self.data.ksfs.to_json()?)
+    }
+
+    pub fn overwrite_config(&self) -> Result<()> {
+        overwrite_file(path_to_config_file(), &self.config.to_json()?)
     }
 
     pub fn load_ksf(&mut self, path: &PathBuf) {
