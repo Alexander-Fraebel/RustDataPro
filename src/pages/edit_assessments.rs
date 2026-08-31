@@ -89,12 +89,15 @@ fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
         ui.vertical(|ui| assessment_scroller(app, ui));
         ui.add_space(30.0);
         ui.vertical(|ui| {
-            ui.add_space(30.0);
+            ui.add_space(10.0);
             if ui.button("Add Assessment").clicked() {
                 app.edit_assessments.user_input.push(AssessmentMaker::new());
                 app.edit_assessments.changes_made = true;
             }
             ui.add_space(10.0);
+            if ui.large_green_button("SAVE").clicked() {
+                app.save_and_reload_assessments();
+            }
         });
     });
 }
@@ -184,10 +187,10 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label(
-                "The assessments file for this client will update when you click Prepare Session.",
-            );
-            ui.add_space(10.0);
+            // ui.label(
+            //     "The assessments file for this client will update when you click Prepare Session.",
+            // );
+            // ui.add_space(10.0);
 
             ui.add_enabled_ui(false, |ui| {
                 ui.label("Save To:");

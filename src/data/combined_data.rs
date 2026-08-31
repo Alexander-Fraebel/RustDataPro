@@ -1,8 +1,7 @@
-use std::path::Path;
-
 use crate::data::{Assessment, AssessmentsData, ClientData, Ksf, KsfsData, SessionData};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 pub const NO_CLIENT: &'static str = "no Client loaded";
 pub const NO_KSF: &'static str = "no KSF loaded";
@@ -105,6 +104,7 @@ impl ClientAndSessionData {
     }
 
     pub fn max_total_length_set_correctly(&self) -> bool {
+        // It is false that: total length is limited and the maximum total length is zero
         !(self.session.limit_total_length && self.session.maximum_total_length == 0.0)
     }
 
@@ -118,6 +118,7 @@ impl ClientAndSessionData {
         if !self.ksf_loaded() {
             misconfigs.push(NO_KSF);
         }
+        self.client.location = self.client.location.trim().to_string();
         if self.client.location.is_empty() {
             misconfigs.push(NO_LOCATION);
         }
@@ -127,15 +128,19 @@ impl ClientAndSessionData {
         if self.current_session == 0 {
             misconfigs.push(INVALID_SESSION);
         }
+        self.client.case_manager = self.client.case_manager.trim().to_string();
         if self.client.case_manager.is_empty() {
             misconfigs.push(NO_CASE_MANAGER);
         }
+        self.client.primary_therapist = self.client.primary_therapist.trim().to_string();
         if self.client.primary_therapist.is_empty() {
             misconfigs.push(NO_PRIMARY_THERAPIST);
         }
+        self.session.therapist = self.session.therapist.trim().to_string();
         if self.session.therapist.is_empty() {
             misconfigs.push(NO_SESSION_THERAPIST);
         }
+        self.session.data_collector = self.session.data_collector.trim().to_string();
         if self.session.data_collector.is_empty() {
             misconfigs.push(NO_DATA_COLLECTOR);
         }

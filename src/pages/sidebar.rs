@@ -27,30 +27,13 @@ impl DataPro {
                         ui.separator();
                         ui.add_space(8.0);
 
-                        // #[cfg(debug_assertions)]
-                        // {
-                        //     if ui
-                        //         .add_sized(
-                        //             crate::ui_elements::DEFAULT_LARGE_BUTTOM_DIMS,
-                        //             egui::Button::new(
-                        //                 egui::RichText::new("DEBUG")
-                        //                     .color(ui.visuals().warn_fg_color),
-                        //             ),
-                        //         )
-                        //         .clicked()
-                        //     {
-                        //         app.display_info.toggle_debug_display();
-                        //     }
-                        //     ui.add_space(5.0);
-                        // }
-
-                        if ui.large_button("Settings").clicked() {
-                            self.go_to_settings();
+                        if ui.large_button("About").clicked() {
+                            self.go_to_about();
                         }
                         ui.add_space(4.0);
 
-                        if ui.large_button("Credits").clicked() {
-                            self.go_to_credits();
+                        if ui.large_button("Settings").clicked() {
+                            self.go_to_settings();
                         }
 
                         ui.add_space(8.0);
@@ -70,11 +53,6 @@ impl DataPro {
                         }
                         ui.add_space(4.0);
 
-                        if ui.large_button("Calculate IOA").clicked() {
-                            self.go_to_ioa();
-                        }
-                        ui.add_space(4.0);
-
                         if ui.large_button("Edit KSFs").clicked() {
                             self.go_to_edit_ksf();
                         }
@@ -89,12 +67,17 @@ impl DataPro {
                         ui.add_space(8.0);
 
                         if ui.large_button("Shuffle List").clicked() {
-                            self.toggle_shuffler_window();
+                            self.go_to_shuffler();
                         }
                         ui.add_space(4.0);
 
                         if ui.large_button("Timers").clicked() {
-                            self.toggle_timer_window();
+                            self.go_to_timers();
+                        }
+                        ui.add_space(4.0);
+
+                        if ui.large_button("Calculate IOA").clicked() {
+                            self.go_to_ioa();
                         }
                         ui.add_space(4.0);
 

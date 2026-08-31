@@ -118,11 +118,14 @@ fn ksf_controller(app: &mut DataPro, ui: &mut egui::Ui) {
         });
         ui.add_space(30.0);
         ui.vertical(|ui| {
-            ui.add_space(30.0);
+            ui.add_space(10.0);
             if ui.button("Add KSF").clicked() {
                 app.edit_ksfs.user_input.push(KsfMaker::default());
             }
             ui.add_space(10.0);
+            if ui.large_green_button("SAVE").clicked() {
+                app.save_and_reload_ksfs();
+            }
         });
     });
 }
@@ -171,7 +174,7 @@ impl KsfMaker {
 #[derive(Default)]
 pub struct EditKsfData {
     pub user_input: Vec<KsfMaker>,
-    pub changes_made: bool,
+    pub changes_made: bool, // default is false
     pub deleted_row: Option<usize>,
     pub file_dialog: FileDialog,
     pub save_path: PathBuf,
@@ -212,8 +215,8 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("The KSFs file for this client will update when you click Prepare Session.");
-            ui.add_space(10.0);
+            // ui.label("The KSFs file for this client will update when you click Prepare Session.");
+            // ui.add_space(10.0);
 
             ui.add_enabled_ui(!self.data.client_loaded(), |ui| {
                 ui.label("Save To:");

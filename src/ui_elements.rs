@@ -65,14 +65,4 @@ impl DataProUiElements for Ui {
             file_dialog.pick_directory();
         }
     }
-
-    // fn return_button<F>(&mut self, app: &mut DataPro, mut closure: F)
-    // where
-    //     F: FnMut(&mut DataPro),
-    // {
-    //     if self.large_red_button("RETURN").clicked() {
-    //         closure(app);
-    //         app.go_to_prep_session();
-    //     }
-    // }
 }

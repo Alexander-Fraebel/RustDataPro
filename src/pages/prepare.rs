@@ -2,7 +2,27 @@ use crate::{
     app::DataPro, data::DataCollectionType, quick_error, ui_elements::DataProUiElements,
     utils::windows_error_dialog,
 };
-use egui::RichText;
+use egui::{Color32, RichText};
+
+fn edit_box(
+    ui: &mut egui::Ui,
+    label: &str,
+    source: &mut String,
+    check_if_session_can_start: &mut bool,
+) {
+    ui.label(label);
+    let bg_color = if source.is_empty() {
+        Color32::YELLOW
+    } else {
+        ui.visuals().extreme_bg_color
+    };
+    if ui
+        .add(egui::TextEdit::singleline(source).background_color(bg_color))
+        .changed()
+    {
+        *check_if_session_can_start = true
+    }
+}
 
 pub struct PrepareSession {
     pub can_start_session: bool,
@@ -66,16 +86,13 @@ impl PrepareSession {
                                         egui::TextEdit::singleline(&mut format!("{n} days ago"))
                                             .text_color(ui.visuals().error_fg_color)
                                             .interactive(false),
-                                    )
-                                    .on_hover_text(&app.data.client.date_of_admission);
-                                    app.prep_session.can_start_session = false;
+                                    );
                                 } else {
                                     // normal DOA information
                                     ui.add(
                                         egui::TextEdit::singleline(&mut format!("{n} days ago"))
                                             .interactive(false),
-                                    )
-                                    .on_hover_text(&app.data.client.date_of_admission);
+                                    );
                                 }
                             }
                             Err(_e) => {
@@ -84,9 +101,7 @@ impl PrepareSession {
                                     egui::TextEdit::singleline(&mut format!("ERROR"))
                                         .text_color(ui.visuals().error_fg_color)
                                         .interactive(false),
-                                )
-                                .on_hover_text(&app.data.client.date_of_admission);
-                                app.prep_session.can_start_session = false;
+                                );
                             }
                         }
                     }
@@ -133,25 +148,22 @@ impl PrepareSession {
                         quick_error!(app.overwrite_client_data());
                     }
                     ui.lock_unlock_button(&mut app.prep_session.edit_primary_therapist);
-
                     ui.end_row();
 
-                    ui.label("Session Therapist");
-                    if ui
-                        .text_edit_singleline(&mut app.data.session.therapist)
-                        .changed()
-                    {
-                        check_if_session_can_start = true;
-                    }
+                    edit_box(
+                        ui,
+                        "Session Therapist",
+                        &mut app.data.session.therapist,
+                        &mut check_if_session_can_start,
+                    );
                     ui.end_row();
 
-                    ui.label("Data Collector");
-                    if ui
-                        .text_edit_singleline(&mut app.data.session.data_collector)
-                        .changed()
-                    {
-                        check_if_session_can_start = true;
-                    }
+                    edit_box(
+                        ui,
+                        "Data Collector",
+                        &mut app.data.session.data_collector,
+                        &mut check_if_session_can_start,
+                    );
                     ui.end_row();
 
                     ui.label("Primary/Reliability");
@@ -271,8 +283,9 @@ impl PrepareSession {
                         .add_enabled(
                             app.data.session.limit_session_length,
                             egui::DragValue::new(&mut app.data.session.maximum_session_length)
+                                .speed(1.0)
                                 .suffix("  secs")
-                                .range(0.0..=999_999.0),
+                                .range(0.0..=999_999.0), // maximum is about 11.5 days, well within precision limits of f32
                         )
                         .changed()
                     {
@@ -290,8 +303,9 @@ impl PrepareSession {
                         .add_enabled(
                             app.data.session.limit_total_length,
                             egui::DragValue::new(&mut app.data.session.maximum_total_length)
+                                .speed(1.0)
                                 .suffix("  secs")
-                                .range(0.0..=999_999.0),
+                                .range(0.0..=999_999.0), // maximum is about 11.5 days, well within precision limits of f32
                         )
                         .changed()
                     {
