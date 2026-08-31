@@ -25,7 +25,6 @@ fn edit_box(
 }
 
 pub struct PrepareSession {
-    pub can_start_session: bool,
     pub edit_primary_therapist: bool,
     pub edit_case_manager: bool,
     pub edit_client_id: bool,
@@ -35,7 +34,6 @@ pub struct PrepareSession {
 impl Default for PrepareSession {
     fn default() -> Self {
         Self {
-            can_start_session: false,
             edit_primary_therapist: false,
             edit_case_manager: false,
             edit_client_id: false,
@@ -117,7 +115,7 @@ impl PrepareSession {
                     }
                     if session_number.changed() {
                         let current_session = app.data.current_session;
-                        if let Some(condtions) = app.data.active_assessment_data() {
+                        if let Some(condtions) = app.data.chosen_assessment() {
                             condtions.session = current_session;
                         }
                         check_if_session_can_start = true;
@@ -252,7 +250,7 @@ impl PrepareSession {
                         .selected_text(condition_text)
                         .show_ui(ui, |ui| {
                             if let Some(conds) =
-                                app.data.assessments.get(app.data.active_assessment_name())
+                                app.data.assessments.get(app.data.chosen_assessment_name())
                             {
                                 for cond in conds.conditions.iter() {
                                     if ui
@@ -313,7 +311,7 @@ impl PrepareSession {
                     };
 
                     if check_if_session_can_start {
-                        app.check_if_ready_to_start_session();
+                        app.data.update_misconfigurations();
                     }
                 });
             ui.add_space(10.0);
@@ -383,7 +381,7 @@ impl DataPro {
 
                     ui.add_space(5.0);
 
-                    ui.add_enabled_ui(self.prep_session.can_start_session, |ui| {
+                    ui.add_enabled_ui(self.data.misconfigs.is_empty(), |ui| {
                         if ui
                             .large_green_button("BEGIN SESSION")
                             .on_disabled_hover_text(&self.data.misconfigs)
@@ -391,8 +389,8 @@ impl DataPro {
                         {
                             // Final check to ensure session is ready to start.
                             // This could be triggered by an oversight in the live updating.
-                            self.check_if_ready_to_start_session();
-                            match self.prep_session.can_start_session {
+                            self.data.update_misconfigurations();
+                            match self.data.misconfigs.is_empty() {
                                 true => {
                                     // Try to update the client. This really shouldn't ever fail so if it does we'll give an error and not start session.
                                     if let Err(e) = self.overwrite_client_data() {
@@ -405,7 +403,7 @@ impl DataPro {
                                         if let Some(conditions) = self
                                             .data
                                             .assessments
-                                            .get(self.data.active_assessment_name())
+                                            .get(self.data.chosen_assessment_name())
                                         {
                                             self.data.current_session = conditions.session;
                                         }

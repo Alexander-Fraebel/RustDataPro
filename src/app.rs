@@ -192,11 +192,6 @@ impl DataPro {
             });
     }
 
-    pub fn check_if_ready_to_start_session(&mut self) {
-        self.data.update_misconfigurations();
-        self.prep_session.can_start_session = self.data.misconfigs.is_empty();
-    }
-
     pub fn root_dir(&self) -> PathBuf {
         PathBuf::from(&self.config.root_dir)
     }
@@ -469,7 +464,7 @@ impl DataPro {
                     self.data.session.therapist = String::from("EX");
                 }
 
-                self.check_if_ready_to_start_session();
+                self.data.update_misconfigurations()
             }
             Err(e) => {
                 self.unload_client();

@@ -114,8 +114,8 @@ impl DataPro {
     pub fn save_new_output_data(&mut self) -> Result<()> {
         let file_name = self.path_to_session_records_dir().join(format!(
             "{}-{}_{}{}.txt",
-            self.data.active_assessment_name(),
-            self.data.active_condition_name(),
+            self.data.chosen_assessment_name(),
+            self.data.chosen_condition_name(),
             self.data.current_session,
             self.data.session.data_collection_type.abbrev()
         ));

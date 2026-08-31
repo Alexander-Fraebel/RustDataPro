@@ -38,20 +38,8 @@ impl ClientAndSessionData {
         *self = Self::default()
     }
 
-    pub fn active_assessment_name(&self) -> &String {
-        &self.session.chosen_assessment
-    }
-
-    pub fn active_condition_name(&self) -> &String {
-        &self.session.chosen_condition
-    }
-
-    pub fn active_assessment_data(&mut self) -> Option<&mut Assessment> {
-        self.assessments.get_mut(&self.session.chosen_assessment)
-    }
-
     /// Increments the session number for the chosen assessment and set the current_session value to that number.
-    /// If there is no chosen assessment or it is invalid current_session is set to u32::MAX
+    /// If there is no chosen assessment or it is invalid current_session is set to u32::MAX to signal that issue in the UI
     pub fn increment_current_session(&mut self) {
         if let Some(n) = self.assessments.get_mut(&self.session.chosen_assessment) {
             n.session += 1;
@@ -59,6 +47,18 @@ impl ClientAndSessionData {
         } else {
             self.current_session = u32::MAX;
         }
+    }
+
+    pub fn chosen_assessment_name(&self) -> &String {
+        &self.session.chosen_assessment
+    }
+
+    pub fn chosen_condition_name(&self) -> &String {
+        &self.session.chosen_condition
+    }
+
+    pub fn chosen_assessment(&mut self) -> Option<&mut Assessment> {
+        self.assessments.get_mut(&self.session.chosen_assessment)
     }
 
     pub fn chosen_ksf_name(&self) -> &String {
@@ -91,11 +91,11 @@ impl ClientAndSessionData {
     }
 
     pub fn assessment_chosen(&self) -> bool {
-        !self.active_assessment_name().is_empty()
+        !self.chosen_assessment_name().is_empty()
     }
 
     pub fn condition_chosen(&self) -> bool {
-        !self.active_condition_name().is_empty()
+        !self.chosen_condition_name().is_empty()
     }
 
     pub fn max_session_length_set_correctly(&self) -> bool {
@@ -109,50 +109,63 @@ impl ClientAndSessionData {
     }
 
     pub fn update_misconfigurations(&mut self) {
-        let mut misconfigs = Vec::new();
+        // short circuit here as all others depend on this and don't need to be listed
         if !self.client_loaded() {
-            misconfigs.push(NO_CLIENT);
-            self.misconfigs = misconfigs.join("\n"); // short circuit here as all others depend on this
+            self.misconfigs = NO_CLIENT.to_string();
             return ();
         }
+
+        let mut misconfigs = Vec::new();
+
         if !self.ksf_loaded() {
             misconfigs.push(NO_KSF);
         }
+
         self.client.location = self.client.location.trim().to_string();
         if self.client.location.is_empty() {
             misconfigs.push(NO_LOCATION);
         }
+
         if !self.client_admission_valid() {
             misconfigs.push(INVALID_DATE);
         }
+
         if self.current_session == 0 {
             misconfigs.push(INVALID_SESSION);
         }
+
         self.client.case_manager = self.client.case_manager.trim().to_string();
         if self.client.case_manager.is_empty() {
             misconfigs.push(NO_CASE_MANAGER);
         }
+
         self.client.primary_therapist = self.client.primary_therapist.trim().to_string();
         if self.client.primary_therapist.is_empty() {
             misconfigs.push(NO_PRIMARY_THERAPIST);
         }
+
         self.session.therapist = self.session.therapist.trim().to_string();
         if self.session.therapist.is_empty() {
             misconfigs.push(NO_SESSION_THERAPIST);
         }
+
         self.session.data_collector = self.session.data_collector.trim().to_string();
         if self.session.data_collector.is_empty() {
             misconfigs.push(NO_DATA_COLLECTOR);
         }
+
         if !self.assessment_chosen() {
             misconfigs.push(NO_ASSESSMENT);
         }
+
         if !self.condition_chosen() {
             misconfigs.push(NO_CONDITION);
         }
+
         if !self.max_session_length_set_correctly() {
             misconfigs.push(INVALID_MAX_SESSION);
         }
+
         if !self.max_total_length_set_correctly() {
             misconfigs.push(INVALID_MAX_TOTAL);
         }
