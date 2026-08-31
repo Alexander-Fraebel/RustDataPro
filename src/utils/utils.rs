@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
-use chrono::{DateTime, Datelike, Local, Timelike};
-use egui::{InputState, Key};
+use egui::{InputState, Key, Modifiers};
 use std::{
     borrow::Cow,
     collections::HashSet,
@@ -15,34 +14,8 @@ pub fn rounded_f32(n: f32) -> f32 {
     (n * 10.0).trunc() / 10.0
 }
 
-/// Weekday Month/Day/Year Hour:Minute
-pub fn date_time_string(dt: &DateTime<Local>) -> String {
-    format!(
-        "{} {}/{}/{} {:02}:{:02}",
-        dt.weekday(),
-        dt.month(),
-        dt.day(),
-        dt.year(),
-        dt.hour(),
-        dt.minute(),
-    )
-}
-
-/// Quick time stamp as YYYYMMDDhhmm
-pub fn time_stamp() -> String {
-    let dt = Local::now();
-    format!(
-        "{:04}{:02}{:02}{:02}{:02}",
-        dt.year(),
-        dt.month(),
-        dt.day(),
-        dt.hour(),
-        dt.minute(),
-    )
-}
-
 /// Detect keys that have been pressed and ignore repeated events.
-pub struct ClickedKeys(HashSet<Key>);
+pub struct ClickedKeys(HashSet<(Key, Modifiers)>);
 
 impl ClickedKeys {
     pub fn new() -> Self {
@@ -54,7 +27,11 @@ impl ClickedKeys {
     }
 
     pub fn contains(&self, key: &Key) -> bool {
-        self.0.contains(key)
+        self.0.contains(&(*key, Modifiers::NONE))
+    }
+
+    pub fn contains_modified(&self, key: &Key, modifiers: &Modifiers) -> bool {
+        self.0.contains(&(*key, *modifiers))
     }
 
     pub fn update(&mut self, input: &InputState) {
@@ -66,14 +43,14 @@ impl ClickedKeys {
                 physical_key: _,
                 pressed,
                 repeat,
-                modifiers: _,
+                modifiers,
             } = event
             {
                 if *repeat {
                     continue;
                 }
                 if *pressed {
-                    self.0.insert(*key);
+                    self.0.insert((*key, *modifiers));
                 }
             }
         }

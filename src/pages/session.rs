@@ -329,6 +329,7 @@ impl DataPro {
             self.session.confirm_end_open = true;
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
+        // if self.session.clicked_keys.contains_modified(&egui::Key::X, &Modifiers::Ctrl) {
         if self.session.clicked_keys.contains(&egui::Key::Space) {
             if self.session.main_timer.was_started() {
                 self.session.pause_unpause_all_timers();
@@ -594,7 +595,7 @@ impl DataPro {
                     ui.group(|ui| {
                         ui.heading("Controls");
                         ui.label(
-                            "TAB to start.\nESC return to end session.\nSPACE to pause/unpause.",
+                            "TAB to start.\nESC return to end session.\nCTRL+X to pause/unpause.",
                         );
                     });
                     ui.horizontal(|ui| {
