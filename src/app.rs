@@ -485,19 +485,19 @@ impl eframe::App for DataPro {
         egui::Panel::top("top_panel").show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.request_repaint_after_secs(5.0);
-                ui.label(format!("{}", date_time_string(&Local::now())));
+                ui.monospace(format!("{}", date_time_string(&Local::now())));
 
                 if cfg!(debug_assertions) {
                     let warn_color = ui.visuals().warn_fg_color;
                     ui.label(RichText::new("⚠ Debug build ⚠").small().color(warn_color))
                         .on_hover_text("egui was compiled with debug assertions enabled.");
-                    let dt = ui.input(|i| i.unstable_dt);
-                    let fps = if dt > 0.0 { 1.0 / dt } else { 0.0 };
-                    ui.label(
-                        RichText::from(format!("FPS: {:.0}", fps.round()))
-                            .monospace()
-                            .color(warn_color),
-                    );
+                    // let dt = ui.input(|i| i.unstable_dt);
+                    // let fps = if dt > 0.0 { 1.0 / dt } else { 0.0 };
+                    // ui.label(
+                    //     RichText::from(format!("FPS: {:.0}", fps.round()))
+                    //         .monospace()
+                    //         .color(warn_color),
+                    // );
                 }
             });
         });
