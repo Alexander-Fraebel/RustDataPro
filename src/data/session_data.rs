@@ -3,26 +3,26 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::Path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum DataType {
+pub enum DataCollectionType {
     #[default]
     Primary,
     Reliability,
 }
 
-impl Display for DataType {
+impl Display for DataCollectionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DataType::Primary => write!(f, "Primary"),
-            DataType::Reliability => write!(f, "Reliability"),
+            DataCollectionType::Primary => write!(f, "Primary"),
+            DataCollectionType::Reliability => write!(f, "Reliability"),
         }
     }
 }
 
-impl DataType {
+impl DataCollectionType {
     pub fn abbrev(&self) -> &'static str {
         match self {
-            DataType::Primary => "P",
-            DataType::Reliability => "R",
+            DataCollectionType::Primary => "P",
+            DataCollectionType::Reliability => "R",
         }
     }
 }
@@ -35,7 +35,7 @@ pub struct SessionData {
     pub chosen_ksf_name: String,
     pub therapist: String,
     pub data_collector: String,
-    pub data_collecion_type: DataType,
+    pub data_collection_type: DataCollectionType,
     pub limit_session_length: bool,
     pub maximum_session_length: f32,
     pub limit_total_length: bool,

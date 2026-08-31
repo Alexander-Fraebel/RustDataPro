@@ -1,4 +1,4 @@
-use crate::{app::DataPro, config::path_to_config_file, quick_error, utils::overwrite_file};
+use crate::{app::DataPro, config::path_to_config_file, quick_error};
 use anyhow::Context;
 use std::process::Command;
 
@@ -19,9 +19,7 @@ impl DataPro {
                     .lost_focus()
                 {
                     ui.ctx().set_pixels_per_point(self.config.zoom);
-                    if let Ok(json) = self.config.to_json() {
-                        quick_error!(overwrite_file(path_to_config_file(), &json))
-                    }
+                    quick_error!(self.overwrite_config());
                 }
             });
             ui.add_space(10.0);
@@ -31,9 +29,7 @@ impl DataPro {
                 .text_edit_singleline(&mut self.config.root_dir)
                 .lost_focus()
             {
-                if let Ok(json) = self.config.to_json() {
-                    quick_error!(overwrite_file(path_to_config_file(), &json))
-                }
+                quick_error!(self.overwrite_config());
             }
             ui.add_space(10.0);
 
@@ -56,8 +52,8 @@ impl DataPro {
                     });
                 } else {
                     ui.horizontal(|ui| {
-                        ui.label("UNABLE TO FIND CONFIG FILE PATH");
-                        if ui.button("Create Config").clicked() {
+                        ui.label("UNABLE TO FIND CONFIG");
+                        if ui.button("Create").clicked() {
                             quick_error!(self.overwrite_config());
                         }
                     });

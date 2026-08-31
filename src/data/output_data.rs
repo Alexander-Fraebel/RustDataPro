@@ -1,5 +1,5 @@
 use crate::data::{
-    DataType::{self},
+    DataCollectionType::{self},
     Ksf, SessionData,
     timeline::Timeline,
 };
@@ -34,8 +34,8 @@ impl OutputData {
         self.session_number
     }
 
-    pub fn data_type(&self) -> DataType {
-        self.session.data_collecion_type
+    pub fn data_type(&self) -> DataCollectionType {
+        self.session.data_collection_type
     }
 
     pub fn client_initials(&self) -> String {
@@ -67,7 +67,7 @@ fn create_test_data() {
     for session in 11..16 {
         // client.current_session = session;
         let mut session_data = SessionData::default();
-        session_data.data_collecion_type = DataType::Primary;
+        session_data.data_collection_type = DataCollectionType::Primary;
 
         let ksf = Ksf::example();
         let mut fkeys = Vec::new();
@@ -124,7 +124,7 @@ fn create_test_data() {
         };
 
         // Jitter the timing for the keypresses
-        session_data.data_collecion_type = DataType::Reliability;
+        session_data.data_collection_type = DataCollectionType::Reliability;
         for (_k, t) in timeline.iter_mut() {
             *t += (rng.random::<f32>() - 0.5) * 0.7;
         }
@@ -176,7 +176,7 @@ fn create_test_data() {
             "{}{}_{}.txt",
             client.initials(),
             prim.session_number,
-            prim.session.data_collecion_type.abbrev()
+            prim.session.data_collection_type.abbrev()
         ))
         .unwrap();
         let mut writer = std::io::BufWriter::new(pfile);
@@ -187,7 +187,7 @@ fn create_test_data() {
             "{}{}_{}.txt",
             client.initials(),
             reli.session_number,
-            reli.session.data_collecion_type.abbrev()
+            reli.session.data_collection_type.abbrev()
         ))
         .unwrap();
         let mut writer = std::io::BufWriter::new(rfile);

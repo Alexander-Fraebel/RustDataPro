@@ -1,5 +1,5 @@
 use crate::{
-    app::DataPro, data::DataType, quick_error, ui_elements::DataProUiElements,
+    app::DataPro, data::DataCollectionType, quick_error, ui_elements::DataProUiElements,
     utils::windows_error_dialog,
 };
 use egui::RichText;
@@ -156,16 +156,16 @@ impl PrepareSession {
 
                     ui.label("Primary/Reliability");
                     egui::ComboBox::from_id_salt("datatype")
-                        .selected_text(app.data.session.data_collecion_type.to_string())
+                        .selected_text(app.data.session.data_collection_type.to_string())
                         .show_ui(ui, |ui| {
                             ui.selectable_value(
-                                &mut app.data.session.data_collecion_type,
-                                DataType::Primary,
+                                &mut app.data.session.data_collection_type,
+                                DataCollectionType::Primary,
                                 "Primary",
                             );
                             ui.selectable_value(
-                                &mut app.data.session.data_collecion_type,
-                                DataType::Reliability,
+                                &mut app.data.session.data_collection_type,
+                                DataCollectionType::Reliability,
                                 "Reliability",
                             );
                         });

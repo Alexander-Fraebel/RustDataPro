@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{DataType, IoaData, OutputData},
+    data::{DataCollectionType, IoaData, OutputData},
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
         excel_output::save_excel_workbook,
@@ -168,9 +168,11 @@ impl DataPro {
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match OutputData::from_file_path(buf.as_path()) {
-                    Ok(data) => match data.session.data_collecion_type {
-                        DataType::Primary => self.ioa_page.prim_data.push((data, buf)),
-                        DataType::Reliability => self.ioa_page.reli_data.push((data, buf)),
+                    Ok(data) => match data.session.data_collection_type {
+                        DataCollectionType::Primary => self.ioa_page.prim_data.push((data, buf)),
+                        DataCollectionType::Reliability => {
+                            self.ioa_page.reli_data.push((data, buf))
+                        }
                     },
                     Err(_) => (),
                 }
