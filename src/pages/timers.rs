@@ -170,16 +170,16 @@ impl DataPro {
             ui.ctx().input_mut(|input| {
                 self.timers.clicked_keys.update(input);
 
-                if self.timers.clicked_keys.contains(&Key::Space) {
+                if self.timers.clicked_keys.contains_key(&Key::Space) {
                     self.timers.stop_all_timers();
                 }
 
-                if self.timers.clicked_keys.contains(&Key::R) {
+                if self.timers.clicked_keys.contains_key(&Key::R) {
                     self.timers.reset_all_timers();
                 }
 
                 // Detect toggle linked
-                if self.timers.clicked_keys.contains(&Key::Num0) {
+                if self.timers.clicked_keys.contains_key(&Key::Num0) {
                     for timer in self.timers.timers.iter_mut() {
                         if timer.linked {
                             timer.timer.toggle();
@@ -192,7 +192,7 @@ impl DataPro {
                     .iter()
                     .enumerate()
                 {
-                    if self.timers.clicked_keys.contains(key) {
+                    if self.timers.clicked_keys.contains_key(key) {
                         self.timers.timers[idx].timer.toggle()
                     }
                 }

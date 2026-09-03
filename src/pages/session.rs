@@ -283,12 +283,6 @@ impl SessionPage {
         self.timeline.push((Key::Tab, 0.0));
         self.keypresses_display.push("t");
     }
-
-    // /// Reset the session page and return to the prep session page.
-    // fn leave_session(&mut self, display_info: &mut DisplayControl) {
-    //     self.reset();
-    //     self.go_to_prep_session();
-    // }
 }
 
 impl DataPro {
@@ -319,25 +313,28 @@ impl DataPro {
         // ### Permanent Keys ###
         // ######################
         // Starting is only allowed when session is Stopped.
-        if self.session.clicked_keys.contains(&egui::Key::Tab) {
+        if self.session.clicked_keys.contains_key(&egui::Key::Tab) {
             if !self.session.main_timer.was_started() {
                 self.session.start_session();
             }
         }
         // Stop timers and open the window to ask to confirm ending session
-        if self.session.clicked_keys.contains(&egui::Key::Escape) {
+        if self.session.clicked_keys.contains_key(&egui::Key::Escape) {
             self.session.confirm_end_open = true;
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
-        // if self.session.clicked_keys.contains_modified(&egui::Key::X, &Modifiers::Ctrl) {
-        if self.session.clicked_keys.contains(&egui::Key::Space) {
+        if self.session.clicked_keys.contains_key(&egui::Key::Space) {
             if self.session.main_timer.was_started() {
                 self.session.pause_unpause_all_timers();
                 self.session.unpress_available = false;
                 self.session.keypresses_display.push("p");
             }
         }
-        if self.session.clicked_keys.contains(&egui::Key::Backspace) {
+        if self
+            .session
+            .clicked_keys
+            .contains_key(&egui::Key::Backspace)
+        {
             if self.session.main_timer.is_active() {
                 self.session.unpress_key();
             }
@@ -348,7 +345,7 @@ impl DataPro {
         // ###################################
         if self.session.main_timer.is_active() {
             for (timer, bouts, key, _) in self.session.dura_keys.iter_mut() {
-                if self.session.clicked_keys.contains(key) {
+                if self.session.clicked_keys.contains_key(key) {
                     timer.toggle();
                     if timer.is_active() {
                         *bouts += 1;
@@ -357,7 +354,7 @@ impl DataPro {
                 }
             }
             for (counter, key, _) in self.session.freq_keys.iter_mut() {
-                if self.session.clicked_keys.contains(key) {
+                if self.session.clicked_keys.contains_key(key) {
                     *counter += 1;
                     record_keypress!(self.session, *key, self.session.main_timer.total_time());
                 }
@@ -595,7 +592,7 @@ impl DataPro {
                     ui.group(|ui| {
                         ui.heading("Controls");
                         ui.label(
-                            "TAB to start.\nESC return to end session.\nCTRL+X to pause/unpause.",
+                            "TAB to start.\nESC return to end session.\nSPACE to pause/unpause.",
                         );
                     });
                     ui.horizontal(|ui| {
@@ -644,7 +641,7 @@ impl DataPro {
                             ui.label("BACKSPACE to undo last entry.");
                         } else {
                             ui.weak("BACKSPACE to undo last entry.")
-                                .on_hover_text("Cannot undo pause or start of session.");
+                                .on_hover_text("Cannot undo pause.");
                         }
                     })
                 });

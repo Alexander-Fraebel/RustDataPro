@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use egui::{InputState, Key, Modifiers};
+use itertools::Itertools;
 use std::{
     borrow::Cow,
-    collections::HashSet,
     ffi::OsStr,
     fs::File,
     io::{BufWriter, Write},
@@ -15,23 +15,19 @@ pub fn rounded_f32(n: f32) -> f32 {
 }
 
 /// Detect keys that have been pressed and ignore repeated events.
-pub struct ClickedKeys(HashSet<(Key, Modifiers)>);
+pub struct ClickedKeys(Vec<(Key, Modifiers)>);
 
 impl ClickedKeys {
     pub fn new() -> Self {
-        Self(HashSet::new())
+        Self(Vec::new())
     }
 
     pub fn clear(&mut self) {
         self.0.clear();
     }
 
-    pub fn contains(&self, key: &Key) -> bool {
-        self.0.contains(&(*key, Modifiers::NONE))
-    }
-
-    pub fn contains_modified(&self, key: &Key, modifiers: &Modifiers) -> bool {
-        self.0.contains(&(*key, *modifiers))
+    pub fn contains_key(&self, key: &Key) -> bool {
+        self.0.iter().map(|(key, _)| key).contains(key)
     }
 
     pub fn update(&mut self, input: &InputState) {
@@ -50,7 +46,7 @@ impl ClickedKeys {
                     continue;
                 }
                 if *pressed {
-                    self.0.insert((*key, *modifiers));
+                    self.0.push((*key, *modifiers));
                 }
             }
         }
