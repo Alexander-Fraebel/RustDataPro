@@ -67,7 +67,7 @@ impl PrepareSession {
                             .add(egui::TextEdit::singleline(
                                 &mut app.data.client.date_of_admission,
                             ))
-                            .on_hover_text("format date as YYYY-MM-DD");
+                            .on_hover_text("format date as MM-DD-YYYY");
                         if doa.lost_focus() {
                             quick_error!(app.overwrite_client_data());
                         }
@@ -103,7 +103,12 @@ impl PrepareSession {
                             }
                         }
                     }
-                    ui.lock_unlock_button(&mut app.prep_session.edit_doa);
+                    if ui
+                        .lock_unlock_button(&mut app.prep_session.edit_doa)
+                        .clicked()
+                    {
+                        check_if_session_can_start = true;
+                    }
                     ui.end_row();
 
                     ui.label("Session Number");
@@ -132,7 +137,12 @@ impl PrepareSession {
                     {
                         quick_error!(app.overwrite_client_data());
                     }
-                    ui.lock_unlock_button(&mut app.prep_session.edit_case_manager);
+                    if ui
+                        .lock_unlock_button(&mut app.prep_session.edit_case_manager)
+                        .clicked()
+                    {
+                        check_if_session_can_start = true;
+                    };
                     ui.end_row();
 
                     ui.label("Primary Therapist");
@@ -145,7 +155,12 @@ impl PrepareSession {
                     {
                         quick_error!(app.overwrite_client_data());
                     }
-                    ui.lock_unlock_button(&mut app.prep_session.edit_primary_therapist);
+                    if ui
+                        .lock_unlock_button(&mut app.prep_session.edit_primary_therapist)
+                        .clicked()
+                    {
+                        check_if_session_can_start = true;
+                    }
                     ui.end_row();
 
                     edit_box(

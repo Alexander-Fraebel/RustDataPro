@@ -22,7 +22,7 @@ impl Default for ClientData {
             id: Default::default(),
             case_manager: Default::default(),
             primary_therapist: Default::default(),
-            date_of_admission: Local::now().date_naive().format("%Y-%m-%d").to_string(),
+            date_of_admission: Local::now().date_naive().format("%m-%d-%Y").to_string(),
             location: Default::default(),
         }
     }
@@ -31,7 +31,7 @@ impl Default for ClientData {
 impl ClientData {
     /// Number of days since admission
     pub fn days_since_admission(&self) -> Result<i32> {
-        let x = NaiveDate::parse_from_str(&self.date_of_admission, "%Y-%m-%d")?.num_days_from_ce();
+        let x = NaiveDate::parse_from_str(&self.date_of_admission, "%m-%d-%Y")?.num_days_from_ce();
         Ok(Local::now().date_naive().num_days_from_ce() - x)
     }
 

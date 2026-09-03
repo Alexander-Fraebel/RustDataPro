@@ -125,7 +125,7 @@ impl DataPro {
                     }
                     ui.end_row();
 
-                    ui.monospace("Date of Admission\n(YYYY-MM-DD)");
+                    ui.monospace("Date of Admission\n(MM-DD-YYYY)");
                     if ui
                         .text_edit_singleline(&mut self.new_client_page.client.date_of_admission)
                         .changed()
@@ -134,7 +134,7 @@ impl DataPro {
                     }
                     if ui.button("today").clicked() {
                         self.new_client_page.client.date_of_admission =
-                            Local::now().date_naive().format("%Y-%m-%d").to_string();
+                            Local::now().date_naive().format("%m-%d-%Y").to_string();
                         self.new_client_page.created = false;
                     }
                     ui.end_row();

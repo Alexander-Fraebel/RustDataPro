@@ -17,7 +17,7 @@ pub trait DataProUiElements {
     fn large_green_button(&mut self, text: &'static str) -> Response;
     fn large_red_button(&mut self, text: &'static str) -> Response;
     fn large_blue_button(&mut self, text: &'static str) -> Response;
-    fn lock_unlock_button(&mut self, condition: &mut bool);
+    fn lock_unlock_button(&mut self, condition: &mut bool) -> Response;
     fn directory_picker(&mut self, file_dialog: &mut FileDialog, directory_name: &PathBuf);
 }
 
@@ -42,16 +42,14 @@ impl DataProUiElements for Ui {
     }
 
     /// Small button that shows an unlocked icon when condition is true and a locked icon when condition is false. Toggles condition on click.
-    fn lock_unlock_button(&mut self, condition: &mut bool) {
-        if *condition {
-            if self.small_button("🔓").clicked() {
-                *condition = false;
-            }
-        } else {
-            if self.small_button("🔒").clicked() {
-                *condition = true;
-            }
-        }
+    fn lock_unlock_button(&mut self, condition: &mut bool) -> Response {
+        let icon = if *condition { "🔓" } else { "🔒" };
+        let buttom = egui::Button::new(icon).small();
+        let widget = self.add(buttom);
+        if widget.clicked() {
+            *condition = !*condition;
+        };
+        widget
     }
 
     fn directory_picker(&mut self, file_dialog: &mut FileDialog, directory_name: &PathBuf) {
