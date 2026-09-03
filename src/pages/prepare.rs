@@ -2,26 +2,21 @@ use crate::{
     app::DataPro, data::DataCollectionType, quick_error, ui_elements::DataProUiElements,
     utils::windows_error_dialog,
 };
-use egui::{Color32, RichText};
+use egui::RichText;
 
 fn edit_box(
     ui: &mut egui::Ui,
     label: &str,
     source: &mut String,
     check_if_session_can_start: &mut bool,
-) {
+    interactive: bool,
+) -> egui::Response {
     ui.label(label);
-    let bg_color = if source.is_empty() {
-        Color32::YELLOW
-    } else {
-        ui.visuals().extreme_bg_color
-    };
-    if ui
-        .add(egui::TextEdit::singleline(source).background_color(bg_color))
-        .changed()
-    {
-        *check_if_session_can_start = true
+    let widget = ui.add(egui::TextEdit::singleline(source).interactive(interactive));
+    if widget.changed() {
+        *check_if_session_can_start = true;
     }
+    widget
 }
 
 pub struct PrepareSession {
@@ -51,16 +46,22 @@ impl PrepareSession {
                 .show(ui, |ui| {
                     let mut check_if_session_can_start = false;
 
-                    ui.label("Location");
-                    let location = ui.text_edit_singleline(&mut app.data.client.location);
-                    if location.lost_focus() {
-                        quick_error!(app.overwrite_client_data());
-                    }
-                    if location.changed() {
+                    // Saved to client file.
+                    if edit_box(
+                        ui,
+                        "Location",
+                        &mut app.data.client.location,
+                        &mut check_if_session_can_start,
+                        true,
+                    )
+                    .lost_focus()
+                    {
                         check_if_session_can_start = true;
+                        quick_error!(app.overwrite_client_data());
                     }
                     ui.end_row();
 
+                    // Saved to client file.
                     ui.label("Date of Admission");
                     if app.prep_session.edit_doa {
                         let doa = ui
@@ -107,10 +108,12 @@ impl PrepareSession {
                         .lock_unlock_button(&mut app.prep_session.edit_doa)
                         .clicked()
                     {
+                        quick_error!(app.overwrite_client_data());
                         check_if_session_can_start = true;
                     }
                     ui.end_row();
 
+                    // Saved to assessments file.
                     ui.label("Session Number");
                     let session_number = ui.add(
                         egui::DragValue::new(&mut app.data.current_session).range(1..=u32::MAX),
@@ -127,55 +130,57 @@ impl PrepareSession {
                     }
                     ui.end_row();
 
-                    ui.label("Case Manager");
-                    if ui
-                        .add(
-                            egui::TextEdit::singleline(&mut app.data.client.case_manager)
-                                .interactive(app.prep_session.edit_case_manager),
-                        )
-                        .lost_focus()
-                    {
-                        quick_error!(app.overwrite_client_data());
-                    }
+                    // Saved to client file.
+                    edit_box(
+                        ui,
+                        "Case Manager",
+                        &mut app.data.client.case_manager,
+                        &mut check_if_session_can_start,
+                        app.prep_session.edit_case_manager,
+                    );
                     if ui
                         .lock_unlock_button(&mut app.prep_session.edit_case_manager)
                         .clicked()
                     {
                         check_if_session_can_start = true;
+                        quick_error!(app.overwrite_client_data());
                     };
                     ui.end_row();
 
-                    ui.label("Primary Therapist");
-                    if ui
-                        .add(
-                            egui::TextEdit::singleline(&mut app.data.client.primary_therapist)
-                                .interactive(app.prep_session.edit_primary_therapist),
-                        )
-                        .lost_focus()
-                    {
-                        quick_error!(app.overwrite_client_data());
-                    }
+                    // Saved to client file.
+                    edit_box(
+                        ui,
+                        "Primary Therapist",
+                        &mut app.data.client.primary_therapist,
+                        &mut check_if_session_can_start,
+                        app.prep_session.edit_primary_therapist,
+                    );
                     if ui
                         .lock_unlock_button(&mut app.prep_session.edit_primary_therapist)
                         .clicked()
                     {
                         check_if_session_can_start = true;
+                        quick_error!(app.overwrite_client_data());
                     }
                     ui.end_row();
 
+                    // Not saved to any file.
                     edit_box(
                         ui,
                         "Session Therapist",
                         &mut app.data.session.therapist,
                         &mut check_if_session_can_start,
+                        true,
                     );
                     ui.end_row();
 
+                    // Not saved to any file.
                     edit_box(
                         ui,
                         "Data Collector",
                         &mut app.data.session.data_collector,
                         &mut check_if_session_can_start,
+                        true,
                     );
                     ui.end_row();
 
