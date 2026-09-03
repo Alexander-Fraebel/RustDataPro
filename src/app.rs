@@ -460,8 +460,8 @@ impl DataPro {
                 );
 
                 if cfg!(debug_assertions) {
-                    self.data.session.data_collector = String::from("EX");
-                    self.data.session.therapist = String::from("EX");
+                    self.data.session.data_collector = String::from("EXAMPLE");
+                    self.data.session.therapist = String::from("EXAMPLE");
                 }
 
                 self.data.update_misconfigurations()
@@ -491,13 +491,6 @@ impl eframe::App for DataPro {
                     let warn_color = ui.visuals().warn_fg_color;
                     ui.label(RichText::new("⚠ Debug build ⚠").small().color(warn_color))
                         .on_hover_text("egui was compiled with debug assertions enabled.");
-                    // let dt = ui.input(|i| i.unstable_dt);
-                    // let fps = if dt > 0.0 { 1.0 / dt } else { 0.0 };
-                    // ui.label(
-                    //     RichText::from(format!("FPS: {:.0}", fps.round()))
-                    //         .monospace()
-                    //         .color(warn_color),
-                    // );
                 }
             });
         });

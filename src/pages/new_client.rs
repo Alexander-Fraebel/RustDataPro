@@ -88,7 +88,10 @@ impl DataPro {
                         self.new_client_page.created = false;
                     };
                     if cfg!(debug_assertions) {
-                        if ui.button("random").clicked() {
+                        if ui
+                            .button(RichText::from("random").color(ui.visuals().warn_fg_color))
+                            .clicked()
+                        {
                             self.new_client_page.client.id = format!(
                                 "{:0<10}",
                                 self.rng.random_range(1000000000_i64..=9999999999) // collisions become higly likely after created 94868 IDs, alphanumeric might be better
