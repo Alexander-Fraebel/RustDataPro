@@ -76,9 +76,7 @@ fn ksf_scroller(app: &mut DataPro, ui: &mut egui::Ui) -> egui::scroll_area::Scro
                     if ui
                         .add_sized(
                             (220.0, 18.0),
-                            egui::TextEdit::singleline(&mut ksf_maker.name)
-                                .prefix(format!("{}) ", n + 1))
-                                .hint_text("KSF Name"),
+                            egui::TextEdit::singleline(&mut ksf_maker.name).hint_text("KSF Name"),
                         )
                         .changed()
                     {
@@ -211,17 +209,12 @@ impl DataPro {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading("Keyboard Setup Files");
+            ui.heading("Keyboard Setup Files For");
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            // ui.label("The KSFs file for this client will update when you click Prepare Session.");
-            // ui.add_space(10.0);
-
-            ui.add_enabled_ui(!self.data.client_loaded(), |ui| {
-                ui.label("Save To:");
-                ui.directory_picker(&mut self.edit_ksfs.file_dialog, &self.edit_ksfs.save_path);
-            });
+            ui.label("Save To:");
+            ui.directory_picker(&mut self.edit_ksfs.file_dialog, &self.edit_ksfs.save_path);
             ui.add_space(10.0);
 
             ksf_controller(self, ui)

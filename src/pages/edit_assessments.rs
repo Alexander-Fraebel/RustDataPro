@@ -183,22 +183,16 @@ impl DataPro {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading("Assessments File");
+            ui.heading("Assessments File For");
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            // ui.label(
-            //     "The assessments file for this client will update when you click Prepare Session.",
-            // );
-            // ui.add_space(10.0);
+            ui.label("Save To:");
+            ui.directory_picker(
+                &mut self.edit_assessments.file_dialog,
+                &self.edit_assessments.save_path,
+            );
 
-            ui.add_enabled_ui(false, |ui| {
-                ui.label("Save To:");
-                ui.directory_picker(
-                    &mut self.edit_assessments.file_dialog,
-                    &self.edit_assessments.save_path,
-                );
-            });
             ui.add_space(10.0);
 
             assessments_controller(self, ui)

@@ -15,7 +15,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::Local;
-use egui::{FontDefinitions, RichText, Visuals};
+use egui::{FontDefinitions, Response, RichText, Visuals};
 use egui_file_dialog::FileDialog;
 use rand::{make_rng, rngs::StdRng};
 use std::path::{Path, PathBuf};
@@ -176,7 +176,7 @@ impl DataPro {
             });
     }
 
-    pub fn ksf_picker(&mut self, ui: &mut egui::Ui) {
+    pub fn ksf_picker(&mut self, ui: &mut egui::Ui) -> Response {
         let ksf_picker_text = match self.data.ksf_loaded() {
             true => egui::RichText::new(self.data.chosen_ksf_name().clone()).strong(),
             false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
@@ -189,7 +189,8 @@ impl DataPro {
                 for name in self.data.ksfs.keys() {
                     ui.selectable_value(&mut self.data.session.chosen_ksf_name, name.clone(), name);
                 }
-            });
+            })
+            .response
     }
 
     pub fn root_dir(&self) -> PathBuf {
