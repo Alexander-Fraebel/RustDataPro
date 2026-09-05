@@ -230,14 +230,22 @@ impl DataPro {
 
     /// Path to assessments.txt if a client has been chosen or the default directory otherwise.
     pub fn path_to_assessments(&self) -> PathBuf {
-        self.path_to(ASSESSMENTS_FILE_NAME)
-            .unwrap_or_else(|_| self.root_dir())
+        if self.data.client.alternate_assessments_path.is_empty() {
+            self.path_to(ASSESSMENTS_FILE_NAME)
+                .unwrap_or_else(|_| self.root_dir())
+        } else {
+            self.data.client.alternate_assessments_path.clone().into()
+        }
     }
 
     /// Path to ksf_data.txt if a client has been chosen or the default directory otherwise.
     pub fn path_to_ksf_data(&self) -> PathBuf {
-        self.path_to(KSF_FILE_NAME)
-            .unwrap_or_else(|_| self.root_dir())
+        if self.data.client.alternate_ksfs_path.is_empty() {
+            self.path_to(KSF_FILE_NAME)
+                .unwrap_or_else(|_| self.root_dir())
+        } else {
+            self.data.client.alternate_ksfs_path.clone().into()
+        }
     }
 
     /// Path to Session Records if a client has been chosen or the default directory otherwise.
