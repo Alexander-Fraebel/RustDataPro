@@ -1,8 +1,4 @@
-use crate::data::{
-    DataCollectionType::{self},
-    Ksf, SessionData,
-    timeline::Timeline,
-};
+use crate::data::{Ksf, SessionData, timeline::Timeline};
 use anyhow::{Context, Result};
 use egui::Key;
 use indexmap::IndexMap;
@@ -29,20 +25,12 @@ pub struct OutputData {
 }
 
 impl OutputData {
-    pub fn session_number(&self) -> u32 {
-        self.session_number
-    }
-
-    pub fn data_type(&self) -> DataCollectionType {
-        self.session.data_collection_type
-    }
-
     pub fn auto_file_name(&self) -> String {
         format!(
-            "{}-{}_{}{}.txt",
+            "{}-{}_{:>03}{}.txt", // always format the session number to three digits to help sorting and alignment
             self.session.chosen_assessment,
             self.session.chosen_condition,
-            self.session.chosen_ksf_name,
+            self.session_number,
             self.session.data_collection_type.abbrev()
         )
     }
@@ -64,12 +52,14 @@ fn create_test_data() {
     let mut rng: StdRng = make_rng();
 
     let mut client = ClientData::default();
-    client.name = String::from("BW");
+    client.id = format!("{:0<10}", rng.random_range(1000000000_i64..=9999999999));
 
-    for session in 11..16 {
+    for session in 1..10 {
         // client.current_session = session;
         let mut session_data = SessionData::default();
-        session_data.data_collection_type = DataCollectionType::Primary;
+        session_data.chosen_assessment = String::from("ASSESS");
+        session_data.chosen_condition = String::from("COND");
+        session_data.data_collection_type = crate::data::DataCollectionType::Primary;
 
         let ksf = Ksf::example();
         let mut fkeys = Vec::new();
@@ -126,7 +116,7 @@ fn create_test_data() {
         };
 
         // Jitter the timing for the keypresses
-        session_data.data_collection_type = DataCollectionType::Reliability;
+        session_data.data_collection_type = crate::data::DataCollectionType::Reliability;
         for (_k, t) in timeline.iter_mut() {
             *t += (rng.random::<f32>() - 0.5) * 0.7;
         }
@@ -170,7 +160,7 @@ fn create_test_data() {
             case_manager: client.case_manager.clone(),
             primary_therapist: client.primary_therapist.clone(),
             session_number: session,
-            days_since_admissions: client.days_since_admission().unwrap_or(-99999),
+            days_since_admissions: client.days_since_admission().unwrap_or(i32::MIN),
             location: client.location.clone(),
         };
 

@@ -174,7 +174,7 @@ impl DataPro {
                             self.ioa_page.reli_data.push((data, buf))
                         }
                     },
-                    Err(_) => (),
+                    Err(e) => windows_error_dialog(e),
                 }
             }
         }

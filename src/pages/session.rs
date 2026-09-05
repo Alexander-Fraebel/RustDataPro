@@ -249,11 +249,11 @@ impl DataPro {
     /// Write the output data into a JSON format. Not especially human readable.
     pub fn create_output_data(&self) -> OutputData {
         let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
-        for (t, k, _d) in self.session.freq_keys.iter() {
+        for (t, k, _desc) in self.session.freq_keys.iter() {
             fre_map.insert(*k, *t);
         }
         let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
-        for (t, bouts, k, _d) in self.session.dura_keys.iter() {
+        for (t, bouts, k, _desc) in self.session.dura_keys.iter() {
             dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
         }
 

@@ -23,17 +23,17 @@ pub fn validate_files(
     }
 
     // Assume the first primary file is correct and check that all files use the save KSF and have the same client ID
-    let ksf = &prim_data[0].0.ksf;
+    // let ksf = &prim_data[0].0.ksf;
     let id = &prim_data[0].0.client_id;
     let comparison_path = &prim_data[0].1;
     for (o, path) in prim_data.iter().chain(reli_data.iter()).skip(1) {
-        if &o.ksf != ksf {
-            return Err(anyhow::anyhow!(
-                "all files must have the same KSF as {}\nfile {} does not",
-                quick_file_name(&comparison_path),
-                quick_file_name(&path)
-            ));
-        }
+        // if &o.ksf != ksf {
+        //     return Err(anyhow::anyhow!(
+        //         "all files must have the same KSF as {}\nfile {} does not",
+        //         quick_file_name(&comparison_path),
+        //         quick_file_name(&path)
+        //     ));
+        // }
         if &o.client_id != id {
             return Err(anyhow::anyhow!(
                 "all files must have the same Client ID as {}\nfile {} does not",
@@ -45,7 +45,7 @@ pub fn validate_files(
 
     // Check that each file is for the same session
     for ((p, ppath), (r, rpath)) in prim_data.iter().zip(reli_data.iter()) {
-        if p.session_number() != r.session_number() {
+        if p.session_number != r.session_number {
             return Err(anyhow::anyhow!(
                 "files {} and {} are not for the same session",
                 quick_file_name(&ppath),
