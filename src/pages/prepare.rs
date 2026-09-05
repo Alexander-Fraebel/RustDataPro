@@ -1,6 +1,8 @@
 use crate::{
-    app::DataPro, data::DataCollectionType, quick_error, ui_elements::DataProUiElements,
-    utils::windows_error_dialog,
+    app::DataPro,
+    data::DataCollectionType,
+    quick_error,
+    utils::{DataProUiElements, windows_error_dialog},
 };
 use egui::RichText;
 

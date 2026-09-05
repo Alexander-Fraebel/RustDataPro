@@ -1,5 +1,6 @@
 pub mod about_page;
 pub mod debug_page;
+pub mod display_control;
 pub mod edit_assessments;
 pub mod edit_ksfs;
 pub mod new_client;
@@ -10,6 +11,7 @@ pub mod shuffler;
 pub mod sidebar;
 pub mod timers;
 
+pub use display_control::*;
 pub use edit_assessments::*;
 pub use edit_ksfs::*;
 pub use new_client::*;
