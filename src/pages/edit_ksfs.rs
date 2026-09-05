@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{ALLOWED_KSF_KEYS, ClientAndSessionData, Ksf, KsfsData},
+    data::{ALLOWED_KSF_KEYS, Ksf, KsfsData},
     ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
@@ -178,30 +178,30 @@ pub struct EditKsfData {
     pub save_path: PathBuf,
 }
 
-impl EditKsfData {
-    pub fn prepare(&mut self, data: &ClientAndSessionData, path_to_file: PathBuf) {
-        // Reset
+impl DataPro {
+    pub fn prepare_edit_ksf_page(&mut self) {
+        // Reset to make sure we don't have fields fill with dirty information.
         *self = Self::default();
 
         // Load the path information
         // This will be default information automatically if anything has gone wrong
-        self.save_path = path_to_file.clone();
-        self.file_dialog = FileDialog::new().initial_directory(path_to_file.clone());
+        self.edit_ksfs.save_path = self.path_to_ksf_data();
+        self.edit_ksfs.file_dialog = FileDialog::new().initial_directory(self.path_to_ksf_data());
 
         // If there is a client loaded rebuild the UI with the client information
-        if data.client_loaded() {
-            for (name, ksf) in data.ksfs.iter() {
-                self.user_input.push(KsfMaker::from_ksf(name, ksf));
+        if self.data.client_loaded() {
+            for (name, ksf) in self.data.ksfs.iter() {
+                self.edit_ksfs
+                    .user_input
+                    .push(KsfMaker::from_ksf(name, ksf));
             }
         }
         // Ensure the UI is not empty
-        if self.user_input.is_empty() {
-            self.user_input.push(Default::default());
+        if self.edit_ksfs.user_input.is_empty() {
+            self.edit_ksfs.user_input.push(Default::default());
         }
     }
-}
 
-impl DataPro {
     pub fn view_edit_ksf_page(&mut self, ui: &mut egui::Ui) {
         self.edit_ksfs.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = self.edit_ksfs.file_dialog.take_picked() {
