@@ -5,7 +5,8 @@ use crate::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
         excel_output::save_excel_workbook,
     },
-    utils::{DataProUiElements, quick_file_name, time_stamp, windows_error_dialog},
+    ui_elements::DataProUiElements,
+    utils::{quick_file_name, time_stamp, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use egui::{Color32, RichText, Ui};

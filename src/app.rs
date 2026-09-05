@@ -4,10 +4,10 @@ use crate::{
         SESSION_DATA_FOLDER_NAME, path_to_config_file,
     },
     data::{AssessmentsData, ClientAndSessionData, ClientData, KsfsData, NO_CLIENT},
+    display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
-        CreateClient, DisplayControl, EditAssessments, EditKsfData, Page, PrepareSession,
-        SessionPage, Shuffler, Timers,
+        CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
     },
     preference_assessment::PreferenceAssessment,
     quick_error,

@@ -1,7 +1,8 @@
 use crate::{
     app::DataPro,
     data::{ALLOWED_KSF_KEYS, Ksf, KsfsData},
-    utils::{DataProUiElements, are_you_sure_dialog, overwrite_file, windows_error_dialog},
+    ui_elements::DataProUiElements,
+    utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
 use anyhow::Result;
 use egui::{Key, RichText, TextStyle};

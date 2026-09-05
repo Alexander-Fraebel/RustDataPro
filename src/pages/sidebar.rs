@@ -1,4 +1,4 @@
-use crate::{app::DataPro, utils::DataProUiElements};
+use crate::{app::DataPro, ui_elements::DataProUiElements};
 use egui::{RichText, Ui};
 
 impl DataPro {
