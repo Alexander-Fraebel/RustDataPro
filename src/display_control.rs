@@ -67,7 +67,7 @@ impl DataPro {
 
     pub fn go_to_edit_ksf(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
-        self.prepare_edit_ksf_page();
+        self.edit_ksfs.prepare(&self.data, self.path_to_ksf_data());
         self.display_info.active_page = Page::EditKsfs;
         self.display_info.sidebar_open = true;
     }

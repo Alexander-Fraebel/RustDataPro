@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Client information that persists between sessions.
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ClientData {
     pub name: String,
     pub id: String,
@@ -13,8 +13,19 @@ pub struct ClientData {
     pub primary_therapist: String,
     pub date_of_admission: String,
     pub location: String,
-    pub alternate_ksfs_path: String,
-    pub alternate_assessments_path: String,
+}
+
+impl Default for ClientData {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            id: Default::default(),
+            case_manager: Default::default(),
+            primary_therapist: Default::default(),
+            date_of_admission: Local::now().date_naive().format("%m-%d-%Y").to_string(),
+            location: Default::default(),
+        }
+    }
 }
 
 impl ClientData {

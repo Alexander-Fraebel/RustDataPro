@@ -236,12 +236,8 @@ impl DataPro {
 
     /// Path to ksf_data.txt if a client has been chosen or the default directory otherwise.
     pub fn path_to_ksf_data(&self) -> PathBuf {
-        if self.data.client.alternate_ksfs_path.is_empty() {
-            self.path_to(KSF_FILE_NAME)
-                .unwrap_or_else(|_| self.root_dir())
-        } else {
-            self.data.client.alternate_ksfs_path.clone().into()
-        }
+        self.path_to(KSF_FILE_NAME)
+            .unwrap_or_else(|_| self.root_dir())
     }
 
     /// Path to Session Records if a client has been chosen or the default directory otherwise.
@@ -363,7 +359,7 @@ impl DataPro {
         let default_dir = self.root_dir();
         self.edit_assessments
             .prepare(&self.data, default_dir.clone());
-        self.prepare_edit_ksf_page();
+        self.edit_ksfs.prepare(&self.data, default_dir.clone());
         self.ioa_page
             .prepare(default_dir.clone(), default_dir.clone());
     }
@@ -384,7 +380,7 @@ impl DataPro {
                 match KsfsData::from_file_path(&ksf_path) {
                     Ok(ksf_data) => {
                         self.data.ksfs = ksf_data;
-                        self.prepare_edit_ksf_page();
+                        self.edit_ksfs.prepare(&self.data, ksf_path.clone());
                         if let Some((name, _)) = self.data.ksfs.first() {
                             self.data.session.chosen_ksf_name = name.clone()
                         }
@@ -402,7 +398,7 @@ impl DataPro {
                                 Ok(_) => match KsfsData::from_file_path(&ksf_path) {
                                     Ok(new_data) => {
                                         self.data.ksfs = new_data;
-                                        self.prepare_edit_ksf_page();
+                                        self.edit_ksfs.prepare(&self.data, ksf_path.clone());
                                         if let Some((name, _)) = self.data.ksfs.first() {
                                             self.data.session.chosen_ksf_name = name.clone()
                                         }
