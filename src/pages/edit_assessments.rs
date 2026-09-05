@@ -185,7 +185,7 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("Save To:");
+            ui.label("File Location:");
             ui.file_picker(
                 &mut self.edit_assessments.file_dialog,
                 &self.edit_assessments.save_path,

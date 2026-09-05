@@ -214,7 +214,7 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("Save To:");
+            ui.label("File Location:");
             ui.file_picker(&mut self.edit_ksfs.file_dialog, &self.edit_ksfs.save_path);
             ui.add_space(10.0);
 
