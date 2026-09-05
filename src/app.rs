@@ -55,6 +55,7 @@ impl Default for DataPro {
         let root_dir = PathBuf::from(&config.root_dir);
 
         // If the default directory doesn't exist then create it.
+        // Give an error if it can't be created for some reason.
         if !root_dir.exists() {
             quick_error!(std::fs::create_dir(&root_dir).context("cannot create root directory"));
         }
@@ -64,13 +65,9 @@ impl Default for DataPro {
 
             data: ClientAndSessionData::default(),
 
-            rng: make_rng(),
+            rng: make_rng(), // TODO: this can panic in rare cases, does it need to be handled?
 
-            display_info: DisplayControl {
-                active_page: Page::About,
-                sidebar_open: true,
-                debug_open: false,
-            },
+            display_info: DisplayControl::default(),
 
             pick_root_directory: FileDialog::default().initial_directory(root_dir.clone()),
             root_directory: root_dir.clone(),

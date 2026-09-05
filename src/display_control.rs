@@ -6,6 +6,16 @@ pub struct DisplayControl {
     pub debug_open: bool,
 }
 
+impl Default for DisplayControl {
+    fn default() -> Self {
+        Self {
+            active_page: Page::About,
+            sidebar_open: true,
+            debug_open: false,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Page {
     About,

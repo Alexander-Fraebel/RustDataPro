@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 use chrono::{Datelike, Local, NaiveDate};
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -18,21 +17,13 @@ pub struct ClientData {
 }
 
 impl ClientData {
-    /// Number of days since admission
+    /// Number of days since admission.
     pub fn days_since_admission(&self) -> Result<i32> {
         let x = NaiveDate::parse_from_str(&self.date_of_admission, "%m-%d-%Y")?.num_days_from_ce();
         Ok(Local::now().date_naive().num_days_from_ce() - x)
     }
 
-    /// String containing only capital letters from client name.
-    pub fn initials(&self) -> String {
-        self.name
-            .chars()
-            .filter(|c| c.is_ascii_uppercase())
-            .join("")
-    }
-
-    // Remove all leading and trailing spaces from String fields
+    // Remove all leading and trailing spaces from String fields.
     pub fn trim_all_fields(&mut self) {
         self.name = self.name.trim().to_owned();
         self.id = self.id.trim().to_owned();

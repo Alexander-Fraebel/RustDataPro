@@ -6,7 +6,6 @@ use crate::data::{
 use anyhow::{Context, Result};
 use egui::Key;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -38,11 +37,14 @@ impl OutputData {
         self.session.data_collection_type
     }
 
-    pub fn client_initials(&self) -> String {
-        self.client_name
-            .chars()
-            .filter(|c| c.is_ascii_uppercase())
-            .join("")
+    pub fn auto_file_name(&self) -> String {
+        format!(
+            "{}-{}_{}{}.txt",
+            self.session.chosen_assessment,
+            self.session.chosen_condition,
+            self.session.chosen_ksf_name,
+            self.session.data_collection_type.abbrev()
+        )
     }
 
     crate::to_and_from_json!(
@@ -172,24 +174,12 @@ fn create_test_data() {
             location: client.location.clone(),
         };
 
-        let pfile = File::create(&format!(
-            "{}{}_{}.txt",
-            client.initials(),
-            prim.session_number,
-            prim.session.data_collection_type.abbrev()
-        ))
-        .unwrap();
+        let pfile = File::create(&prim.auto_file_name()).unwrap();
         let mut writer = std::io::BufWriter::new(pfile);
         std::io::Write::write_all(&mut writer, prim.to_json().unwrap().as_bytes()).unwrap();
         std::io::Write::flush(&mut writer).unwrap();
 
-        let rfile = File::create(&format!(
-            "{}{}_{}.txt",
-            client.initials(),
-            reli.session_number,
-            reli.session.data_collection_type.abbrev()
-        ))
-        .unwrap();
+        let rfile = File::create(&reli.auto_file_name()).unwrap();
         let mut writer = std::io::BufWriter::new(rfile);
         std::io::Write::write_all(&mut writer, reli.to_json().unwrap().as_bytes()).unwrap();
         std::io::Write::flush(&mut writer).unwrap();

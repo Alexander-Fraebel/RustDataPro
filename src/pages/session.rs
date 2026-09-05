@@ -6,7 +6,7 @@ use crate::{
     ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32},
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use chrono::{DateTime, Local};
 use egui::{Color32, Key, Layout, RichText, Ui};
 use egui_extras::Column;
@@ -108,57 +108,6 @@ macro_rules! split_timer_display {
         passive_cell!($row, timer_format!(), 0.0);
         passive_cell!($row, $bouts);
     };
-}
-
-impl DataPro {
-    pub fn save_new_output_data(&mut self) -> Result<()> {
-        let file_name = self.path_to_session_records_dir().join(format!(
-            "{}-{}_{}{}.txt",
-            self.data.chosen_assessment_name(),
-            self.data.chosen_condition_name(),
-            self.data.current_session,
-            self.data.session.data_collection_type.abbrev()
-        ));
-        overwrite_file(Ok(file_name), &self.write_output_json()?)?;
-        self.data.increment_current_session();
-        self.overwrite_assessments()?;
-        Ok(())
-    }
-
-    /// Write the output data into a JSON format. Not especially human readable.
-    pub fn write_output_json(&self) -> Result<String> {
-        let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
-        for (t, k, _d) in self.session.freq_keys.iter() {
-            fre_map.insert(*k, *t);
-        }
-        let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
-        for (t, bouts, k, _d) in self.session.dura_keys.iter() {
-            dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
-        }
-
-        serde_json::to_string(&OutputData {
-            datetime: date_time_string(&self.session.start_time),
-            session_duration: rounded_f32(self.session.main_timer.total_time()),
-            session: self.data.session.clone(),
-            duration: dur_map,
-            frequency: fre_map,
-            timeline: self.session.timeline.clone(),
-            ksf: self
-                .data
-                .ksfs
-                .get(self.data.chosen_ksf_name())
-                .unwrap_or(&Ksf::default())
-                .clone(),
-            client_name: self.data.client.name.clone(),
-            client_id: self.data.client.id.clone(),
-            case_manager: self.data.client.case_manager.clone(),
-            primary_therapist: self.data.client.primary_therapist.clone(),
-            session_number: self.data.current_session,
-            days_since_admissions: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this should always be valid but avoid crash by giving default
-            location: self.data.client.location.clone(),
-        })
-        .context("failure to create json")
-    }
 }
 
 pub struct SessionPage {
@@ -286,6 +235,51 @@ impl SessionPage {
 }
 
 impl DataPro {
+    pub fn save_new_output_data(&mut self) -> Result<()> {
+        let output_data = self.create_output_data();
+        let file_name = self
+            .path_to_session_records_dir()
+            .join(output_data.auto_file_name());
+        overwrite_file(Ok(file_name), &serde_json::to_string(&output_data)?)?;
+        self.data.increment_current_session();
+        self.overwrite_assessments()?;
+        Ok(())
+    }
+
+    /// Write the output data into a JSON format. Not especially human readable.
+    pub fn create_output_data(&self) -> OutputData {
+        let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
+        for (t, k, _d) in self.session.freq_keys.iter() {
+            fre_map.insert(*k, *t);
+        }
+        let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
+        for (t, bouts, k, _d) in self.session.dura_keys.iter() {
+            dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
+        }
+
+        OutputData {
+            datetime: date_time_string(&self.session.start_time),
+            session_duration: rounded_f32(self.session.main_timer.total_time()),
+            session: self.data.session.clone(),
+            duration: dur_map,
+            frequency: fre_map,
+            timeline: self.session.timeline.clone(),
+            ksf: self
+                .data
+                .ksfs
+                .get(self.data.chosen_ksf_name())
+                .unwrap_or(&Ksf::default())
+                .clone(),
+            client_name: self.data.client.name.clone(),
+            client_id: self.data.client.id.clone(),
+            case_manager: self.data.client.case_manager.clone(),
+            primary_therapist: self.data.client.primary_therapist.clone(),
+            session_number: self.data.current_session,
+            days_since_admissions: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this should always be invalid but will avoid crashing by giving default
+            location: self.data.client.location.clone(),
+        }
+    }
+
     pub fn view_session(&mut self, ui: &mut Ui) {
         // Trigger only if the main timer is active
         if self.data.session.limit_session_length && self.session.main_timer.is_active() {

@@ -27,7 +27,6 @@ rust_xlsxwriter = "0.96.0"
 rand = "0.10.2"
 win-msgbox = "0.2.2"
 regex = "1.13.1"
-#plotpy = "1.23.0"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
