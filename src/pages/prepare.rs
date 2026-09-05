@@ -62,13 +62,11 @@ impl PrepareSession {
                     ui.end_row();
 
                     // Saved to client file.
-                    ui.label("Date of Admission");
+                    ui.label("Date of Admission\n(MM-DD-YYY)");
                     if app.prep_session.edit_doa {
-                        let doa = ui
-                            .add(egui::TextEdit::singleline(
-                                &mut app.data.client.date_of_admission,
-                            ))
-                            .on_hover_text("format date as MM-DD-YYYY");
+                        let doa = ui.add(egui::TextEdit::singleline(
+                            &mut app.data.client.date_of_admission,
+                        ));
                         if doa.lost_focus() {
                             quick_error!(app.overwrite_client_data());
                         }

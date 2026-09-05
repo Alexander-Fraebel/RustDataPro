@@ -19,6 +19,7 @@ pub trait DataProUiElements {
     fn large_blue_button(&mut self, text: &'static str) -> Response;
     fn lock_unlock_button(&mut self, condition: &mut bool) -> Response;
     fn directory_picker(&mut self, file_dialog: &mut FileDialog, directory_name: &PathBuf);
+    fn file_picker(&mut self, file_dialog: &mut FileDialog, directory_name: &PathBuf);
 }
 
 impl DataProUiElements for Ui {
@@ -61,6 +62,18 @@ impl DataProUiElements for Ui {
             .clicked()
         {
             file_dialog.pick_directory();
+        }
+    }
+
+    fn file_picker(&mut self, file_dialog: &mut FileDialog, directory_name: &PathBuf) {
+        if self
+            .add(
+                egui::Button::new(egui::RichText::new(directory_name.to_string_lossy())).truncate(),
+            )
+            .on_hover_text(directory_name.to_string_lossy())
+            .clicked()
+        {
+            file_dialog.pick_file();
         }
     }
 }

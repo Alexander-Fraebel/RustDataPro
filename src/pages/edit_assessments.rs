@@ -35,8 +35,7 @@ fn assessment_scroller(
                         .add_sized(
                             (220.0, 18.0),
                             egui::TextEdit::singleline(&mut assessment.name)
-                                .prefix(format!("{}) ", n + 1))
-                                .hint_text("Name"),
+                                .hint_text("Assessment Name"),
                         )
                         .changed()
                     {
@@ -58,7 +57,6 @@ fn assessment_scroller(
                         app.edit_assessments.changes_made = true;
                     };
                 });
-
                 if ui
                     .add(
                         egui::TextEdit::multiline(&mut assessment.conditions)
@@ -70,6 +68,7 @@ fn assessment_scroller(
                     app.edit_assessments.changes_made = true;
                 }
                 ui.add_space(5.0);
+
                 ui.label("Preferred KSF (optional):");
                 if ui
                     .text_edit_singleline(&mut assessment.preferred_ksf)
@@ -83,8 +82,6 @@ fn assessment_scroller(
 }
 
 fn assessments_controller(app: &mut DataPro, ui: &mut egui::Ui) {
-    ui.add_space(10.0);
-
     ui.horizontal(|ui| {
         ui.vertical(|ui| assessment_scroller(app, ui));
         ui.add_space(30.0);
@@ -179,6 +176,7 @@ impl DataPro {
     pub fn view_edit_assessments_page(&mut self, ui: &mut egui::Ui) {
         self.edit_assessments.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = self.edit_assessments.file_dialog.take_picked() {
+            self.data.client.alternate_assessments_path = pathbuf.to_string_lossy().to_string();
             self.edit_assessments.save_path = pathbuf;
         }
 
@@ -188,11 +186,10 @@ impl DataPro {
             ui.add_space(15.0);
 
             ui.label("Save To:");
-            ui.directory_picker(
+            ui.file_picker(
                 &mut self.edit_assessments.file_dialog,
                 &self.edit_assessments.save_path,
             );
-
             ui.add_space(10.0);
 
             assessments_controller(self, ui)

@@ -205,6 +205,7 @@ impl DataPro {
     pub fn view_edit_ksf_page(&mut self, ui: &mut egui::Ui) {
         self.edit_ksfs.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = self.edit_ksfs.file_dialog.take_picked() {
+            self.data.client.alternate_ksfs_path = pathbuf.to_string_lossy().to_string();
             self.edit_ksfs.save_path = pathbuf;
         }
 
@@ -214,7 +215,7 @@ impl DataPro {
             ui.add_space(15.0);
 
             ui.label("Save To:");
-            ui.directory_picker(&mut self.edit_ksfs.file_dialog, &self.edit_ksfs.save_path);
+            ui.file_picker(&mut self.edit_ksfs.file_dialog, &self.edit_ksfs.save_path);
             ui.add_space(10.0);
 
             ksf_controller(self, ui)

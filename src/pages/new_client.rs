@@ -80,7 +80,7 @@ impl DataPro {
                 .min_col_width(150.0)
                 .spacing((10.0, 10.0))
                 .show(ui, |ui| {
-                    ui.monospace("Client ID");
+                    ui.label("Client ID (MRN)");
                     if ui
                         .text_edit_singleline(&mut self.new_client_page.client.id)
                         .changed()
@@ -101,7 +101,7 @@ impl DataPro {
                     }
                     ui.end_row();
 
-                    ui.monospace("Client Name");
+                    ui.label("Client Name");
                     if ui
                         .text_edit_singleline(&mut self.new_client_page.client.name)
                         .changed()
@@ -110,7 +110,7 @@ impl DataPro {
                     }
                     ui.end_row();
 
-                    ui.monospace("Case Manager");
+                    ui.label("Case Manager");
                     if ui
                         .text_edit_singleline(&mut self.new_client_page.client.case_manager)
                         .changed()
@@ -119,7 +119,7 @@ impl DataPro {
                     }
                     ui.end_row();
 
-                    ui.monospace("Primary Therapist");
+                    ui.label("Primary Therapist");
                     if ui
                         .text_edit_singleline(&mut self.new_client_page.client.primary_therapist)
                         .changed()
@@ -128,7 +128,7 @@ impl DataPro {
                     }
                     ui.end_row();
 
-                    ui.monospace("Date of Admission\n(MM-DD-YYYY)");
+                    ui.label("Date of Admission\n(MM-DD-YYYY)");
                     if ui
                         .text_edit_singleline(&mut self.new_client_page.client.date_of_admission)
                         .changed()
@@ -142,7 +142,7 @@ impl DataPro {
                     }
                     ui.end_row();
 
-                    ui.monospace("Location");
+                    ui.label("Location");
                     if ui
                         .text_edit_singleline(&mut self.new_client_page.client.location)
                         .changed()
