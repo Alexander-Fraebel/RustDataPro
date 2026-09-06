@@ -47,25 +47,7 @@ impl DataPro {
                     ui.monospace("Monospace");
                     ui.monospace(EXAMPLE_TEXT);
                 });
-
-                // ui.collapsing("Read Keyboard", |ui| {
-                //     let mut visual = String::new();
-                //     ui.ctx().input_mut(|input| {
-                //         for event in &input.events {
-                //             if let egui::Event::Key {
-                //                 key: _,
-                //                 physical_key: _,
-                //                 pressed: _,
-                //                 repeat: _,
-                //                 modifiers: _,
-                //             } = event
-                //             {
-                //                 visual.push_str(&format!("{:?}\n", event));
-                //             }
-                //         }
-                //     });
-                //     ui.monospace(visual)
-                // });
+                ui.add_space(5.0);
             });
     }
 }

@@ -52,7 +52,7 @@ pub struct Timers {
 impl Default for Timers {
     fn default() -> Self {
         let mut timers = Vec::new();
-        for _ in 0..6 {
+        for _ in 0..9 {
             timers.push(UserTimer::new());
         }
         timers[0].linked = true;
@@ -89,21 +89,20 @@ impl DataPro {
 
             ui.strong("Controls:");
             ui.label(
-                "1-6 to toggle timers.\n0 to toggle linked timers.\nSpace to pause all timers.\nR to reset all timers.",
+                "1-9 to toggle timers.\n0 to toggle linked timers.\nSpace to pause all timers.\nR to reset all timers.",
             );
             ui.add_space(15.0);
 
             egui::Grid::new("timers_page_grid")
-                .striped(true).min_row_height(25.0)
+                .striped(true).min_row_height(30.0)
                 .show(ui, |ui| {
                     for (n, timer) in self.timers.timers.iter_mut().enumerate() {
                         ui.horizontal_centered(|ui| {
                             if ui
                                 .add_sized(
-                                    (125.0, 20.0),
+                                    (150.0, 22.0),
                                     egui::TextEdit::singleline(&mut timer.description)
                                         .prefix(format!("{})", n + 1))
-                                        .char_limit(12)
                                         .font(TextStyle::Monospace),
                                 )
                                 .has_focus()
@@ -135,7 +134,7 @@ impl DataPro {
                                 UserTimerType::Countdown => {
                                     let draginfo = ui.add_sized(counter_adjust_size,
                                         egui::DragValue::new(&mut timer.countdown_from)
-                                        .range(0.0..=99999.0),
+                                        .range(0.0..=999_999.0),
                                     );
                                     if draginfo.has_focus() {
                                         accept_keyboard_controls = false;
@@ -188,7 +187,7 @@ impl DataPro {
                 }
 
                 // Detect toggle each
-                for (idx, key) in [Key::Num1, Key::Num2, Key::Num3, Key::Num4, Key::Num5, Key::Num6]
+                for (idx, key) in [Key::Num1, Key::Num2, Key::Num3, Key::Num4, Key::Num5, Key::Num6, Key::Num7, Key::Num8, Key::Num9]
                     .iter()
                     .enumerate()
                 {
