@@ -43,16 +43,16 @@ impl DataPro {
         }
     }
 
-    pub fn go_to_prep_session(&mut self) {
-        self.save_and_reload_ksfs_and_assessments();
-        self.display_info.active_page = Page::PrepareSession;
-        self.display_info.sidebar_open = true;
-    }
-
     pub fn go_to_run_session(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
         self.display_info.active_page = Page::RunSession;
         self.display_info.sidebar_open = false;
+    }
+
+    pub fn go_to_prep_session(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::PrepareSession;
+        self.display_info.sidebar_open = true;
     }
 
     pub fn go_to_ioa(&mut self) {

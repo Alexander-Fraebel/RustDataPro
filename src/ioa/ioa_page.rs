@@ -4,9 +4,9 @@ use crate::{
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
         excel_output::save_excel_workbook,
+        quick_file_name,
     },
-    utils::ui_elements::DataProUiElements,
-    utils::{quick_file_name, time_stamp, windows_error_dialog},
+    utils::{time_stamp, ui_elements::DataProUiElements, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use egui::{Color32, RichText, Ui};

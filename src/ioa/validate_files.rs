@@ -1,4 +1,4 @@
-use crate::{data::OutputData, utils::quick_file_name};
+use crate::{data::OutputData, ioa::quick_file_name};
 use anyhow::Result;
 use std::path::PathBuf;
 

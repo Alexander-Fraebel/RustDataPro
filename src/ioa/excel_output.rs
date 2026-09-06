@@ -1,6 +1,6 @@
 use crate::{
     data::{IoaData, OutputData},
-    utils::quick_file_name,
+    ioa::quick_file_name,
 };
 use anyhow::Result;
 use egui::Key;
