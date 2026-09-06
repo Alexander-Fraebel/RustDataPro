@@ -2,8 +2,10 @@ use crate::{
     app::DataPro,
     data::{ClientAndSessionData, Ksf, output_data::OutputData, timeline::Timeline},
     quick_error,
-    timer::{Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms},
-    ui_elements::DataProUiElements,
+    utils::timer::{
+        Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms,
+    },
+    utils::ui_elements::DataProUiElements,
     utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32},
 };
 use anyhow::Result;

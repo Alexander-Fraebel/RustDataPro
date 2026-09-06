@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    timer::{Timer, view_countdown_hms, view_stopwatch_hms},
+    utils::timer::{Timer, view_countdown_hms, view_stopwatch_hms},
     utils::ClickedKeys,
 };
 use egui::{
@@ -10,16 +10,16 @@ use egui::{
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TimerType {
+enum UserTimerType {
     Countdown,
     Stopwatch,
 }
 
-impl Display for TimerType {
+impl Display for UserTimerType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TimerType::Countdown => write!(f, "Countdown"),
-            TimerType::Stopwatch => write!(f, "Stopwatch"),
+            UserTimerType::Countdown => write!(f, "Countdown"),
+            UserTimerType::Stopwatch => write!(f, "Stopwatch"),
         }
     }
 }
@@ -28,7 +28,7 @@ struct UserTimer {
     timer: Timer,
     linked: bool,
     description: String,
-    timer_type: TimerType,
+    timer_type: UserTimerType,
     countdown_from: f32,
 }
 
@@ -38,7 +38,7 @@ impl UserTimer {
             timer: Timer::default(),
             linked: false,
             description: String::new(),
-            timer_type: TimerType::Countdown,
+            timer_type: UserTimerType::Countdown,
             countdown_from: 30.0,
         }
     }
@@ -113,8 +113,8 @@ impl DataPro {
                             ui.add_space(10.0);
 
                             match timer.timer_type {
-                                TimerType::Countdown => view_countdown_hms(ui, &timer.timer, timer.countdown_from),
-                                TimerType::Stopwatch => view_stopwatch_hms(ui, &timer.timer),
+                                UserTimerType::Countdown => view_countdown_hms(ui, &timer.timer, timer.countdown_from),
+                                UserTimerType::Stopwatch => view_stopwatch_hms(ui, &timer.timer),
                             }
                             ui.add_space(5.0);
 
@@ -132,7 +132,7 @@ impl DataPro {
 
                             let counter_adjust_size = (50.0,20.0);
                             match timer.timer_type {
-                                TimerType::Countdown => {
+                                UserTimerType::Countdown => {
                                     let draginfo = ui.add_sized(counter_adjust_size,
                                         egui::DragValue::new(&mut timer.countdown_from)
                                         .range(0.0..=99999.0),
@@ -144,7 +144,7 @@ impl DataPro {
                                         timer.timer.reset();
                                     }
                                 },
-                                TimerType::Stopwatch => {
+                                UserTimerType::Stopwatch => {
                                     ui.add_sized(counter_adjust_size,egui::Label::new(""));
                                 },
                             }                            
@@ -153,10 +153,10 @@ impl DataPro {
                             egui::ComboBox::from_id_salt(format!("timer_mode{n}"))
                                 .selected_text(timer.timer_type.to_string())
                                 .show_ui(ui, |ui| {
-                                    if ui.selectable_value(&mut timer.timer_type, TimerType::Countdown, "Countdown").clicked() {
+                                    if ui.selectable_value(&mut timer.timer_type, UserTimerType::Countdown, "Countdown").clicked() {
                                         timer.timer.reset();
                                     }
-                                    if ui.selectable_value(&mut timer.timer_type, TimerType::Stopwatch, "Stopwatch").clicked() {
+                                    if ui.selectable_value(&mut timer.timer_type, UserTimerType::Stopwatch, "Stopwatch").clicked() {
                                         timer.timer.reset();
                                     }
                                 });

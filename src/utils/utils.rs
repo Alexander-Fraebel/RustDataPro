@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use egui::{InputState, Key, Modifiers};
+use egui::{InputState, Key};
 use itertools::Itertools;
 use std::{
     borrow::Cow,
@@ -15,7 +15,7 @@ pub fn rounded_f32(n: f32) -> f32 {
 }
 
 /// Detect keys that have been pressed and ignore repeated events.
-pub struct ClickedKeys(Vec<(Key, Modifiers)>);
+pub struct ClickedKeys(Vec<Key>);
 
 impl ClickedKeys {
     pub fn new() -> Self {
@@ -27,7 +27,7 @@ impl ClickedKeys {
     }
 
     pub fn contains_key(&self, key: &Key) -> bool {
-        self.0.iter().map(|(key, _)| key).contains(key)
+        self.0.iter().contains(key)
     }
 
     pub fn update(&mut self, input: &InputState) {
@@ -39,14 +39,14 @@ impl ClickedKeys {
                 physical_key: _,
                 pressed,
                 repeat,
-                modifiers,
+                modifiers: _,
             } = event
             {
                 if *repeat {
                     continue;
                 }
                 if *pressed {
-                    self.0.push((*key, *modifiers));
+                    self.0.push(*key);
                 }
             }
         }

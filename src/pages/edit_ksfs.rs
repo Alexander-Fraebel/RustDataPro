@@ -1,7 +1,7 @@
 use crate::{
     app::DataPro,
     data::{ALLOWED_KSF_KEYS, ClientAndSessionData, Ksf, KsfsData},
-    ui_elements::DataProUiElements,
+    utils::ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
 use anyhow::Result;

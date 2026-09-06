@@ -2,7 +2,7 @@ use crate::{
     app::DataPro,
     data::{Assessment, AssessmentsData, ClientAndSessionData},
     quick_error,
-    ui_elements::DataProUiElements,
+    utils::ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
 use egui::TextStyle;
