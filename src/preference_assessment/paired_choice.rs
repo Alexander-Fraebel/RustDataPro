@@ -1,4 +1,4 @@
-use crate::{app::DataPro, quick_error, utils::overwrite_file};
+use crate::{quick_error, utils::overwrite_file};
 use anyhow::Result;
 use egui::{RichText, Ui};
 use egui_extras::Column;
@@ -7,29 +7,12 @@ use itertools::Itertools;
 use rand::{rngs::StdRng, seq::SliceRandom};
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display,
     fs::File,
     io::Read,
     path::PathBuf,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub enum PaType {
-    #[default]
-    None,
-    PairedChoice,
-}
-
-impl Display for PaType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PaType::None => write!(f, "None"),
-            PaType::PairedChoice => write!(f, "Paired Choice"),
-        }
-    }
-}
-
-pub struct PreferenceAssessment {
+pub struct PairedChoice {
     pub conditions_string: String,
     pub conditions: Vec<(String, i32)>,
     pub all_pairs: Vec<(String, String, bool, bool)>,
@@ -39,7 +22,7 @@ pub struct PreferenceAssessment {
     pub save_results_dialog: FileDialog,
 }
 
-impl Default for PreferenceAssessment {
+impl Default for PairedChoice {
     fn default() -> Self {
         Self {
             conditions_string: Default::default(),
@@ -53,7 +36,7 @@ impl Default for PreferenceAssessment {
     }
 }
 
-impl PreferenceAssessment {
+impl PairedChoice {
     pub fn load_file(&mut self, file_path: PathBuf) -> Result<()> {
         let mut file = File::open(&file_path)?;
         let mut s = String::new();
@@ -156,8 +139,8 @@ impl PreferenceAssessment {
     }
 }
 
-impl DataPro {
-    pub fn view_preference_assessment(&mut self, ui: &mut Ui) {
+impl crate::app::DataPro {
+    pub fn view_paired_choice(&mut self, ui: &mut Ui) {
         self.preference_assessment.import_export(ui);
 
         egui::CentralPanel::default().show(ui, |ui| {

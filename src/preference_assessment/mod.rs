@@ -1,3 +1,5 @@
-pub mod pa_page;
+pub mod free_operant;
+pub mod paired_choice;
+pub mod preference_assessments;
 
-pub use pa_page::*;
+pub use paired_choice::*;
