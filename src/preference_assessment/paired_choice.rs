@@ -12,6 +12,7 @@ use std::{
     path::PathBuf,
 };
 
+#[derive(Debug)]
 pub struct PairedChoice {
     pub conditions_string: String,
     pub conditions: Vec<(String, i32)>,
@@ -141,7 +142,7 @@ impl PairedChoice {
 
 impl crate::app::DataPro {
     pub fn view_paired_choice(&mut self, ui: &mut Ui) {
-        self.preference_assessment.import_export(ui);
+        self.preference_assessment.paired_choice.import_export(ui);
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
@@ -150,37 +151,45 @@ impl crate::app::DataPro {
                     ui.horizontal(|ui| {
                         ui.heading("Paired Choice");
                         if ui.button("Import").clicked() {
-                            self.preference_assessment.import_dialog.pick_file();
+                            self.preference_assessment
+                                .paired_choice
+                                .import_dialog
+                                .pick_file();
                         }
                         if ui.button("Export").clicked() {
-                            self.preference_assessment.save_pairs_dialog.save_file();
+                            self.preference_assessment
+                                .paired_choice
+                                .save_pairs_dialog
+                                .save_file();
                         }
                     });
                     ui.label("Put each condition on a new line.");
                     if ui
                         .add(
                             egui::TextEdit::multiline(
-                                &mut self.preference_assessment.conditions_string,
+                                &mut self.preference_assessment.paired_choice.conditions_string,
                             )
                             .hint_text(RichText::from("Condition 1\nCondition 2\nCondition 3")),
                         )
                         .changed()
                     {
-                        self.preference_assessment.update_conditions();
+                        self.preference_assessment.paired_choice.update_conditions();
                     }
                     ui.add_space(5.0);
 
                     ui.label(format!(
                         "With {} conditions there are {} pairs.",
-                        self.preference_assessment.conditions.len(),
-                        self.preference_assessment.conditions.len()
-                            * self.preference_assessment.conditions.len()
-                            - self.preference_assessment.conditions.len() // app.preference_assessment.all_pairs.len()
+                        self.preference_assessment.paired_choice.conditions.len(),
+                        self.preference_assessment.paired_choice.conditions.len()
+                            * self.preference_assessment.paired_choice.conditions.len()
+                            - self.preference_assessment.paired_choice.conditions.len() // app.preference_assessment.all_pairs.len()
                     ));
                     ui.add_space(10.0);
 
                     if ui.button("Shuffle").clicked() {
-                        self.preference_assessment.shuffle_pairs(&mut self.rng);
+                        self.preference_assessment
+                            .paired_choice
+                            .shuffle_pairs(&mut self.rng);
                     }
                     ui.add_space(10.0);
                 });
@@ -198,8 +207,12 @@ impl crate::app::DataPro {
                                 .striped(true)
                                 .body(|mut body| {
                                     let mut changes = false;
-                                    for (n, (a, b, abool, bbool)) in
-                                        self.preference_assessment.all_pairs.iter_mut().enumerate()
+                                    for (n, (a, b, abool, bbool)) in self
+                                        .preference_assessment
+                                        .paired_choice
+                                        .all_pairs
+                                        .iter_mut()
+                                        .enumerate()
                                     {
                                         body.row(20.0, |mut row| {
                                             row.col(|ui| {
@@ -220,7 +233,7 @@ impl crate::app::DataPro {
                                         });
                                     }
                                     if changes {
-                                        self.preference_assessment.update_counts();
+                                        self.preference_assessment.paired_choice.update_counts();
                                     }
                                 });
                         });
@@ -228,9 +241,13 @@ impl crate::app::DataPro {
 
                 ui.vertical(|ui| {
                     if ui.button("Save Results").clicked() {
-                        self.preference_assessment.save_results_dialog.save_file();
+                        self.preference_assessment
+                            .paired_choice
+                            .save_results_dialog
+                            .save_file();
                     }
-                    for (item, count) in self.preference_assessment.conditions.iter() {
+                    for (item, count) in self.preference_assessment.paired_choice.conditions.iter()
+                    {
                         ui.label(format!("{}: {}", item, count));
                     }
                 });

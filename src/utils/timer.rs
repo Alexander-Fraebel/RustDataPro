@@ -46,13 +46,13 @@ macro_rules! timer_display_hms {
 const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 const NEGATIVE_COLOR: Color32 = Color32::RED;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct CachedTime {
     pub saved: f32,
     pub last: f32, // how long the value was running
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct CachedInfo {
     pub active: CachedTime,
     pub stopped: CachedTime,
@@ -60,7 +60,7 @@ pub struct CachedInfo {
     pub status: TimerStatus,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
 pub enum TimerStatus {
     Active,
     #[default]
@@ -82,9 +82,19 @@ impl TimerStatus {
     }
 }
 
+#[derive(Debug)]
 pub struct Timestamp {
     pub status: TimerStatus,
     pub instant: Instant,
+}
+
+impl Default for Timestamp {
+    fn default() -> Self {
+        Self {
+            status: Default::default(),
+            instant: Instant::now(),
+        }
+    }
 }
 
 impl Timestamp {
@@ -122,18 +132,10 @@ impl Timestamp {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct Timer {
     pub timestamps: Vec<Timestamp>,
     pub cached: CachedInfo,
-}
-
-impl Default for Timer {
-    fn default() -> Self {
-        Self {
-            timestamps: Default::default(),
-            cached: CachedInfo::default(),
-        }
-    }
 }
 
 impl Timer {

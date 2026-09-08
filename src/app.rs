@@ -9,7 +9,7 @@ use crate::{
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
     },
-    preference_assessment::PairedChoice,
+    preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
     utils::{date_time_string, overwrite_file, windows_error_dialog},
 };
@@ -41,7 +41,7 @@ pub struct DataPro {
     pub new_client_page: CreateClient,
     pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
-    pub preference_assessment: PairedChoice,
+    pub preference_assessment: PreferenceAssessments,
 }
 
 impl Default for DataPro {
@@ -82,7 +82,7 @@ impl Default for DataPro {
             new_client_page: CreateClient::default(),
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
-            preference_assessment: PairedChoice::default(),
+            preference_assessment: PreferenceAssessments::default(),
         };
 
         // Initialize everything by "unloading" a client
