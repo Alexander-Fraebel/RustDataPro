@@ -24,12 +24,34 @@ impl Display for PaType {
 
 #[derive(Debug, Default)]
 pub struct PreferenceAssessments {
+    pub pa_type: PaType,
     pub free_operant: FreeOperant,
     pub paired_choice: PairedChoice,
+}
+
+impl PreferenceAssessments {
+    pub fn pa_selector(&mut self, ui: &mut Ui) {
+        egui::ComboBox::from_id_salt("condition")
+            .selected_text(self.pa_type.to_string())
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.pa_type, PaType::None, "None");
+                ui.selectable_value(&mut self.pa_type, PaType::FreeOperant, "Free Operant");
+                ui.selectable_value(&mut self.pa_type, PaType::PairedChoice, "Paired Choice");
+            });
+    }
 }
 
 impl crate::app::DataPro {
     pub fn view_preference_assessments_page(&mut self, ui: &mut Ui) {
         ui.label("Preference Assessments");
+        self.preference_assessment.pa_selector(ui);
+
+        match self.preference_assessment.pa_type {
+            PaType::None => {
+                ui.label("No PA Type Selected");
+            }
+            PaType::PairedChoice => self.view_paired_choice(ui),
+            PaType::FreeOperant => self.view_free_operant(ui),
+        }
     }
 }
