@@ -1,7 +1,8 @@
 use egui::{InputState, Key};
 use itertools::Itertools;
 
-/// Detect keys that have been pressed and ignore repeated events.
+/// Detect keys that have been pressed, ignoring unwanted repeated events.
+#[derive(Debug, Default)]
 pub struct ClickedKeys(Vec<Key>);
 
 impl ClickedKeys {

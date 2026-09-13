@@ -32,7 +32,8 @@ impl Default for PairedChoice {
             ordered: true,
             import_dialog: FileDialog::default(),
             save_pairs_dialog: FileDialog::default().default_file_name("preference_pairs.txt"),
-            save_results_dialog: FileDialog::default().default_file_name("preferences.txt"),
+            save_results_dialog: FileDialog::default()
+                .default_file_name("paired_choice_preferences.txt"),
         }
     }
 }
@@ -155,7 +156,7 @@ impl crate::app::DataPro {
                             .import_dialog
                             .pick_file();
                     }
-                    if ui.button("Export").clicked() {
+                    if ui.button("Save Results").clicked() {
                         self.preference_assessment
                             .paired_choice
                             .save_pairs_dialog

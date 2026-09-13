@@ -1,0 +1,5 @@
+Total Session Time: 22.8 seconds
+a: 2.8
+b: 4.1
+c: 2.2
+d: 0.1

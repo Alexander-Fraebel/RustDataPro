@@ -2,29 +2,32 @@ use egui::{Color32, RichText, Ui};
 use std::time::Instant;
 
 /// Time display with minutes:seconds.tenths
-/// Allocates space for 9 symbols in total.
-/// Max value before additional space is used is 9999:59.9 which is about 7 days
-// macro_rules! timer_display_ms {
-//     ($time:expr) => {
-//         RichText::new(format!(
-//             "{:4.0}:{:04.1}",
-//             ($time / 60.0).trunc(), // minutes, maybe negative
-//             ($time % 60.0).abs()    // seconds, always positive
-//         ))
-//         .monospace()
-//     };
-//     ($ui:ident, $time:expr) => {
-//         $ui.label(timer_display_ms!($time))
-//     };
-//     ($ui:ident, $time:expr, $color:expr) => {
-//         $ui.label(timer_display_ms!($time).color($color))
-//     };
-// }
+/// Allocates space for 8 symbols in total, room for three minutes digits.
+/// Max value before additional space is used is 999:59.9 (about 16 hours)
+/// Max value before additional space is used is -99:59.9 (about 1.5 hours)
+/// Time zero displays as __0:00.0
+macro_rules! timer_display_ms {
+    ($time:expr) => {
+        RichText::new(format!(
+            "{:3.0}:{:04.1}",
+            ($time / 60.0).trunc(), // minutes, maybe negative
+            ($time % 60.0).abs()    // seconds, always positive
+        ))
+        .monospace()
+    };
+    ($ui:ident, $time:expr) => {
+        $ui.label(timer_display_ms!($time))
+    };
+    ($ui:ident, $time:expr, $color:expr) => {
+        $ui.label(timer_display_ms!($time).color($color))
+    };
+}
 
 /// Timer display with hours:minutes:seconds.tenths
-/// Allocates space for 10 symbols in total.
-/// Max value before additional space is used is 99:59:59.9
-/// Min value before additional space is used in -9:59:59.9
+/// Allocates space for 10 symbols in total, room for two hours digits.
+/// Max value before additional space is used is 99:59:59.9 (about 4 days)
+/// Min value before additional space is used in -9:59:59.9 (10 hours)
+/// Time zero displays as 00:00:00.0
 macro_rules! timer_display_hms {
     ($time:expr) => {
         RichText::new(format!(
@@ -57,7 +60,7 @@ pub struct CachedInfo {
     pub active: CachedTime,
     pub stopped: CachedTime,
     pub paused: CachedTime,
-    pub status: TimerStatus,
+    pub previous_status: TimerStatus,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
@@ -136,9 +139,18 @@ impl Timestamp {
 pub struct Timer {
     pub timestamps: Vec<Timestamp>,
     pub cached: CachedInfo,
+    pub offset: f32,
 }
 
 impl Timer {
+    /// Amount of time to be added to the active time.
+    pub fn with_offset(offset: f32) -> Self {
+        Timer {
+            offset,
+            ..Default::default()
+        }
+    }
+
     /// Start or stop. Preferred interface for the timer..
     /// If the timer has not been started this starts it. Does nothing when the timer is paused.
     pub fn toggle(&mut self) {
@@ -189,14 +201,14 @@ impl Timer {
     /// Does not update saved times.
     pub fn pause(&mut self) {
         self.update_last_active_time();
-        self.cached.status = self.current_status();
+        self.cached.previous_status = self.current_status();
         self.timestamps.push(Timestamp::paused());
     }
 
     /// Push a new timestamp of the same type as the last status. Updates the paused time.
     /// Does not update other cached times.
     pub fn unpause(&mut self) {
-        match self.cached.status {
+        match self.cached.previous_status {
             TimerStatus::Active => self.start_silent(),
             TimerStatus::Stopped => self.stop_silent(),
             TimerStatus::Paused => (),
@@ -310,9 +322,9 @@ impl Timer {
     /// How long the timer has been active in seconds.
     pub fn active_time(&self) -> f32 {
         if self.is_active() {
-            self.cached.active.saved + self.cached.active.last + self.current_time()
+            self.cached.active.saved + self.cached.active.last + self.current_time() + self.offset
         } else {
-            self.cached.active.saved + self.cached.active.last
+            self.cached.active.saved + self.cached.active.last + self.offset
         }
     }
 
@@ -341,7 +353,8 @@ impl Timer {
             + self.cached.stopped.saved
             + self.cached.active.last
             + self.cached.paused.last
-            + self.cached.stopped.last;
+            + self.cached.stopped.last
+            + self.offset;
         if self.is_stopped() {
             s
         } else {
@@ -356,6 +369,18 @@ pub fn view_stopwatch_hms(ui: &mut Ui, timer: &Timer) {
         timer_display_hms!(ui, t);
     } else {
         timer_display_hms!(ui, t, ACTIVE_COLOR);
+        if timer.is_active() {
+            ui.request_repaint()
+        }
+    }
+}
+
+pub fn view_stopwatch_ms(ui: &mut Ui, timer: &Timer) {
+    let t = timer.active_time();
+    if !timer.was_started() {
+        timer_display_ms!(ui, t);
+    } else {
+        timer_display_ms!(ui, t, ACTIVE_COLOR);
         if timer.is_active() {
             ui.request_repaint()
         }

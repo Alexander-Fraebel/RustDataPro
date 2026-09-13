@@ -564,7 +564,10 @@ impl DataPro {
                                                         passive, row, desc, key, timer, bouts
                                                     );
                                                 }
-                                                TimerStatus::Paused => match timer.cached.status {
+                                                TimerStatus::Paused => match timer
+                                                    .cached
+                                                    .previous_status
+                                                {
                                                     TimerStatus::Active => {
                                                         split_timer_display!(
                                                             active, row, desc, key, timer, bouts
