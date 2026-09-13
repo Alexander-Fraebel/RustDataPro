@@ -43,15 +43,19 @@ impl PreferenceAssessments {
 
 impl crate::app::DataPro {
     pub fn view_preference_assessments_page(&mut self, ui: &mut Ui) {
-        ui.label("Preference Assessments");
-        self.preference_assessment.pa_selector(ui);
+        egui::CentralPanel::default().show(ui, |ui| {
+            ui.heading("Preference Assessment");
+            self.preference_assessment.pa_selector(ui);
 
-        match self.preference_assessment.pa_type {
-            PaType::None => {
-                ui.label("No PA Type Selected");
+            ui.add_space(10.0);
+
+            match self.preference_assessment.pa_type {
+                PaType::None => {
+                    ui.label("No PA Type Selected");
+                }
+                PaType::PairedChoice => self.view_paired_choice(ui),
+                PaType::FreeOperant => self.view_free_operant(ui),
             }
-            PaType::PairedChoice => self.view_paired_choice(ui),
-            PaType::FreeOperant => self.view_free_operant(ui),
-        }
+        });
     }
 }

@@ -144,113 +144,110 @@ impl crate::app::DataPro {
     pub fn view_paired_choice(&mut self, ui: &mut Ui) {
         self.preference_assessment.paired_choice.import_export(ui);
 
-        egui::CentralPanel::default().show(ui, |ui| {
-            ui.add_space(10.0);
-            ui.horizontal(|ui| {
-                ui.vertical(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.heading("Paired Choice");
-                        if ui.button("Import").clicked() {
-                            self.preference_assessment
-                                .paired_choice
-                                .import_dialog
-                                .pick_file();
-                        }
-                        if ui.button("Export").clicked() {
-                            self.preference_assessment
-                                .paired_choice
-                                .save_pairs_dialog
-                                .save_file();
-                        }
-                    });
-                    ui.label("Put each condition on a new line.");
-                    if ui
-                        .add(
-                            egui::TextEdit::multiline(
-                                &mut self.preference_assessment.paired_choice.conditions_string,
-                            )
-                            .hint_text(RichText::from("Condition 1\nCondition 2\nCondition 3")),
-                        )
-                        .changed()
-                    {
-                        self.preference_assessment.paired_choice.update_conditions();
-                    }
-                    ui.add_space(5.0);
-
-                    ui.label(format!(
-                        "With {} conditions there are {} pairs.",
-                        self.preference_assessment.paired_choice.conditions.len(),
-                        self.preference_assessment.paired_choice.conditions.len()
-                            * self.preference_assessment.paired_choice.conditions.len()
-                            - self.preference_assessment.paired_choice.conditions.len() // app.preference_assessment.all_pairs.len()
-                    ));
-                    ui.add_space(10.0);
-
-                    if ui.button("Shuffle").clicked() {
+        ui.add_space(10.0);
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    ui.heading("Paired Choice");
+                    if ui.button("Import").clicked() {
                         self.preference_assessment
                             .paired_choice
-                            .shuffle_pairs(&mut self.rng);
+                            .import_dialog
+                            .pick_file();
                     }
-                    ui.add_space(10.0);
-                });
-
-                ui.vertical(|ui| {
-                    egui::ScrollArea::vertical()
-                        .id_salt("paired choice scroller")
-                        .min_scrolled_height(600.0)
-                        .show(ui, |ui| {
-                            egui_extras::TableBuilder::new(ui)
-                                .id_salt("frequency")
-                                .column(Column::exact(25.0))
-                                .column(Column::exact(150.0))
-                                .column(Column::exact(150.0))
-                                .striped(true)
-                                .body(|mut body| {
-                                    let mut changes = false;
-                                    for (n, (a, b, abool, bbool)) in self
-                                        .preference_assessment
-                                        .paired_choice
-                                        .all_pairs
-                                        .iter_mut()
-                                        .enumerate()
-                                    {
-                                        body.row(20.0, |mut row| {
-                                            row.col(|ui| {
-                                                ui.monospace(format!("{:>2})", n + 1));
-                                            });
-                                            row.col(|ui| {
-                                                if ui.checkbox(abool, a.as_str()).clicked() {
-                                                    *bbool = !*abool;
-                                                    changes = true;
-                                                }
-                                            });
-                                            row.col(|ui| {
-                                                if ui.checkbox(bbool, b.as_str()).clicked() {
-                                                    *abool = !*bbool;
-                                                    changes = true;
-                                                }
-                                            });
-                                        });
-                                    }
-                                    if changes {
-                                        self.preference_assessment.paired_choice.update_counts();
-                                    }
-                                });
-                        });
-                });
-
-                ui.vertical(|ui| {
-                    if ui.button("Save Results").clicked() {
+                    if ui.button("Export").clicked() {
                         self.preference_assessment
                             .paired_choice
-                            .save_results_dialog
+                            .save_pairs_dialog
                             .save_file();
                     }
-                    for (item, count) in self.preference_assessment.paired_choice.conditions.iter()
-                    {
-                        ui.label(format!("{}: {}", item, count));
-                    }
                 });
+                ui.label("Put each condition on a new line.");
+                if ui
+                    .add(
+                        egui::TextEdit::multiline(
+                            &mut self.preference_assessment.paired_choice.conditions_string,
+                        )
+                        .hint_text(RichText::from("Condition 1\nCondition 2\nCondition 3")),
+                    )
+                    .changed()
+                {
+                    self.preference_assessment.paired_choice.update_conditions();
+                }
+                ui.add_space(5.0);
+
+                ui.label(format!(
+                    "With {} conditions there are {} pairs.",
+                    self.preference_assessment.paired_choice.conditions.len(),
+                    self.preference_assessment.paired_choice.conditions.len()
+                        * self.preference_assessment.paired_choice.conditions.len()
+                        - self.preference_assessment.paired_choice.conditions.len() // app.preference_assessment.all_pairs.len()
+                ));
+                ui.add_space(10.0);
+
+                if ui.button("Shuffle").clicked() {
+                    self.preference_assessment
+                        .paired_choice
+                        .shuffle_pairs(&mut self.rng);
+                }
+                ui.add_space(10.0);
+            });
+
+            ui.vertical(|ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt("paired choice scroller")
+                    .min_scrolled_height(600.0)
+                    .show(ui, |ui| {
+                        egui_extras::TableBuilder::new(ui)
+                            .id_salt("frequency")
+                            .column(Column::exact(25.0))
+                            .column(Column::exact(150.0))
+                            .column(Column::exact(150.0))
+                            .striped(true)
+                            .body(|mut body| {
+                                let mut changes = false;
+                                for (n, (a, b, abool, bbool)) in self
+                                    .preference_assessment
+                                    .paired_choice
+                                    .all_pairs
+                                    .iter_mut()
+                                    .enumerate()
+                                {
+                                    body.row(20.0, |mut row| {
+                                        row.col(|ui| {
+                                            ui.monospace(format!("{:>2})", n + 1));
+                                        });
+                                        row.col(|ui| {
+                                            if ui.checkbox(abool, a.as_str()).clicked() {
+                                                *bbool = !*abool;
+                                                changes = true;
+                                            }
+                                        });
+                                        row.col(|ui| {
+                                            if ui.checkbox(bbool, b.as_str()).clicked() {
+                                                *abool = !*bbool;
+                                                changes = true;
+                                            }
+                                        });
+                                    });
+                                }
+                                if changes {
+                                    self.preference_assessment.paired_choice.update_counts();
+                                }
+                            });
+                    });
+            });
+
+            ui.vertical(|ui| {
+                if ui.button("Save Results").clicked() {
+                    self.preference_assessment
+                        .paired_choice
+                        .save_results_dialog
+                        .save_file();
+                }
+                for (item, count) in self.preference_assessment.paired_choice.conditions.iter() {
+                    ui.label(format!("{}: {}", item, count));
+                }
             });
         });
     }

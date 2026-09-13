@@ -11,8 +11,6 @@ impl FreeOperant {}
 
 impl crate::app::DataPro {
     pub fn view_free_operant(&mut self, ui: &mut Ui) {
-        egui::CentralPanel::default().show(ui, |ui| {
-            ui.label("Free Operant");
-        });
+        ui.label("Free Operant");
     }
 }
