@@ -48,7 +48,7 @@ impl Default for FreeOperant {
 }
 
 impl FreeOperant {
-    pub fn update_conditions(&mut self) {
+    fn update_conditions(&mut self) {
         self.conditions = self
             .conditions_string
             .split("\n")
@@ -57,8 +57,21 @@ impl FreeOperant {
             .collect();
     }
 
-    pub fn load_saved_session(&mut self, file_path: PathBuf) -> Result<()> {
+    fn save_data(&mut self, path: PathBuf) -> Result<()> {
+        let mut data = format!(
+            "Total Session Time: {:.1} seconds\n",
+            self.session_timer.active_time()
+        );
+        self.conditions
+            .iter()
+            .for_each(|(s, timer)| data.push_str(&format!("{s}: {:.1}\n", timer.active_time())));
+        overwrite_file(Ok(path), &data)?;
+        Ok(())
+    }
+
+    fn load_saved_session(&mut self, file_path: PathBuf) -> Result<()> {
         self.conditions.clear();
+        self.conditions_string.clear();
         self.stop_all_timers();
         self.reset_all_timers();
 
@@ -76,20 +89,23 @@ impl FreeOperant {
             let name = caps[1].to_string();
             let timer = Timer::with_offset(caps[2].parse::<f32>()?);
 
+            self.conditions_string.push_str(&name);
+            self.conditions_string.push('\n');
+
             self.conditions.push((name, timer));
         }
 
         Ok(())
     }
 
-    pub fn reset_all_timers(&mut self) {
+    fn reset_all_timers(&mut self) {
         self.session_timer.reset();
         for (_, timer) in self.conditions.iter_mut() {
             timer.reset();
         }
     }
 
-    pub fn stop_all_timers(&mut self) {
+    fn stop_all_timers(&mut self) {
         self.session_timer.stop();
         for (_, timer) in self.conditions.iter_mut() {
             timer.stop();
@@ -121,59 +137,8 @@ impl FreeOperant {
 
         self.save_results_dialog.update(ui.ctx());
         if let Some(path) = self.save_results_dialog.take_picked() {
-            let mut data = format!(
-                "Total Session Time: {:.1} seconds\n",
-                self.session_timer.active_time()
-            );
-            self.conditions.iter().for_each(|(s, timer)| {
-                data.push_str(&format!("{s}: {:.1}\n", timer.active_time()))
-            });
-            quick_error!(overwrite_file(Ok(path), &data));
-            self.reset_all_timers();
+            quick_error!(self.save_data(path));
         }
-
-        ui.heading("Free Operant");
-
-        if ui.large_blue_button("Load Session").clicked() {
-            self.import_dialog.pick_file();
-        }
-
-        ui.label("Put each condition on a new line.");
-
-        ui.add_enabled_ui(self.session_timer.is_stopped(), |ui| {
-            if ui.button("update conditions").clicked() {
-                self.update_conditions();
-            }
-            ui.add(
-                egui::TextEdit::multiline(&mut self.conditions_string)
-                    .hint_text(RichText::from("Condition 1\nCondition 2\nCondition 3")),
-            );
-        });
-
-        ui.horizontal(|ui| {
-            if ui.large_green_button("Begin").clicked() {
-                self.session_timer.start();
-            }
-
-            if ui.large_red_button("End").clicked() {
-                self.stop_all_timers();
-                self.save_discard_window_open = true;
-            }
-        });
-
-        ui.add_enabled_ui(self.session_timer.is_active(), |ui| {
-            ui.horizontal(|ui| {
-                ui.label("Session Time:");
-                view_stopwatch_ms(ui, &self.session_timer);
-            });
-
-            for (condition, timer) in self.conditions.iter() {
-                ui.horizontal(|ui| {
-                    ui.label(condition);
-                    view_stopwatch_ms(ui, timer)
-                });
-            }
-        });
 
         if self.session_timer.is_active() {
             ui.ctx().input_mut(|input| {
@@ -189,6 +154,64 @@ impl FreeOperant {
                 }
             });
         }
+
+        ui.horizontal(|ui| {
+            // Session Setup Controls
+            ui.vertical(|ui| {
+                ui.heading("Free Operant");
+
+                if ui.large_blue_button("Load Session").clicked() {
+                    self.import_dialog.pick_file();
+                }
+                ui.add_space(5.0);
+
+                ui.add_enabled_ui(self.session_timer.is_stopped(), |ui| {
+                    ui.label("Put each condition on a new line.");
+                    if ui.button("update conditions").clicked() {
+                        self.update_conditions();
+                    }
+                    ui.add(
+                        egui::TextEdit::multiline(&mut self.conditions_string)
+                            .hint_text(RichText::from("Condition 1\nCondition 2\nCondition 3")),
+                    );
+                });
+                ui.add_space(5.0);
+
+                ui.horizontal(|ui| {
+                    if ui.large_green_button("Begin").clicked() {
+                        self.session_timer.start();
+                    }
+
+                    if ui.large_red_button("End").clicked() {
+                        self.stop_all_timers();
+                        self.save_discard_window_open = true;
+                    }
+                });
+                ui.add_space(5.0);
+            });
+            ui.add_space(5.0);
+
+            // Display used during assessment
+            ui.vertical(|ui| {
+                ui.add_enabled_ui(self.session_timer.is_active(), |ui| {
+                    ui.horizontal(|ui| {
+                        ui.monospace("Session Time:");
+                        view_stopwatch_ms(ui, &self.session_timer);
+                    });
+
+                    for ((condition, timer), c) in self
+                        .conditions
+                        .iter()
+                        .zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ".chars())
+                    {
+                        ui.horizontal(|ui| {
+                            ui.monospace(format!("{c})   {}", condition));
+                            view_stopwatch_ms(ui, timer)
+                        });
+                    }
+                });
+            })
+        });
     }
 }
 

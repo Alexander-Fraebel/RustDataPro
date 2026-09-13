@@ -1,8 +1,6 @@
-use std::fmt::Display;
-
-use egui::Ui;
-
 use crate::preference_assessment::{PairedChoice, free_operant::FreeOperant};
+use egui::Ui;
+use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub enum PaType {
@@ -44,9 +42,11 @@ impl PreferenceAssessments {
 impl crate::app::DataPro {
     pub fn view_preference_assessments_page(&mut self, ui: &mut Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading("Preference Assessment");
-            self.preference_assessment.pa_selector(ui);
+            ui.heading("Preference Assessment For");
+            self.client_picker(ui);
+            ui.add_space(5.0);
 
+            self.preference_assessment.pa_selector(ui);
             ui.add_space(10.0);
 
             match self.preference_assessment.pa_type {

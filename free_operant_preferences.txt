@@ -1,5 +1,5 @@
-Total Session Time: 22.8 seconds
-a: 2.8
-b: 4.1
-c: 2.2
-d: 0.1
+Total Session Time: 31.1 seconds
+Drum: 2.8
+iPad: 4.1
+Toy Train: 5.5
+Rattle: 2.0
