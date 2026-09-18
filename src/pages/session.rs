@@ -239,10 +239,16 @@ impl SessionPage {
 impl DataPro {
     pub fn save_new_output_data(&mut self) -> Result<()> {
         let output_data = self.create_output_data();
-        let file_name = self
+        let txt_file_name = self
             .path_to_session_records_dir()
-            .join(output_data.auto_file_name());
-        overwrite_file(Ok(file_name), &serde_json::to_string(&output_data)?)?;
+            .join(output_data.txt_file_name());
+        overwrite_file(Ok(txt_file_name), &serde_json::to_string(&output_data)?)?;
+        let mut workbook = output_data.to_xlsx()?;
+        workbook.save(
+            self.path_to_session_records_dir()
+                .join(output_data.xlsx_file_name()),
+        )?;
+
         self.data.increment_current_session();
         self.overwrite_assessments()?;
         Ok(())

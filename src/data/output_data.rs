@@ -1,7 +1,9 @@
 use crate::data::{Ksf, SessionData, timeline::Timeline};
-use anyhow::{Context, Result};
+use anyhow::Context;
+use anyhow::Result;
 use egui::Key;
 use indexmap::IndexMap;
+use rust_xlsxwriter::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -25,7 +27,7 @@ pub struct OutputData {
 }
 
 impl OutputData {
-    pub fn auto_file_name(&self) -> String {
+    pub fn txt_file_name(&self) -> String {
         format!(
             "{}-{}_{:>03}{}.txt", // always format the session number to three digits to help sorting and alignment
             self.session.chosen_assessment,
@@ -33,6 +35,48 @@ impl OutputData {
             self.session_number,
             self.session.data_collection_type.abbrev()
         )
+    }
+
+    pub fn xlsx_file_name(&self) -> String {
+        format!(
+            "{}-{}_{:>03}{}.xlsx", // always format the session number to three digits to help sorting and alignment
+            self.session.chosen_assessment,
+            self.session.chosen_condition,
+            self.session_number,
+            self.session.data_collection_type.abbrev()
+        )
+    }
+
+    pub fn to_xlsx(&self) -> Result<Workbook> {
+        let mut workbook = Workbook::new();
+        let information = workbook.add_worksheet();
+        information.set_name("Information")?;
+
+        information.write(0, 0, "Session:")?;
+        information.write(0, 1, self.session_number)?;
+
+        information.write(1, 0, "Duration:")?;
+        information.write(1, 1, self.session_duration)?;
+
+        information.write(0, 8, "KSF:")?;
+        information.write(0, 9, &self.session.chosen_ksf_name)?;
+
+        let mut row = 1;
+        for (key, desc) in self.ksf.freq.iter() {
+            information.write(row, 8, key.symbol_or_name())?;
+            information.write(row, 9, desc)?;
+            row += 1;
+        }
+        for (key, desc) in self.ksf.dura.iter() {
+            information.write(row, 8, key.symbol_or_name())?;
+            information.write(row, 9, desc)?;
+            row += 1;
+        }
+
+        let summary = workbook.add_worksheet();
+        summary.set_name("Summary")?;
+
+        Ok(workbook)
     }
 
     crate::to_and_from_json!(
@@ -164,12 +208,12 @@ fn create_test_data() {
             location: client.location.clone(),
         };
 
-        let pfile = File::create(&prim.auto_file_name()).unwrap();
+        let pfile = File::create(&prim.txt_file_name()).unwrap();
         let mut writer = std::io::BufWriter::new(pfile);
         std::io::Write::write_all(&mut writer, prim.to_json().unwrap().as_bytes()).unwrap();
         std::io::Write::flush(&mut writer).unwrap();
 
-        let rfile = File::create(&reli.auto_file_name()).unwrap();
+        let rfile = File::create(&reli.txt_file_name()).unwrap();
         let mut writer = std::io::BufWriter::new(rfile);
         std::io::Write::write_all(&mut writer, reli.to_json().unwrap().as_bytes()).unwrap();
         std::io::Write::flush(&mut writer).unwrap();
