@@ -19,9 +19,11 @@ pub struct OutputData {
     pub days_since_admissions: i32,
     pub location: String,
     pub session: SessionData,
-    pub session_duration: f32,
-    pub frequency: IndexMap<Key, u32>,
-    pub duration: IndexMap<Key, (u32, f32)>,
+    pub total_time: f32,
+    pub pause_time: f32,
+    pub active_time: f32,
+    pub frequency_data: IndexMap<Key, u32>,
+    pub duration_data: IndexMap<Key, (u32, f32)>,
     pub timeline: Timeline,
     pub ksf: Ksf,
 }
@@ -49,32 +51,116 @@ impl OutputData {
 
     pub fn to_xlsx(&self) -> Result<Workbook> {
         let mut workbook = Workbook::new();
+
+        /////////////////////////
+        // Resuable Formatting //
+        /////////////////////////
+        let bold = Format::new().set_bold();
+        let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
+
+        ///////////////////////////
+        // Information Worksheet //
+        ///////////////////////////
+
         let information = workbook.add_worksheet();
         information.set_name("Information")?;
 
-        information.write(0, 0, "Session:")?;
-        information.write(0, 1, self.session_number)?;
-
-        information.write(1, 0, "Duration:")?;
-        information.write(1, 1, self.session_duration)?;
-
-        information.write(0, 8, "KSF:")?;
-        information.write(0, 9, &self.session.chosen_ksf_name)?;
-
+        ///////////////////////////////
+        // Basic Session Information //
+        ///////////////////////////////
         let mut row = 1;
+        information.write_with_format(row, 0, "Session Number:", &bold)?;
+        information.write(row, 1, self.session_number)?;
+        row += 1;
+
+        information.write_with_format(row, 0, "Assessment:", &bold)?;
+        information.write(row, 1, &self.session.chosen_assessment)?;
+        row += 1;
+
+        information.write_with_format(row, 0, "Condition:", &bold)?;
+        information.write(row, 1, &self.session.chosen_condition)?;
+        row += 1;
+
+        information.write_with_format(row, 0, "Duration:", &bold)?;
+        information.write(row, 1, self.total_time)?;
+        row += 1;
+
+        information.write_with_format(row, 0, "Data Type:", &bold)?;
+        information.write(row, 1, self.session.data_collection_type.to_string())?;
+        // row += 1;
+
+        ///////////////////////
+        // Summarize the KSF //
+        ///////////////////////
+        information.write_with_format(1, 5, "KSF Name:", &bold)?;
+        information.write(1, 6, &self.session.chosen_ksf_name)?;
+
+        information.write(3, 5, "Key")?;
+        information.write(3, 6, "Description")?;
+
+        let mut row = 4;
         for (key, desc) in self.ksf.freq.iter() {
-            information.write(row, 8, key.symbol_or_name())?;
-            information.write(row, 9, desc)?;
+            information.write(row, 5, key.symbol_or_name())?;
+            information.write(row, 6, desc)?;
             row += 1;
         }
         for (key, desc) in self.ksf.dura.iter() {
-            information.write(row, 8, key.symbol_or_name())?;
-            information.write(row, 9, desc)?;
+            information.write(row, 5, key.symbol_or_name())?;
+            information.write(row, 6, desc)?;
             row += 1;
         }
 
+        ////////////////////////////
+        // Data Summary Worksheet //
+        ////////////////////////////
         let summary = workbook.add_worksheet();
         summary.set_name("Summary")?;
+
+        ///////////////
+        // Frequency //
+        ///////////////
+        summary.write_with_format(1, 1, "Frequency Data Summary", &bold)?;
+        summary.write_with_format(3, 1, "Count", &bold)?;
+        let mut col = 2;
+        for (key, count) in self.frequency_data.iter() {
+            summary.write_with_format(2, col, key.symbol_or_name(), &centered_bold)?;
+            summary.write(3, col, *count)?;
+            col += 1;
+        }
+
+        //////////////
+        // Duration //
+        //////////////
+        summary.write_with_format(5, 1, "Duration Data Summary", &bold)?;
+        summary.write_with_format(7, 1, "Duration", &bold)?;
+        summary.write_with_format(8, 1, "Bouts", &bold)?;
+        summary.write_with_format(9, 1, "% of TT", &bold)?;
+        summary.write_with_format(10, 1, "% of AT", &bold)?;
+        let tt = self.total_time;
+        let at = self.active_time;
+        let mut col = 2;
+        for (key, (count, duration)) in self.duration_data.iter() {
+            summary.write_with_format(6, col, key.symbol_or_name(), &centered_bold)?;
+            summary.write(7, col, *duration)?;
+            summary.write(8, col, *count)?;
+            summary.write(9, col, duration / tt)?;
+            summary.write(10, col, duration / at)?;
+            col += 1;
+        }
+        summary.write_with_format(6, col, "TT", &centered_bold)?;
+        summary.insert_note(6, col, &Note::new("Total Time"))?;
+        summary.write(7, col, tt)?;
+        summary.write(8, col, 0)?;
+        summary.write(9, col, 1)?;
+        summary.write(10, col, tt / at)?;
+        col += 1;
+
+        summary.write_with_format(6, col, "AT", &centered_bold)?;
+        summary.insert_note(6, col, &Note::new("Active Time"))?;
+        summary.write(7, col, at)?;
+        summary.write(8, col, 0)?;
+        summary.write(9, col, at / tt)?;
+        summary.write(10, col, 1)?;
 
         Ok(workbook)
     }
@@ -98,7 +184,7 @@ fn create_test_data() {
     let mut client = ClientData::default();
     client.id = format!("{:0<10}", rng.random_range(1000000000_i64..=9999999999));
 
-    for session in 1..10 {
+    for session in 1..2 {
         // client.current_session = session;
         let mut session_data = SessionData::default();
         session_data.chosen_assessment = String::from("ASSESS");
@@ -145,9 +231,11 @@ fn create_test_data() {
         let prim = OutputData {
             datetime: String::from("TEST FILE"),
             session: session_data.clone(),
-            session_duration: rounded_f32(session_time),
-            frequency: frequency.clone(),
-            duration: duration.clone(),
+            total_time: rounded_f32(session_time),
+            pause_time: 0.0,
+            active_time: rounded_f32(session_time),
+            frequency_data: frequency.clone(),
+            duration_data: duration.clone(),
             timeline: timeline.clone(),
             ksf: ksf.clone(),
             client_name: client.name.clone(),
@@ -194,9 +282,11 @@ fn create_test_data() {
         let reli = OutputData {
             datetime: String::from("TEST FILE"),
             session: session_data.clone(),
-            session_duration: session_time,
-            frequency: frequency.clone(),
-            duration: duration.clone(),
+            total_time: session_time,
+            pause_time: 0.0,
+            active_time: session_time,
+            frequency_data: frequency.clone(),
+            duration_data: duration.clone(),
             timeline: timeline.clone(),
             ksf: ksf.clone(),
             client_name: client.name.clone(),
@@ -213,9 +303,15 @@ fn create_test_data() {
         std::io::Write::write_all(&mut writer, prim.to_json().unwrap().as_bytes()).unwrap();
         std::io::Write::flush(&mut writer).unwrap();
 
+        let mut workbook = prim.to_xlsx().unwrap();
+        workbook.save(prim.xlsx_file_name()).unwrap();
+
         let rfile = File::create(&reli.txt_file_name()).unwrap();
         let mut writer = std::io::BufWriter::new(rfile);
         std::io::Write::write_all(&mut writer, reli.to_json().unwrap().as_bytes()).unwrap();
         std::io::Write::flush(&mut writer).unwrap();
+
+        let mut workbook = reli.to_xlsx().unwrap();
+        workbook.save(reli.xlsx_file_name()).unwrap();
     }
 }

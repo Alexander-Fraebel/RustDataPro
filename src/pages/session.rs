@@ -267,10 +267,12 @@ impl DataPro {
 
         OutputData {
             datetime: date_time_string(&self.session.start_time),
-            session_duration: rounded_f32(self.session.main_timer.total_time()),
+            total_time: rounded_f32(self.session.main_timer.total_time()),
+            pause_time: rounded_f32(self.session.main_timer.paused_time()),
+            active_time: rounded_f32(self.session.main_timer.active_time()),
             session: self.data.session.clone(),
-            duration: dur_map,
-            frequency: fre_map,
+            duration_data: dur_map,
+            frequency_data: fre_map,
             timeline: self.session.timeline.clone(),
             ksf: self
                 .data

@@ -56,10 +56,10 @@ impl IoaPage {
 
     fn interval_ioa(&self, ioa_data: &mut IoaData) {
         for ((p, _), (r, _)) in self.prim_data.iter().zip(self.reli_data.iter()) {
-            let max_time = if p.session_duration >= r.session_duration {
-                p.session_duration
+            let max_time = if p.total_time >= r.total_time {
+                p.total_time
             } else {
-                r.session_duration
+                r.total_time
             };
             let (freq, dura) = p.ksf.keys();
             for key in freq.chain(dura) {
@@ -95,8 +95,11 @@ impl IoaPage {
             for (key, _desc) in p.ksf.freq.iter() {
                 // Total Count IOA
                 let primary_count =
-                    *p.frequency.get(key).context("missing primary duration")? as f32; // conversion of u32 to f32 is valid so long as count is below about 16 million, so it is not checked
-                let reli_count = *r.frequency.get(key).context("missing reli duration")? as f32;
+                    *p.frequency_data
+                        .get(key)
+                        .context("missing primary duration")? as f32; // conversion of u32 to f32 is valid so long as count is below about 16 million, so it is not checked
+                let reli_count =
+                    *r.frequency_data.get(key).context("missing reli duration")? as f32;
                 ioa_data.total_count[key] +=
                     single_pair_total_ratio_ioa(primary_count, reli_count).unwrap_or(self.none_val);
             }
@@ -108,15 +111,23 @@ impl IoaPage {
         for ((p, _), (r, _)) in self.prim_data.iter().zip(self.reli_data.iter()) {
             for (key, _desc) in p.ksf.dura.iter() {
                 // Total Duration IOA
-                let primary_dur = p.duration.get(key).context("missing primary duration")?.1;
-                let reli_dur = r.duration.get(key).context("missing reli duration")?.1;
+                let primary_dur = p
+                    .duration_data
+                    .get(key)
+                    .context("missing primary duration")?
+                    .1;
+                let reli_dur = r.duration_data.get(key).context("missing reli duration")?.1;
                 ioa_data.total_duration[key] +=
                     single_pair_total_ratio_ioa(primary_dur, reli_dur).unwrap_or(self.none_val);
 
                 // Total Count IOA (onset and offset of duration keys)
-                let primary_count =
-                    p.duration.get(key).context("missing primary duration")?.0 as f32;
-                let reli_count = r.duration.get(key).context("missing reli duration")?.0 as f32;
+                let primary_count = p
+                    .duration_data
+                    .get(key)
+                    .context("missing primary duration")?
+                    .0 as f32;
+                let reli_count =
+                    r.duration_data.get(key).context("missing reli duration")?.0 as f32;
                 ioa_data.total_count[key] +=
                     single_pair_total_ratio_ioa(primary_count, reli_count).unwrap_or(self.none_val);
             }
