@@ -262,7 +262,7 @@ impl DataPro {
         }
         let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
         for (t, bouts, k, _desc) in self.session.dura_keys.iter() {
-            dur_map.insert(*k, (*bouts, rounded_f32(t.total_time())));
+            dur_map.insert(*k, (*bouts, rounded_f32(t.active_time())));
         }
 
         OutputData {
