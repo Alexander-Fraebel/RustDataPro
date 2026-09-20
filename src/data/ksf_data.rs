@@ -8,6 +8,7 @@ use std::{
     path::Path,
 };
 
+/// Alphanumeric keys only
 pub const ALLOWED_KSF_KEYS: [Key; 36] = [
     Key::Num0,
     Key::Num1,

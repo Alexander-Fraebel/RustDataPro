@@ -5,7 +5,7 @@ use std::path::Path;
 
 /// Client information that persists between sessions.
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct ClientData {
+pub struct ClientInfo {
     pub name: String,
     pub id: String,
     pub case_manager: String,
@@ -16,7 +16,7 @@ pub struct ClientData {
     pub alternate_assessments_path: String,
 }
 
-impl ClientData {
+impl ClientInfo {
     /// Number of days since admission.
     pub fn days_since_admission(&self) -> Result<i32> {
         let x = NaiveDate::parse_from_str(&self.date_of_admission, "%m-%d-%Y")?.num_days_from_ce();
@@ -35,7 +35,7 @@ impl ClientData {
 
     crate::to_and_from_json!(
         self,
-        "unable to make ClientData from file",
-        "unable to convert ClientData to json"
+        "unable to make ClientInfo from file",
+        "unable to convert ClientInfo to json"
     );
 }

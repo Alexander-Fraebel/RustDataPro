@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{Assessment, AssessmentsData, ClientAndSessionData},
+    data::{Assessment, AssessmentsData, ClientAndSessionInfo},
     quick_error,
     utils::ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
@@ -149,7 +149,7 @@ pub struct EditAssessments {
 }
 
 impl EditAssessments {
-    pub fn prepare(&mut self, data: &ClientAndSessionData, path_to_file: PathBuf) {
+    pub fn prepare(&mut self, data: &ClientAndSessionInfo, path_to_file: PathBuf) {
         // Reset
         *self = Self::default();
 

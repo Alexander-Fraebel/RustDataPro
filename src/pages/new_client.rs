@@ -4,7 +4,7 @@ use crate::{
         ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME,
     },
-    data::{AssessmentsData, ClientData, KsfsData},
+    data::{AssessmentsData, ClientInfo, KsfsData},
     quick_error,
     utils::ui_elements::DataProUiElements,
 };
@@ -19,14 +19,14 @@ use std::{
 };
 
 pub struct CreateClient {
-    client: ClientData,
+    client: ClientInfo,
     created: bool,
 }
 
 impl Default for CreateClient {
     fn default() -> Self {
         Self {
-            client: ClientData::default(),
+            client: ClientInfo::default(),
             created: false,
         }
     }

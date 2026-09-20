@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{ClientAndSessionData, Ksf, output_data::OutputData, timeline::Timeline},
+    data::{ClientAndSessionInfo, Ksf, session_results::SessionResults, timeline::Timeline},
     quick_error,
     utils::timer::{
         Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms,
@@ -213,7 +213,7 @@ impl SessionPage {
     }
 
     /// Create the counters and timers defined by the KSF to use in session
-    pub fn load_ksf(&mut self, data: &ClientAndSessionData) {
+    pub fn load_ksf(&mut self, data: &ClientAndSessionInfo) {
         if let Some(active_ksf) = data.ksfs.get(data.chosen_ksf_name()) {
             let (freq, dura) = active_ksf.pairs();
 
@@ -254,7 +254,7 @@ impl DataPro {
         Ok(())
     }
 
-    pub fn create_output_data(&self) -> OutputData {
+    pub fn create_output_data(&self) -> SessionResults {
         let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
         for (t, k, _desc) in self.session.freq_keys.iter() {
             fre_map.insert(*k, *t);
@@ -264,12 +264,12 @@ impl DataPro {
             dur_map.insert(*k, (*bouts, rounded_f32(t.active_time())));
         }
 
-        OutputData {
+        SessionResults {
             datetime: date_time_string(&self.session.start_time),
             total_time: rounded_f32(self.session.main_timer.total_time()),
             pause_time: rounded_f32(self.session.main_timer.paused_time()),
             active_time: rounded_f32(self.session.main_timer.active_time()),
-            session: self.data.session.clone(),
+            session_data: self.data.session.clone(),
             duration_data: dur_map,
             frequency_data: fre_map,
             timeline: self.session.timeline.clone(),
@@ -290,7 +290,7 @@ impl DataPro {
     }
 
     pub fn view_session(&mut self, ui: &mut Ui) {
-        // Trigger only if the main timer is active
+        // Stop the session when the active time limit is exceeded
         if self.data.session.limit_session_length && self.session.main_timer.is_active() {
             if self.session.main_timer.active_time() >= self.data.session.maximum_session_length {
                 self.session.stop_all_timers();
@@ -298,7 +298,7 @@ impl DataPro {
             }
         }
 
-        // Trigger only if the timer is not already stopped
+        // Stop the session when the total time limit is exceeded
         if self.data.session.limit_total_length && !self.session.main_timer.is_stopped() {
             if self.session.main_timer.total_time() >= self.data.session.maximum_total_length {
                 self.session.stop_all_timers();
@@ -321,7 +321,7 @@ impl DataPro {
                 self.session.start_session();
             }
         }
-        // Stop timers and open the window to ask to confirm ending session
+        // Open the window to ask to confirm ending session
         if self.session.clicked_keys.contains_key(&egui::Key::Escape) {
             self.session.confirm_end_open = true;
         }
@@ -330,7 +330,12 @@ impl DataPro {
             if self.session.main_timer.was_started() {
                 self.session.pause_unpause_all_timers();
                 self.session.unpress_available = false;
+                self.session.timeline.push((
+                    (Key::Space),
+                    rounded_f32(self.session.main_timer.total_time()),
+                ));
                 self.session.keypresses_display.push("p");
+                self.session.unpress_available = true;
             }
         }
         if self

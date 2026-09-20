@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{ALLOWED_KSF_KEYS, ClientAndSessionData, Ksf, KsfsData},
+    data::{ALLOWED_KSF_KEYS, ClientAndSessionInfo, Ksf, KsfsData},
     utils::ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
@@ -179,7 +179,7 @@ pub struct EditKsfData {
 }
 
 impl EditKsfData {
-    pub fn prepare(&mut self, data: &ClientAndSessionData, path_to_file: PathBuf) {
+    pub fn prepare(&mut self, data: &ClientAndSessionInfo, path_to_file: PathBuf) {
         // Reset
         *self = Self::default();
 

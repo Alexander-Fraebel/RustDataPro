@@ -1,4 +1,4 @@
-use crate::data::{Assessment, AssessmentsData, ClientData, Ksf, KsfsData, SessionData};
+use crate::data::{Assessment, AssessmentsData, ClientInfo, Ksf, KsfsData, SessionInfo};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -18,20 +18,20 @@ pub const INVALID_MAX_SESSION: &'static str = "Max Session Length cannot be 0.0 
 pub const INVALID_MAX_TOTAL: &'static str = "Max Total Length cannot be 0.0 seconds";
 
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct ClientAndSessionData {
-    pub client: ClientData,
-    pub session: SessionData,
+pub struct ClientAndSessionInfo {
+    pub client: ClientInfo,
+    pub session: SessionInfo,
     pub assessments: AssessmentsData,
     pub ksfs: KsfsData,
     pub current_session: u32,
     pub misconfigs: String,
 }
 
-impl ClientAndSessionData {
+impl ClientAndSessionInfo {
     crate::to_and_from_json!(
         self,
-        "unable to make ClientAndSessionData from file",
-        "unable to convert ClientAndSessionData to json"
+        "unable to make ClientAndSessionInfo from file",
+        "unable to convert ClientAndSessionInfo to json"
     );
 
     pub fn clear(&mut self) {

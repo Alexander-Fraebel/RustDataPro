@@ -1,16 +1,17 @@
-use crate::data::{Ksf, SessionData, timeline::Timeline};
+use crate::data::{Ksf, SessionInfo, timeline::Timeline};
 use crate::utils::rounded_f32;
 use anyhow::Context;
 use anyhow::Result;
 use egui::Key;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use rust_xlsxwriter::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Output of a single session. Includes the Client and Session data along with the recorded keypresses and times, and the KSF to translate those.
 #[derive(Serialize, Deserialize, Clone)]
-pub struct OutputData {
+pub struct SessionResults {
     pub datetime: String,
     pub client_name: String,
     pub client_id: String,
@@ -19,35 +20,89 @@ pub struct OutputData {
     pub session_number: u32,
     pub days_since_admission: i32,
     pub location: String,
-    pub session: SessionData,
+    pub session_data: SessionInfo,
     pub total_time: f32,
-    pub pause_time: f32,
     pub active_time: f32,
+    pub pause_time: f32,
     pub frequency_data: IndexMap<Key, u32>,
     pub duration_data: IndexMap<Key, (u32, f32)>,
     pub timeline: Timeline,
     pub ksf: Ksf,
 }
 
-impl OutputData {
+impl SessionResults {
     pub fn txt_file_name(&self) -> String {
         format!(
             "{}-{}_{:>03}{}.txt", // always format the session number to three digits to help sorting and alignment
-            self.session.chosen_assessment,
-            self.session.chosen_condition,
+            self.session_data.chosen_assessment,
+            self.session_data.chosen_condition,
             self.session_number,
-            self.session.data_collection_type.abbrev()
+            self.session_data.data_collection_type.abbrev()
         )
     }
 
     pub fn xlsx_file_name(&self) -> String {
         format!(
             "{}-{}_{:>03}{}.xlsx", // always format the session number to three digits to help sorting and alignment
-            self.session.chosen_assessment,
-            self.session.chosen_condition,
+            self.session_data.chosen_assessment,
+            self.session_data.chosen_condition,
             self.session_number,
-            self.session.data_collection_type.abbrev()
+            self.session_data.data_collection_type.abbrev()
         )
+    }
+
+    pub fn xlsx_timeline_name(&self) -> String {
+        format!(
+            "{}-{}_{:>03}{}_timeline.xlsx", // always format the session number to three digits to help sorting and alignment
+            self.session_data.chosen_assessment,
+            self.session_data.chosen_condition,
+            self.session_number,
+            self.session_data.data_collection_type.abbrev()
+        )
+    }
+
+    pub fn timeline_to_xlsx(&self) -> Result<Workbook> {
+        let mut workbook = Workbook::new();
+        let timeline = &self.timeline;
+
+        let graph = workbook.add_worksheet();
+        let mut height_map = std::collections::HashMap::new();
+        height_map.insert(&Key::Tab, (0, 1));
+        graph.write(0, 0, "Time Keys")?;
+        let mut ctr = 2;
+        for k in timeline.iter().map(|(k, _)| k).unique() {
+            if ![Key::Escape, Key::Space, Key::Tab].contains(k) {
+                height_map.insert(k, (ctr / 2, 1));
+                graph.write(ctr, 0, k.symbol_or_name())?;
+                ctr += 2;
+            }
+        }
+
+        for (key, time) in timeline.iter() {
+            let val = if [Key::Escape, Key::Space, Key::Tab].contains(key) {
+                height_map.get_mut(&Key::Tab).unwrap()
+            } else {
+                height_map.get_mut(key).unwrap()
+            };
+            graph.write(val.0, val.1, val.0 as f64)?;
+            graph.write(val.0 + 1, val.1, *time)?;
+            val.1 += 1;
+        }
+
+        let mut chart = Chart::new_scatter();
+        chart.y_axis().set_hidden(true); // carries no information
+        for row in 0..height_map.len() {
+            let row = (row as u32) * 2;
+            let next_row = row + 1;
+            chart
+                .add_series()
+                .set_name(("Sheet1", row * 2, 0))
+                .set_values(("Sheet1", row, 1, row, 10000))
+                .set_categories(("Sheet1", next_row, 1, next_row, 10000));
+        }
+        graph.insert_chart(1 + height_map.len() as u32, 0, &chart)?;
+
+        Ok(workbook)
     }
 
     pub fn to_xlsx(&self) -> Result<Workbook> {
@@ -92,19 +147,23 @@ impl OutputData {
         row = 1;
         col += 3;
         information.write_with_format(row, col, "Assessment:", &bold)?;
-        information.write(row, col + 1, &self.session.chosen_assessment)?;
+        information.write(row, col + 1, &self.session_data.chosen_assessment)?;
         row += 1;
 
         information.write_with_format(row, col, "Condition:", &bold)?;
-        information.write(row, col + 1, &self.session.chosen_condition)?;
+        information.write(row, col + 1, &self.session_data.chosen_condition)?;
         row += 1;
 
         information.write_with_format(row, col, "KSF Name:", &bold)?;
-        information.write(row, col + 1, &self.session.chosen_ksf_name)?;
+        information.write(row, col + 1, &self.session_data.chosen_ksf_name)?;
         row += 1;
 
         information.write_with_format(row, col, "Data Type:", &bold)?;
-        information.write(row, col + 1, self.session.data_collection_type.to_string())?;
+        information.write(
+            row,
+            col + 1,
+            self.session_data.data_collection_type.to_string(),
+        )?;
 
         ///////////////////////
         // Summarize the KSF //
@@ -179,26 +238,26 @@ impl OutputData {
 
     crate::to_and_from_json!(
         self,
-        "unable to make OutputData from file",
-        "unable to convert OutputData to json"
+        "unable to make SessionResults from file",
+        "unable to convert SessionResults to json"
     );
 }
 
 #[test]
 fn create_test_data() {
-    use crate::{data::ClientData, utils::rounded_f32};
+    use crate::{data::ClientInfo, utils::rounded_f32};
     use egui::Key;
     use rand::{RngExt, make_rng, rngs::StdRng, seq::IndexedRandom};
     use std::fs::File;
 
     let mut rng: StdRng = make_rng();
 
-    let mut client = ClientData::default();
+    let mut client = ClientInfo::default();
     client.id = format!("{:0<10}", rng.random_range(1000000000_i64..=9999999999));
 
     for session in 1..2 {
         // client.current_session = session;
-        let mut session_data = SessionData::default();
+        let mut session_data = SessionInfo::default();
         session_data.chosen_assessment = String::from("ASSESS");
         session_data.chosen_condition = String::from("COND");
         session_data.data_collection_type = crate::data::DataCollectionType::Primary;
@@ -240,9 +299,9 @@ fn create_test_data() {
         }
         timeline.push((Key::Escape, session_time));
 
-        let prim = OutputData {
+        let prim = SessionResults {
             datetime: String::from("TEST FILE"),
-            session: session_data.clone(),
+            session_data: session_data.clone(),
             total_time: rounded_f32(session_time),
             pause_time: 0.0,
             active_time: rounded_f32(session_time),
@@ -291,9 +350,9 @@ fn create_test_data() {
             }
         }
 
-        let reli = OutputData {
+        let reli = SessionResults {
             datetime: String::from("TEST FILE"),
-            session: session_data.clone(),
+            session_data: session_data.clone(),
             total_time: session_time,
             pause_time: 0.0,
             active_time: session_time,

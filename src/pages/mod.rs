@@ -9,6 +9,7 @@ pub mod settings;
 pub mod shuffler;
 pub mod sidebar;
 pub mod timers;
+pub mod visualize_timeline;
 
 pub use edit_assessments::*;
 pub use edit_ksfs::*;

@@ -29,7 +29,7 @@ impl DataCollectionType {
 
 /// Data needed for running a session
 #[derive(Clone, Serialize, Deserialize, Default, Debug)]
-pub struct SessionData {
+pub struct SessionInfo {
     pub chosen_assessment: String,
     pub chosen_condition: String,
     pub chosen_ksf_name: String,
@@ -42,10 +42,10 @@ pub struct SessionData {
     pub maximum_total_length: f32,
 }
 
-impl SessionData {
+impl SessionInfo {
     crate::to_and_from_json!(
         self,
-        "unable to make SessionData from file",
-        "unable to convert SessionData to json"
+        "unable to make SessionInfo from file",
+        "unable to convert SessionInfo to json"
     );
 }

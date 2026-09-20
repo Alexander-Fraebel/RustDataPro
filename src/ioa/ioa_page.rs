@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{DataCollectionType, IoaData, OutputData},
+    data::{DataCollectionType, IoaData, SessionResults},
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
         excel_output::save_excel_workbook,
@@ -18,8 +18,8 @@ use std::{
 };
 
 pub struct IoaPage {
-    pub prim_data: Vec<(OutputData, PathBuf)>,
-    pub reli_data: Vec<(OutputData, PathBuf)>,
+    pub prim_data: Vec<(SessionResults, PathBuf)>,
+    pub reli_data: Vec<(SessionResults, PathBuf)>,
     pub ioa_finished: bool,
     pub strict: bool,
     pub none_val: f32,
@@ -178,8 +178,8 @@ impl DataPro {
             );
             // Simultaneously parse and filter the input files.
             for buf in bufs {
-                match OutputData::from_file_path(buf.as_path()) {
-                    Ok(data) => match data.session.data_collection_type {
+                match SessionResults::from_file_path(buf.as_path()) {
+                    Ok(data) => match data.session_data.data_collection_type {
                         DataCollectionType::Primary => self.ioa_page.prim_data.push((data, buf)),
                         DataCollectionType::Reliability => {
                             self.ioa_page.reli_data.push((data, buf))

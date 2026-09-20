@@ -29,6 +29,7 @@ pub enum Page {
     Settings,
     Shuffler,
     Timers,
+    Timeline,
 }
 
 impl DataPro {
@@ -108,6 +109,12 @@ impl DataPro {
     pub fn go_to_shuffler(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
         self.display_info.active_page = Page::Shuffler;
+        self.display_info.sidebar_open = true;
+    }
+
+    pub fn go_to_visualize_timeline(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::Timeline;
         self.display_info.sidebar_open = true;
     }
 

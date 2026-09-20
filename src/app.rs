@@ -3,11 +3,12 @@ use crate::{
         ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME, path_to_config_file,
     },
-    data::{AssessmentsData, ClientAndSessionData, ClientData, KsfsData, NO_CLIENT},
+    data::{AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT},
     display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
+        visualize_timeline::VisualizeTimeline,
     },
     preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
@@ -28,7 +29,7 @@ pub struct DataPro {
 
     pub rng: StdRng, // StdRng is currently ChaCha12 initalized from SysRng, any similar prng is more than sufficient
 
-    pub data: ClientAndSessionData,
+    pub data: ClientAndSessionInfo,
     pub display_info: DisplayControl,
 
     pub randomness_page: Shuffler,
@@ -42,6 +43,7 @@ pub struct DataPro {
     pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
     pub preference_assessment: PreferenceAssessments,
+    pub visualize_timeline: VisualizeTimeline,
 }
 
 impl Default for DataPro {
@@ -63,7 +65,7 @@ impl Default for DataPro {
         let mut app = Self {
             config,
 
-            data: ClientAndSessionData::default(),
+            data: ClientAndSessionInfo::default(),
 
             rng: make_rng(), // TODO: this can panic in rare cases, does it need to be handled?
 
@@ -83,6 +85,7 @@ impl Default for DataPro {
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
             preference_assessment: PreferenceAssessments::default(),
+            visualize_timeline: VisualizeTimeline::default(),
         };
 
         // Initialize everything by "unloading" a client
@@ -371,7 +374,7 @@ impl DataPro {
 
     pub fn load_client(&mut self, path: &PathBuf) {
         // Determine if the client file exists
-        match ClientData::from_file_path(&Path::new(path).join(CLIENT_DATA_FILE_NAME))
+        match ClientInfo::from_file_path(&Path::new(path).join(CLIENT_DATA_FILE_NAME))
             .context("error reading client_data.txt")
         {
             Ok(client) => {
@@ -379,6 +382,9 @@ impl DataPro {
                 self.data.clear();
                 // Load the client data into ClientData
                 self.data.client = client;
+
+                self.visualize_timeline
+                    .prepare(self.path_to_session_records_dir());
 
                 // Load the KSF Data
                 let ksf_path = self.path_to_ksf_data();
@@ -521,6 +527,7 @@ impl eframe::App for DataPro {
             Page::PreferenceAssessment => self.view_preference_assessments_page(ui),
             Page::Shuffler => self.view_shuffler(ui),
             Page::Timers => self.view_timers(ui),
+            Page::Timeline => self.view_timeline_visualizer(ui),
         }
     }
 }

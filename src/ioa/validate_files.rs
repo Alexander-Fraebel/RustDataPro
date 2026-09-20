@@ -1,11 +1,11 @@
-use crate::{data::OutputData, ioa::quick_file_name};
+use crate::{data::SessionResults, ioa::quick_file_name};
 use anyhow::Result;
 use std::path::PathBuf;
 
 /// Assure that files have been loaded, that they all use the same KSFs, they all have the same client ID, and that each pair of files is for a matching session. Return a meaningful error is necessary.
 pub fn validate_files(
-    prim_data: &Vec<(OutputData, PathBuf)>,
-    reli_data: &Vec<(OutputData, PathBuf)>,
+    prim_data: &Vec<(SessionResults, PathBuf)>,
+    reli_data: &Vec<(SessionResults, PathBuf)>,
 ) -> Result<()> {
     // Are there any files?
     match (prim_data.is_empty(), reli_data.is_empty()) {

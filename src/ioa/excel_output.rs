@@ -1,5 +1,5 @@
 use crate::{
-    data::{IoaData, OutputData},
+    data::{IoaData, SessionResults},
     ioa::quick_file_name,
 };
 use anyhow::Result;
@@ -26,8 +26,8 @@ fn write_excel_line<'a>(
 pub fn save_excel_workbook(
     ioa_data: &IoaData,
     file_stem: &str,
-    prim_data: &Vec<(OutputData, PathBuf)>,
-    reli_data: &Vec<(OutputData, PathBuf)>,
+    prim_data: &Vec<(SessionResults, PathBuf)>,
+    reli_data: &Vec<(SessionResults, PathBuf)>,
 ) -> Result<()> {
     let mut workbook = Workbook::new();
     let data_summary = workbook.add_worksheet();

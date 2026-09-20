@@ -62,6 +62,10 @@ impl DataPro {
                             self.go_to_edit_assessments();
                         }
 
+                        if ui.large_button("Visual Timeline").clicked() {
+                            self.go_to_visualize_timeline();
+                        }
+
                         ui.add_space(8.0);
                         ui.separator();
                         ui.add_space(8.0);
