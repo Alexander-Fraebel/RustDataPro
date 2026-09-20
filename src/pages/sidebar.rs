@@ -23,34 +23,29 @@ impl DataPro {
                         ui.label("Clients Directory");
                         ui.directory_picker(&mut self.pick_root_directory, &self.root_directory);
 
-                        ui.add_space(8.0);
+                        ui.add_space(4.0);
                         ui.separator();
-                        ui.add_space(8.0);
+                        ui.add_space(4.0);
 
-                        if ui.large_button("About").clicked() {
+                        if ui.button("About").clicked() {
                             self.go_to_about();
                         }
                         ui.add_space(4.0);
 
-                        if ui.large_button("Settings").clicked() {
+                        if ui.button("Settings").clicked() {
                             self.go_to_settings();
                         }
 
-                        ui.add_space(8.0);
+                        ui.add_space(4.0);
                         ui.separator();
-                        ui.add_space(8.0);
+                        ui.add_space(4.0);
 
                         if ui.large_blue_button("Prepare Session").clicked() {
                             self.go_to_prep_session();
                         }
 
-                        ui.add_space(8.0);
+                        ui.add_space(4.0);
                         ui.separator();
-                        ui.add_space(8.0);
-
-                        if ui.large_button("Create Client").clicked() {
-                            self.go_to_create_client();
-                        }
                         ui.add_space(4.0);
 
                         if ui.large_button("Edit KSFs").clicked() {
@@ -62,13 +57,27 @@ impl DataPro {
                             self.go_to_edit_assessments();
                         }
 
+                        ui.add_space(4.0);
+                        ui.separator();
+                        ui.add_space(4.0);
+
+                        if ui.large_button("Create Client").clicked() {
+                            self.go_to_create_client();
+                        }
+                        ui.add_space(4.0);
+
+                        if ui.large_button("Calculate IOA").clicked() {
+                            self.go_to_ioa();
+                        }
+                        ui.add_space(4.0);
+
                         if ui.large_button("Visual Timeline").clicked() {
                             self.go_to_visualize_timeline();
                         }
 
-                        ui.add_space(8.0);
+                        ui.add_space(4.0);
                         ui.separator();
-                        ui.add_space(8.0);
+                        ui.add_space(4.0);
 
                         if ui.large_button("Shuffle List").clicked() {
                             self.go_to_shuffler();
@@ -78,14 +87,12 @@ impl DataPro {
                         if ui.large_button("Timers").clicked() {
                             self.go_to_timers();
                         }
+
+                        ui.add_space(4.0);
+                        ui.separator();
                         ui.add_space(4.0);
 
-                        if ui.large_button("Calculate IOA").clicked() {
-                            self.go_to_ioa();
-                        }
-                        ui.add_space(4.0);
-
-                        if ui.large_button("Preference Assessment").clicked() {
+                        if ui.large_button("Preference Assessments").clicked() {
                             self.go_to_preference_assessment();
                         }
                         ui.add_space(10.0);

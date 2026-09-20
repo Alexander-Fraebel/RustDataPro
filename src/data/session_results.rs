@@ -68,11 +68,11 @@ impl SessionResults {
         let graph = workbook.add_worksheet();
         let mut height_map = std::collections::HashMap::new();
         height_map.insert(&Key::Tab, (0, 1));
-        graph.write(0, 0, "Time Keys")?;
+        graph.write(0, 0, "Start/Stop")?;
         let mut ctr = 2;
         for k in timeline.iter().map(|(k, _)| k).unique() {
             if ![Key::Escape, Key::Space, Key::Tab].contains(k) {
-                height_map.insert(k, (ctr / 2, 1));
+                height_map.insert(k, (ctr, 1));
                 graph.write(ctr, 0, k.symbol_or_name())?;
                 ctr += 2;
             }
@@ -84,7 +84,7 @@ impl SessionResults {
             } else {
                 height_map.get_mut(key).unwrap()
             };
-            graph.write(val.0, val.1, val.0 as f64)?;
+            graph.write(val.0, val.1, (val.0 / 2) as f64)?;
             graph.write(val.0 + 1, val.1, *time)?;
             val.1 += 1;
         }
