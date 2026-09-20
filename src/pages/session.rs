@@ -254,7 +254,6 @@ impl DataPro {
         Ok(())
     }
 
-    /// Write the output data into a JSON format. Not especially human readable.
     pub fn create_output_data(&self) -> OutputData {
         let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
         for (t, k, _desc) in self.session.freq_keys.iter() {
@@ -285,7 +284,7 @@ impl DataPro {
             case_manager: self.data.client.case_manager.clone(),
             primary_therapist: self.data.client.primary_therapist.clone(),
             session_number: self.data.current_session,
-            days_since_admissions: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this should always be invalid but will avoid crashing by giving default
+            days_since_admission: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this should always be invalid but will avoid crashing by giving default
             location: self.data.client.location.clone(),
         }
     }
@@ -392,7 +391,7 @@ impl DataPro {
         }
 
         // ##############################
-        // ### Save of Discard Window ###
+        // ### Save or Discard Window ###
         // ##############################
         if self.session.save_discard_open {
             egui::Window::new("Save Data?").show(ui, |ui| {

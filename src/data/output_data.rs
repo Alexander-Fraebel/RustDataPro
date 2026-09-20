@@ -1,4 +1,5 @@
 use crate::data::{Ksf, SessionData, timeline::Timeline};
+use crate::utils::rounded_f32;
 use anyhow::Context;
 use anyhow::Result;
 use egui::Key;
@@ -16,7 +17,7 @@ pub struct OutputData {
     pub case_manager: String,
     pub primary_therapist: String,
     pub session_number: u32,
-    pub days_since_admissions: i32,
+    pub days_since_admission: i32,
     pub location: String,
     pub session: SessionData,
     pub total_time: f32,
@@ -64,49 +65,60 @@ impl OutputData {
 
         let information = workbook.add_worksheet();
         information.set_name("Information")?;
+        information.set_column_width_pixels(0, 70)?;
+        information.set_column_width_pixels(3, 90)?;
+        information.set_column_width_pixels(3, 90)?;
 
         ///////////////////////////////
         // Basic Session Information //
         ///////////////////////////////
         let mut row = 1;
-        information.write_with_format(row, 0, "Session Number:", &bold)?;
-        information.write(row, 1, self.session_number)?;
+        let mut col = 0;
+        information.write_with_format(row, col, "Session:", &bold)?;
+        information.write(row, col + 1, self.session_number)?;
         row += 1;
 
-        information.write_with_format(row, 0, "Assessment:", &bold)?;
-        information.write(row, 1, &self.session.chosen_assessment)?;
+        information.write_with_format(row, col, "DOA:", &bold)?;
+        information.write(row, col + 1, self.days_since_admission)?;
         row += 1;
 
-        information.write_with_format(row, 0, "Condition:", &bold)?;
-        information.write(row, 1, &self.session.chosen_condition)?;
+        information.write_with_format(row, col, "Location:", &bold)?;
+        information.write(row, col + 1, &self.location)?;
         row += 1;
 
-        information.write_with_format(row, 0, "Duration:", &bold)?;
-        information.write(row, 1, self.total_time)?;
+        information.write_with_format(row, col, "Duration:", &bold)?;
+        information.write(row, col + 1, self.total_time)?;
+
+        row = 1;
+        col += 3;
+        information.write_with_format(row, col, "Assessment:", &bold)?;
+        information.write(row, col + 1, &self.session.chosen_assessment)?;
         row += 1;
 
-        information.write_with_format(row, 0, "Data Type:", &bold)?;
-        information.write(row, 1, self.session.data_collection_type.to_string())?;
-        // row += 1;
+        information.write_with_format(row, col, "Condition:", &bold)?;
+        information.write(row, col + 1, &self.session.chosen_condition)?;
+        row += 1;
+
+        information.write_with_format(row, col, "KSF Name:", &bold)?;
+        information.write(row, col + 1, &self.session.chosen_ksf_name)?;
+        row += 1;
+
+        information.write_with_format(row, col, "Data Type:", &bold)?;
+        information.write(row, col + 1, self.session.data_collection_type.to_string())?;
 
         ///////////////////////
         // Summarize the KSF //
         ///////////////////////
-        information.write_with_format(1, 5, "KSF Name:", &bold)?;
-        information.write(1, 6, &self.session.chosen_ksf_name)?;
-
-        information.write(3, 5, "Key")?;
-        information.write(3, 6, "Description")?;
-
-        let mut row = 4;
+        row = 1;
+        col += 3;
         for (key, desc) in self.ksf.freq.iter() {
-            information.write(row, 5, key.symbol_or_name())?;
-            information.write(row, 6, desc)?;
+            information.write_with_format(row, col, key.symbol_or_name(), &centered_bold)?;
+            information.write(row, col + 1, desc)?;
             row += 1;
         }
         for (key, desc) in self.ksf.dura.iter() {
-            information.write(row, 5, key.symbol_or_name())?;
-            information.write(row, 6, desc)?;
+            information.write_with_format(row, col, key.symbol_or_name(), &centered_bold)?;
+            information.write(row, col + 1, desc)?;
             row += 1;
         }
 
@@ -114,12 +126,12 @@ impl OutputData {
         // Data Summary Worksheet //
         ////////////////////////////
         let summary = workbook.add_worksheet();
-        summary.set_name("Summary")?;
+        summary.set_name("Data Summary")?;
 
         ///////////////
         // Frequency //
         ///////////////
-        summary.write_with_format(1, 1, "Frequency Data Summary", &bold)?;
+        summary.write_with_format(1, 1, "Frequency Keys", &bold)?;
         summary.write_with_format(3, 1, "Count", &bold)?;
         let mut col = 2;
         for (key, count) in self.frequency_data.iter() {
@@ -131,7 +143,7 @@ impl OutputData {
         //////////////
         // Duration //
         //////////////
-        summary.write_with_format(5, 1, "Duration Data Summary", &bold)?;
+        summary.write_with_format(5, 1, "Duration Keys", &bold)?;
         summary.write_with_format(7, 1, "Duration", &bold)?;
         summary.write_with_format(8, 1, "Bouts", &bold)?;
         summary.write_with_format(9, 1, "% of TT", &bold)?;
@@ -143,8 +155,8 @@ impl OutputData {
             summary.write_with_format(6, col, key.symbol_or_name(), &centered_bold)?;
             summary.write(7, col, *duration)?;
             summary.write(8, col, *count)?;
-            summary.write(9, col, duration / tt)?;
-            summary.write(10, col, duration / at)?;
+            summary.write(9, col, rounded_f32(duration / tt))?;
+            summary.write(10, col, rounded_f32(duration / at))?;
             col += 1;
         }
         summary.write_with_format(6, col, "TT", &centered_bold)?;
@@ -152,14 +164,14 @@ impl OutputData {
         summary.write(7, col, tt)?;
         summary.write(8, col, 0)?;
         summary.write(9, col, 1)?;
-        summary.write(10, col, tt / at)?;
+        summary.write(10, col, rounded_f32(tt / at))?;
         col += 1;
 
         summary.write_with_format(6, col, "AT", &centered_bold)?;
         summary.insert_note(6, col, &Note::new("Active Time"))?;
         summary.write(7, col, at)?;
         summary.write(8, col, 0)?;
-        summary.write(9, col, at / tt)?;
+        summary.write(9, col, rounded_f32(at / tt))?;
         summary.write(10, col, 1)?;
 
         Ok(workbook)
@@ -243,7 +255,7 @@ fn create_test_data() {
             case_manager: client.case_manager.clone(),
             primary_therapist: client.primary_therapist.clone(),
             session_number: session,
-            days_since_admissions: client.days_since_admission().unwrap_or(-99999),
+            days_since_admission: client.days_since_admission().unwrap_or(-99999),
             location: client.location.clone(),
         };
 
@@ -294,7 +306,7 @@ fn create_test_data() {
             case_manager: client.case_manager.clone(),
             primary_therapist: client.primary_therapist.clone(),
             session_number: session,
-            days_since_admissions: client.days_since_admission().unwrap_or(i32::MIN),
+            days_since_admission: client.days_since_admission().unwrap_or(i32::MIN),
             location: client.location.clone(),
         };
 
