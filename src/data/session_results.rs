@@ -191,7 +191,7 @@ impl SessionResults {
         // Frequency //
         ///////////////
         let frow = 1;
-        summary.write_with_format(frow, 1, "Frequency", &bold)?;
+        summary.write_with_format(frow, 1, "Frequency Data", &bold)?;
         summary.write_with_format(frow + 2, 1, "Count", &bold)?;
         summary.write_with_format(frow + 3, 1, "RPM", &bold)?;
         summary.insert_note(frow + 3, 1, &Note::new("Rate Per Minute (Active Time)"))?;
@@ -202,7 +202,7 @@ impl SessionResults {
             summary.write(
                 frow + 3,
                 col,
-                rounded_f32((*count as f32) / self.active_time / 60.0),
+                rounded_f32((*count as f32) / (self.active_time / 60.0)),
             )?;
             col += 1;
         }
@@ -211,7 +211,7 @@ impl SessionResults {
         // Duration //
         //////////////
         let drow = 6;
-        summary.write_with_format(drow, 1, "Duration", &bold)?;
+        summary.write_with_format(drow, 1, "Duration Data", &bold)?;
         summary.write_with_format(drow + 2, 1, "Duration", &bold)?;
         summary.write_with_format(drow + 3, 1, "Bouts", &bold)?;
         summary.write_with_format(drow + 4, 1, "% of TT", &bold)?;
@@ -231,7 +231,7 @@ impl SessionResults {
         summary.insert_note(drow + 1, col, &Note::new("Total Time"))?;
         summary.write(drow + 2, col, tt)?;
         summary.write(drow + 3, col, 0)?;
-        summary.write(drow + 4, col, 1)?;
+        summary.write(drow + 4, col, 100)?;
         summary.write(drow + 5, col, rounded_f32(tt / at) * 100.0)?;
         col += 1;
 
@@ -240,7 +240,7 @@ impl SessionResults {
         summary.write(drow + 2, col, at)?;
         summary.write(drow + 3, col, 0)?;
         summary.write(drow + 4, col, rounded_f32(at / tt) * 100.0)?;
-        summary.write(drow + 5, col, 1)?;
+        summary.write(drow + 5, col, 100)?;
 
         Ok(workbook)
     }
