@@ -190,48 +190,57 @@ impl SessionResults {
         ///////////////
         // Frequency //
         ///////////////
-        summary.write_with_format(1, 1, "Frequency Keys", &bold)?;
-        summary.write_with_format(3, 1, "Count", &bold)?;
+        let frow = 1;
+        summary.write_with_format(frow, 1, "Frequency", &bold)?;
+        summary.write_with_format(frow + 2, 1, "Count", &bold)?;
+        summary.write_with_format(frow + 3, 1, "RPM", &bold)?;
+        summary.insert_note(frow + 3, 1, &Note::new("Rate Per Minute (Active Time)"))?;
         let mut col = 2;
         for (key, count) in self.frequency_data.iter() {
-            summary.write_with_format(2, col, key.symbol_or_name(), &centered_bold)?;
-            summary.write(3, col, *count)?;
+            summary.write_with_format(frow + 1, col, key.symbol_or_name(), &centered_bold)?;
+            summary.write(frow + 2, col, *count)?;
+            summary.write(
+                frow + 3,
+                col,
+                rounded_f32((*count as f32) / self.active_time / 60.0),
+            )?;
             col += 1;
         }
 
         //////////////
         // Duration //
         //////////////
-        summary.write_with_format(5, 1, "Duration Keys", &bold)?;
-        summary.write_with_format(7, 1, "Duration", &bold)?;
-        summary.write_with_format(8, 1, "Bouts", &bold)?;
-        summary.write_with_format(9, 1, "% of TT", &bold)?;
-        summary.write_with_format(10, 1, "% of AT", &bold)?;
+        let drow = 6;
+        summary.write_with_format(drow, 1, "Duration", &bold)?;
+        summary.write_with_format(drow + 2, 1, "Duration", &bold)?;
+        summary.write_with_format(drow + 3, 1, "Bouts", &bold)?;
+        summary.write_with_format(drow + 4, 1, "% of TT", &bold)?;
+        summary.write_with_format(drow + 5, 1, "% of AT", &bold)?;
         let tt = self.total_time;
         let at = self.active_time;
         let mut col = 2;
         for (key, (count, duration)) in self.duration_data.iter() {
-            summary.write_with_format(6, col, key.symbol_or_name(), &centered_bold)?;
-            summary.write(7, col, *duration)?;
-            summary.write(8, col, *count)?;
-            summary.write(9, col, rounded_f32(duration / tt))?;
-            summary.write(10, col, rounded_f32(duration / at))?;
+            summary.write_with_format(drow + 1, col, key.symbol_or_name(), &centered_bold)?;
+            summary.write(drow + 2, col, *duration)?;
+            summary.write(drow + 3, col, *count)?;
+            summary.write(drow + 4, col, rounded_f32(duration / tt) * 100.0)?;
+            summary.write(drow + 5, col, rounded_f32(duration / at) * 100.0)?;
             col += 1;
         }
-        summary.write_with_format(6, col, "TT", &centered_bold)?;
-        summary.insert_note(6, col, &Note::new("Total Time"))?;
-        summary.write(7, col, tt)?;
-        summary.write(8, col, 0)?;
-        summary.write(9, col, 1)?;
-        summary.write(10, col, rounded_f32(tt / at))?;
+        summary.write_with_format(drow + 1, col, "TT", &centered_bold)?;
+        summary.insert_note(drow + 1, col, &Note::new("Total Time"))?;
+        summary.write(drow + 2, col, tt)?;
+        summary.write(drow + 3, col, 0)?;
+        summary.write(drow + 4, col, 1)?;
+        summary.write(drow + 5, col, rounded_f32(tt / at) * 100.0)?;
         col += 1;
 
-        summary.write_with_format(6, col, "AT", &centered_bold)?;
-        summary.insert_note(6, col, &Note::new("Active Time"))?;
-        summary.write(7, col, at)?;
-        summary.write(8, col, 0)?;
-        summary.write(9, col, rounded_f32(at / tt))?;
-        summary.write(10, col, 1)?;
+        summary.write_with_format(drow + 1, col, "AT", &centered_bold)?;
+        summary.insert_note(drow + 1, col, &Note::new("Active Time"))?;
+        summary.write(drow + 2, col, at)?;
+        summary.write(drow + 3, col, 0)?;
+        summary.write(drow + 4, col, rounded_f32(at / tt) * 100.0)?;
+        summary.write(drow + 5, col, 1)?;
 
         Ok(workbook)
     }
