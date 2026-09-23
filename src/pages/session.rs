@@ -2,11 +2,13 @@ use crate::{
     app::DataPro,
     data::{ClientAndSessionInfo, Ksf, session_results::SessionResults, timeline::Timeline},
     quick_error,
-    utils::timer::{
-        Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms,
+    utils::{
+        ClickedKeys, date_time_string, overwrite_file, rounded_f32,
+        timer::{
+            Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms,
+        },
+        ui_elements::DataProUiElements,
     },
-    utils::ui_elements::DataProUiElements,
-    utils::{ClickedKeys, date_time_string, overwrite_file, rounded_f32},
 };
 use anyhow::Result;
 use chrono::{DateTime, Local};
@@ -239,15 +241,30 @@ impl SessionPage {
 impl DataPro {
     pub fn save_new_output_data(&mut self) -> Result<()> {
         let output_data = self.create_output_data();
-        let txt_file_name = self
-            .path_to_session_records_dir()
-            .join(output_data.txt_file_name());
+        let stem = output_data.file_name_stem();
+        let pathroot = self.path_to_session_records_dir();
+        let mut txt_file_name = pathroot.clone().join(&format!("{stem}.txt"));
+        let mut xlsx_file_name = pathroot.clone().join(&format!("{stem}.xlsx"));
+
+        // Rename the files if they already exist
+        let txt_file_name = if txt_file_name.exists() {
+            txt_file_name.pop();
+            txt_file_name.join(&format!("{stem}_cont.txt"))
+        } else {
+            txt_file_name
+        };
+
+        let xlsx_file_name = if xlsx_file_name.exists() {
+            xlsx_file_name.pop();
+            xlsx_file_name.join(&format!("{stem}_cont.xlsx"))
+        } else {
+            xlsx_file_name
+        };
+
         overwrite_file(Ok(txt_file_name), &serde_json::to_string(&output_data)?)?;
+
         let mut workbook = output_data.to_xlsx()?;
-        workbook.save(
-            self.path_to_session_records_dir()
-                .join(output_data.xlsx_file_name()),
-        )?;
+        workbook.save(xlsx_file_name)?;
 
         self.data.increment_current_session();
         self.overwrite_assessments()?;

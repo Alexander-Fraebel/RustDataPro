@@ -31,9 +31,10 @@ pub struct SessionResults {
 }
 
 impl SessionResults {
-    pub fn txt_file_name(&self) -> String {
+    pub fn file_name_stem(&self) -> String {
         format!(
-            "{}-{}_{:>03}{}.txt", // always format the session number to three digits to help sorting and alignment
+            "{}-{}-{}_{:>03}{}", // always format the session number to three digits to help sorting and alignment
+            self.client_id,
             self.session_data.chosen_assessment,
             self.session_data.chosen_condition,
             self.session_number,
@@ -42,23 +43,21 @@ impl SessionResults {
     }
 
     pub fn xlsx_file_name(&self) -> String {
-        format!(
-            "{}-{}_{:>03}{}.xlsx", // always format the session number to three digits to help sorting and alignment
-            self.session_data.chosen_assessment,
-            self.session_data.chosen_condition,
-            self.session_number,
-            self.session_data.data_collection_type.abbrev()
-        )
+        let mut stem = self.file_name_stem();
+        stem.push_str(".xlsx");
+        stem
     }
 
     pub fn xlsx_timeline_name(&self) -> String {
-        format!(
-            "{}-{}_{:>03}{}_timeline.xlsx", // always format the session number to three digits to help sorting and alignment
-            self.session_data.chosen_assessment,
-            self.session_data.chosen_condition,
-            self.session_number,
-            self.session_data.data_collection_type.abbrev()
-        )
+        let mut stem = self.file_name_stem();
+        stem.push_str("_timeline.xlsx");
+        stem
+    }
+
+    pub fn txt_file_name(&self) -> String {
+        let mut stem = self.file_name_stem();
+        stem.push_str(".txt");
+        stem
     }
 
     pub fn timeline_to_xlsx(&self) -> Result<Workbook> {
@@ -120,7 +119,7 @@ impl SessionResults {
 
         let information = workbook.add_worksheet();
         information.set_name("Information")?;
-        information.set_column_width_pixels(0, 70)?;
+        information.set_column_width_pixels(0, 90)?;
         information.set_column_width_pixels(3, 90)?;
         information.set_column_width_pixels(3, 90)?;
 
@@ -141,8 +140,12 @@ impl SessionResults {
         information.write(row, col + 1, &self.location)?;
         row += 1;
 
-        information.write_with_format(row, col, "Duration:", &bold)?;
-        information.write(row, col + 1, self.total_time)?;
+        information.write_with_format(row, col, "Total Time:", &bold)?;
+        information.write(row, col + 1, rounded_f32(self.total_time))?;
+        row += 1;
+
+        information.write_with_format(row, col, "Active Time:", &bold)?;
+        information.write(row, col + 1, rounded_f32(self.active_time))?;
 
         row = 1;
         col += 3;
@@ -154,7 +157,7 @@ impl SessionResults {
         information.write(row, col + 1, &self.session_data.chosen_condition)?;
         row += 1;
 
-        information.write_with_format(row, col, "KSF Name:", &bold)?;
+        information.write_with_format(row, col, "KSF:", &bold)?;
         information.write(row, col + 1, &self.session_data.chosen_ksf_name)?;
         row += 1;
 
@@ -223,8 +226,8 @@ impl SessionResults {
             summary.write_with_format(drow + 1, col, key.symbol_or_name(), &centered_bold)?;
             summary.write(drow + 2, col, *duration)?;
             summary.write(drow + 3, col, *count)?;
-            summary.write(drow + 4, col, rounded_f32(duration / tt) * 100.0)?;
-            summary.write(drow + 5, col, rounded_f32(duration / at) * 100.0)?;
+            summary.write(drow + 4, col, rounded_f32(duration / tt * 100.0))?;
+            summary.write(drow + 5, col, rounded_f32(duration / at * 100.0))?;
             col += 1;
         }
         summary.write_with_format(drow + 1, col, "TT", &centered_bold)?;
@@ -232,14 +235,14 @@ impl SessionResults {
         summary.write(drow + 2, col, tt)?;
         summary.write(drow + 3, col, 0)?;
         summary.write(drow + 4, col, 100)?;
-        summary.write(drow + 5, col, rounded_f32(tt / at) * 100.0)?;
+        summary.write(drow + 5, col, rounded_f32(tt / at * 100.0))?;
         col += 1;
 
         summary.write_with_format(drow + 1, col, "AT", &centered_bold)?;
         summary.insert_note(drow + 1, col, &Note::new("Active Time"))?;
         summary.write(drow + 2, col, at)?;
         summary.write(drow + 3, col, 0)?;
-        summary.write(drow + 4, col, rounded_f32(at / tt) * 100.0)?;
+        summary.write(drow + 4, col, rounded_f32(at / tt * 100.0))?;
         summary.write(drow + 5, col, 100)?;
 
         Ok(workbook)
