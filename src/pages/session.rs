@@ -241,29 +241,30 @@ impl SessionPage {
 impl DataPro {
     pub fn save_new_output_data(&mut self) -> Result<()> {
         let output_data = self.create_output_data();
+        let mut workbook = output_data.to_xlsx()?;
+
         let stem = output_data.file_name_stem();
         let pathroot = self.path_to_session_records_dir();
         let mut txt_file_name = pathroot.clone().join(&format!("{stem}.txt"));
         let mut xlsx_file_name = pathroot.clone().join(&format!("{stem}.xlsx"));
 
-        // Rename the files with _ex (extended) if they already exist
-        let txt_file_name = if txt_file_name.exists() {
+        // Append _ex (extended) to each file if they already exist
+        // A session might have needed to be extended multiple times to we loop until we reach a new name
+        let mut ex = String::new();
+        while txt_file_name.exists() {
+            ex.push_str("_ex");
             txt_file_name.pop();
-            txt_file_name.join(&format!("{stem}_ex.txt"))
-        } else {
-            txt_file_name
-        };
+            txt_file_name = txt_file_name.join(&format!("{stem}{ex}.txt"));
+        }
 
-        let xlsx_file_name = if xlsx_file_name.exists() {
+        ex.clear();
+        while xlsx_file_name.exists() {
+            ex.push_str("_ex");
             xlsx_file_name.pop();
-            xlsx_file_name.join(&format!("{stem}_ex.xlsx"))
-        } else {
-            xlsx_file_name
-        };
+            xlsx_file_name = xlsx_file_name.join(&format!("{stem}{ex}.xlsx"));
+        }
 
         overwrite_file(Ok(txt_file_name), &serde_json::to_string(&output_data)?)?;
-
-        let mut workbook = output_data.to_xlsx()?;
         workbook.save(xlsx_file_name)?;
 
         self.data.increment_current_session();
