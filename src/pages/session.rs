@@ -246,17 +246,17 @@ impl DataPro {
         let mut txt_file_name = pathroot.clone().join(&format!("{stem}.txt"));
         let mut xlsx_file_name = pathroot.clone().join(&format!("{stem}.xlsx"));
 
-        // Rename the files if they already exist
+        // Rename the files with _ex (extended) if they already exist
         let txt_file_name = if txt_file_name.exists() {
             txt_file_name.pop();
-            txt_file_name.join(&format!("{stem}_cont.txt"))
+            txt_file_name.join(&format!("{stem}_ex.txt"))
         } else {
             txt_file_name
         };
 
         let xlsx_file_name = if xlsx_file_name.exists() {
             xlsx_file_name.pop();
-            xlsx_file_name.join(&format!("{stem}_cont.xlsx"))
+            xlsx_file_name.join(&format!("{stem}_ex.xlsx"))
         } else {
             xlsx_file_name
         };
