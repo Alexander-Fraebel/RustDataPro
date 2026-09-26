@@ -8,7 +8,7 @@ use crate::{
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
-        visualize_timeline::VisualizeTimeline,
+        time_series::TimeSeries, visualize_timeline::VisualizeTimeline,
     },
     preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
@@ -43,7 +43,9 @@ pub struct DataPro {
     pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
     pub preference_assessment: PreferenceAssessments,
+
     pub visualize_timeline: VisualizeTimeline,
+    pub time_series: TimeSeries,
 }
 
 impl Default for DataPro {
@@ -85,7 +87,9 @@ impl Default for DataPro {
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
             preference_assessment: PreferenceAssessments::default(),
+
             visualize_timeline: VisualizeTimeline::default(),
+            time_series: TimeSeries::default(),
         };
 
         // Initialize everything by "unloading" a client
@@ -370,6 +374,8 @@ impl DataPro {
         self.edit_ksfs.prepare(&self.data, default_dir.clone());
         self.ioa_page
             .prepare(default_dir.clone(), default_dir.clone());
+        self.time_series
+            .prepare(default_dir.clone(), default_dir.clone());
     }
 
     pub fn load_client(&mut self, path: &PathBuf) {
@@ -383,8 +389,10 @@ impl DataPro {
                 // Load the client data into ClientData
                 self.data.client = client;
 
-                self.visualize_timeline
-                    .prepare(self.path_to_session_records_dir());
+                self.time_series.prepare(
+                    self.path_to_session_records_dir(),
+                    self.path_to_session_records_dir(),
+                );
 
                 // Load the KSF Data
                 let ksf_path = self.path_to_ksf_data();
@@ -528,6 +536,7 @@ impl eframe::App for DataPro {
             Page::Shuffler => self.view_shuffler(ui),
             Page::Timers => self.view_timers(ui),
             Page::Timeline => self.view_timeline_visualizer(ui),
+            Page::TimeSeries => self.view_time_series_page(ui),
         }
     }
 }

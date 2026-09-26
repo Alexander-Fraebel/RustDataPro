@@ -191,7 +191,7 @@ impl DataPro {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading("Calculate IOA");
+            ui.heading("Calculate IOA for");
             self.client_picker(ui);
             ui.add_space(15.0);
 

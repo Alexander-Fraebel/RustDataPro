@@ -34,9 +34,9 @@ impl SessionResults {
     pub fn file_name_stem(&self) -> String {
         format!(
             "{}-{}-{}_{:>03}{}", // always format the session number to three digits to help sorting and alignment
-            self.client_id,
             self.session_data.chosen_assessment,
             self.session_data.chosen_condition,
+            self.client_id,
             self.session_number,
             self.session_data.data_collection_type.abbrev()
         )
