@@ -258,6 +258,13 @@ impl DataPro {
             .unwrap_or_else(|_| self.root_dir())
     }
 
+    /// Path to the folder for the specific condition chosen.
+    pub fn path_assessment_condition_dir(&self) -> PathBuf {
+        self.path_to_session_records_dir()
+            .join(self.data.chosen_assessment_name())
+            .join(self.data.chosen_condition_name())
+    }
+
     /// Path to IOA Data if a client has been chosen or the default directory otherwise.
     pub fn path_to_ioa_data_dir(&self) -> PathBuf {
         self.path_to(IOA_DATA_FOLDER_NAME)

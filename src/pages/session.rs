@@ -244,9 +244,12 @@ impl DataPro {
         let mut workbook = output_data.to_xlsx()?;
 
         let stem = output_data.file_name_stem();
-        let pathroot = self.path_to_session_records_dir();
-        let mut txt_file_name = pathroot.clone().join(&format!("{stem}.txt"));
-        let mut xlsx_file_name = pathroot.clone().join(&format!("{stem}.xlsx"));
+        let mut txt_file_name = self
+            .path_assessment_condition_dir()
+            .join(&format!("{stem}.json"));
+        let mut xlsx_file_name = self
+            .path_assessment_condition_dir()
+            .join(&format!("{stem}.xlsx"));
 
         // Append _ex (extended) to each file if they already exist
         // A session might have needed to be extended multiple times to we loop until we reach a new name
@@ -254,7 +257,7 @@ impl DataPro {
         while txt_file_name.exists() {
             ex.push_str("_ex");
             txt_file_name.pop();
-            txt_file_name = txt_file_name.join(&format!("{stem}{ex}.txt"));
+            txt_file_name = txt_file_name.join(&format!("{stem}{ex}.json"));
         }
 
         ex.clear();

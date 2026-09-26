@@ -51,14 +51,11 @@ impl DataPro {
 
             ui.collapsing("Simulate Data", |ui| {
                 ui.add_enabled_ui(self.data.client_loaded(), |ui| {
-                    if ui
-                        .button("simulate 20 sessions with prim and reli")
-                        .clicked()
-                    {
+                    if ui.button("simulate 20 sessions").clicked() {
                         for i in self.data.current_session..=(self.data.current_session + 20) {
                             SessionResults::simulate_session_results(
-                                self.path_to_session_records_dir(),
-                                &self.data.client,
+                                self.path_assessment_condition_dir(),
+                                &self.data,
                                 i,
                             );
                         }

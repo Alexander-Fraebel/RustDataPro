@@ -1,4 +1,4 @@
-use crate::data::ClientInfo;
+use crate::data::{ClientAndSessionInfo, ClientInfo};
 use crate::data::{Ksf, SessionInfo, timeline::Timeline};
 use crate::utils::rounded_f32;
 use anyhow::Context;
@@ -257,16 +257,17 @@ impl SessionResults {
 
     pub fn simulate_session_results(
         path: std::path::PathBuf,
-        client: &ClientInfo,
+        data: &ClientAndSessionInfo,
         session_number: u32,
     ) {
         use rand::{RngExt, make_rng, rngs::StdRng, seq::IndexedRandom};
         use std::fs::File;
 
+        let client = &data.client;
         let mut rng: StdRng = make_rng();
         let mut session_data = SessionInfo::default();
-        session_data.chosen_assessment = String::from("EXA");
-        session_data.chosen_condition = String::from("MPLE");
+        session_data.chosen_assessment = data.chosen_assessment_name().clone();
+        session_data.chosen_condition = data.chosen_condition_name().clone();
         session_data.data_collection_type = crate::data::DataCollectionType::Primary;
 
         let ksf = Ksf::example();

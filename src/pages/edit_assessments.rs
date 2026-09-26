@@ -5,6 +5,7 @@ use crate::{
     utils::ui_elements::DataProUiElements,
     utils::{are_you_sure_dialog, overwrite_file, windows_error_dialog},
 };
+use anyhow::Context;
 use egui::TextStyle;
 use egui_file_dialog::FileDialog;
 use indexmap::IndexSet;
@@ -210,6 +211,22 @@ impl DataPro {
                     windows_error_dialog(e)
                 } else {
                     quick_error!(self.load_assessments());
+                    for (name, assessment) in self.data.assessments.iter() {
+                        let assessment_folder_path = self.path_to_session_records_dir().join(name);
+                        if !assessment_folder_path.exists() {
+                            quick_error!(
+                                std::fs::create_dir(assessment_folder_path.clone()).context("")
+                            );
+                        }
+                        for condition in assessment.conditions.iter() {
+                            let condition_folder_path = assessment_folder_path.join(condition);
+                            if !condition_folder_path.exists() {
+                                quick_error!(
+                                    std::fs::create_dir(condition_folder_path).context("")
+                                );
+                            }
+                        }
+                    }
                 }
             }
             Err(e) => {
