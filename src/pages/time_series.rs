@@ -13,11 +13,28 @@ use rust_xlsxwriter::{
     chart::{Chart, ChartMarker, ChartMarkerType},
     workbook::Workbook,
 };
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf};
+
+#[derive(Default, PartialEq, Eq)]
+pub enum GraphedData {
+    #[default]
+    Count,
+    Rpm,
+}
+
+impl Display for GraphedData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GraphedData::Count => write!(f, "Frequency"),
+            GraphedData::Rpm => write!(f, "RPM"),
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct TimeSeries {
     pub data: Vec<(SessionResults, PathBuf)>,
+    pub graphed_data: GraphedData,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
@@ -60,21 +77,32 @@ impl TimeSeries {
     }
 
     pub fn create_time_series_graph(&self) -> Result<()> {
+        if self.data.is_empty() {
+            return Err(anyhow!("no files selected"));
+        }
+
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
+        let ksf_map = self.data[0].0.ksf.create_map();
 
         let mut workbook = Workbook::default();
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
 
         for (idx, key) in self.keys_to_use.iter().enumerate() {
-            data_page.write_with_format(1, idx as u16, key.symbol_or_name(), &centered_bold)?;
+            data_page.write_with_format(
+                0,
+                (idx + 1) as u16,
+                ksf_map.get(key).unwrap(),
+                &centered_bold,
+            )?;
         }
 
         let mut row = 0;
         for (result, buf) in self.data.iter() {
-            data_page.write_with_format(row, 0, result.session_number, &centered_bold)?;
+            data_page.write_with_format(row + 1, 0, result.session_number, &centered_bold)?;
             let mut col = 1;
             row += 1;
+            let at_mins = result.active_time / 60.0;
             for key in self.keys_to_use.iter() {
                 if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
                     return Err(anyhow!(
@@ -83,7 +111,15 @@ impl TimeSeries {
                         buf.as_os_str().to_string_lossy()
                     ));
                 } else {
-                    data_page.write(row, col, *result.frequency_data.get(key).unwrap())?;
+                    let count = *result.frequency_data.get(key).unwrap() as f32;
+                    match self.graphed_data {
+                        GraphedData::Count => {
+                            data_page.write(row, col, count)?;
+                        }
+                        GraphedData::Rpm => {
+                            data_page.write(row, col, count / at_mins)?;
+                        }
+                    };
                     col += 1;
                 }
             }
@@ -99,17 +135,27 @@ impl TimeSeries {
         ];
 
         let mut chart = Chart::new_line();
+        chart
+            .x_axis()
+            .set_name("Session")
+            .set_major_gridlines(false);
+        chart
+            .y_axis()
+            .set_name(&self.graphed_data.to_string())
+            .set_major_gridlines(false);
+
         let max_row = self.data.len() as u32;
         for idx in 0..self.keys_to_use.len() {
-            let col = idx as u16;
+            let col = (idx + 1) as u16;
             chart
                 .add_series()
                 .set_values(("Data", 1_u32, col, max_row, col))
+                .set_categories(("Data", 1, 0, max_row, 0))
                 .set_name(("Data", 0, col))
                 .set_marker(
                     ChartMarker::new()
                         .set_type(chart_markers[idx % 3])
-                        .set_size(4),
+                        .set_size(5),
                 );
         }
 
@@ -170,25 +216,38 @@ impl DataPro {
             );
             ui.add_space(15.0);
 
-            self.time_series.key_picker(ui);
 
             ui.horizontal(|ui| {
-                if ui.large_button("Select Data").clicked() {
-                    self.time_series.select_file_dialog.pick_multiple();
-                }
-
-                if ui.small_button("clear").clicked() {
-                    self.time_series.data.clear();
-                }
-            });
-
-            egui::ScrollArea::vertical()
-                .id_salt("time series")
-                .show(ui, |ui| {
-                    for (_, file_name) in self.time_series.data.iter() {
-                        ui.monospace(file_name.file_name().unwrap().to_string_lossy());
+                ui.vertical(|ui| {
+                    if ui.large_button("Select Data").clicked() {
+                        self.time_series.select_file_dialog.pick_multiple();
                     }
+                    egui::ScrollArea::vertical()
+                        .id_salt("time series scroller")
+                        .show(ui, |ui| {
+                            for (_, file_name) in self.time_series.data.iter() {
+                                ui.monospace(file_name.file_name().unwrap().to_string_lossy());
+                            }
+                        });
                 });
+                ui.add_space(8.0);
+                
+                ui.vertical(|ui| {
+                    self.time_series.key_picker(ui);
+                });
+
+            });
+            ui.add_space(8.0);
+
+            ui.heading("Y-Axis Data");
+            egui::ComboBox::from_id_salt("time_series_type")
+                    .selected_text(self.time_series.graphed_data.to_string())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.time_series.graphed_data, GraphedData::Count, "Count");
+                        ui.selectable_value(&mut self.time_series.graphed_data, GraphedData::Rpm, "RPM");
+                    }
+                );
+            ui.add_space(8.0);
 
             if ui.large_green_button("Create Time Series").clicked() {
                 quick_error!(self.time_series.create_time_series_graph());
