@@ -8,7 +8,7 @@ use crate::{
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
-        time_series::TimeSeries, visualize_timeline::VisualizeTimeline,
+        time_series_chart::TimeSeries, visualize_timeline::VisualizeTimeline,
     },
     preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
@@ -496,9 +496,6 @@ impl DataPro {
 
 impl eframe::App for DataPro {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        // ### Windows ###
-        self.view_debug_page(ui);
-
         // ### Top Bar ###
         // To go fully across it must be specified before any other panel
         // Nothing here can be interactable because we use Tab and Space as controls on the Session Page
@@ -528,6 +525,7 @@ impl eframe::App for DataPro {
             Page::Ioa => self.view_ioa(ui),
             Page::PrepareSession => self.view_prep(ui),
             Page::CreateClient => self.view_create_client(ui),
+            Page::Debug => self.view_debug_page(ui),
             Page::EditKsfs => self.view_edit_ksf_page(ui),
             Page::EditAssessments => self.view_edit_assessments_page(ui),
             Page::Settings => self.view_settings(ui),

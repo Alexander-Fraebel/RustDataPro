@@ -109,7 +109,7 @@ impl DataPro {
                                 )
                                 .clicked()
                             {
-                                self.toggle_debug_window();
+                                self.go_to_debug();
                             }
                         }
                     });

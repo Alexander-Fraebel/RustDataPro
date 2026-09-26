@@ -8,7 +8,7 @@ pub mod session;
 pub mod settings;
 pub mod shuffler;
 pub mod sidebar;
-pub mod time_series;
+pub mod time_series_chart;
 pub mod timers;
 pub mod visualize_timeline;
 

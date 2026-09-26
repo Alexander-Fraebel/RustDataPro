@@ -20,6 +20,7 @@ impl Default for DisplayControl {
 pub enum Page {
     About,
     CreateClient,
+    Debug,
     EditAssessments,
     EditKsfs,
     Ioa,
@@ -125,7 +126,9 @@ impl DataPro {
         self.display_info.sidebar_open = true;
     }
 
-    pub fn toggle_debug_window(&mut self) {
-        self.display_info.debug_open = !self.display_info.debug_open;
+    pub fn go_to_debug(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::Debug;
+        self.display_info.sidebar_open = true;
     }
 }

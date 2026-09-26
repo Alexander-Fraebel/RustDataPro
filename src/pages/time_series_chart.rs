@@ -5,7 +5,7 @@ use crate::{
     utils::{ui_elements::DataProUiElements, windows_error_dialog},
 };
 use anyhow::{Result, anyhow};
-use egui::{Key, Ui};
+use egui::{Color32, Key, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
 use rust_xlsxwriter::{
@@ -16,17 +16,17 @@ use rust_xlsxwriter::{
 use std::{fmt::Display, path::PathBuf};
 
 #[derive(Default, PartialEq, Eq)]
-pub enum GraphedData {
+pub enum YAxis {
+    Count,    
     #[default]
-    Count,
     Rpm,
 }
 
-impl Display for GraphedData {
+impl Display for YAxis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            GraphedData::Count => write!(f, "Frequency"),
-            GraphedData::Rpm => write!(f, "RPM"),
+            YAxis::Count => write!(f, "Frequency"),
+            YAxis::Rpm => write!(f, "RPM"),
         }
     }
 }
@@ -34,7 +34,7 @@ impl Display for GraphedData {
 #[derive(Default)]
 pub struct TimeSeries {
     pub data: Vec<(SessionResults, PathBuf)>,
-    pub graphed_data: GraphedData,
+    pub y_axis: YAxis,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
@@ -48,7 +48,7 @@ impl TimeSeries {
     pub fn prepare(&mut self, select_path: PathBuf, save_new_path: PathBuf) {
         *self = Self::default();
         self.select_path = select_path.clone();
-        self.select_file_dialog = FileDialog::new().initial_directory(select_path.clone());
+        self.select_file_dialog = FileDialog::new().initial_directory(select_path.clone()).add_file_filter_extensions("json files", vec!["json"]).default_file_filter("json files");
         self.save_path = save_new_path.clone();
         self.save_file_dialog = FileDialog::new().initial_directory(save_new_path.clone());
     }
@@ -81,27 +81,52 @@ impl TimeSeries {
             return Err(anyhow!("no files selected"));
         }
 
+        if self.keys_to_use.is_empty() {
+            return Err(anyhow!("no keys selected"));
+        }
+
+
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
         let ksf_map = self.data[0].0.ksf.create_map();
 
         let mut workbook = Workbook::default();
+
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
+        data_page.set_column_range_width_pixels(0, 100, 80)?;
+        data_page.set_freeze_panes(1, 1)?;
 
-        for (idx, key) in self.keys_to_use.iter().enumerate() {
+        // Always use these in order to maintain aligment as we go
+        let mut col = 0;        
+        let mut row = 0;
+
+        data_page.write_with_format(0, col, "Session", &centered_bold)?;
+        col += 1;
+        data_page.write_with_format(0, col, "Assessment", &centered_bold)?;
+        col += 1;
+        data_page.write_with_format(0, col, "Condition", &centered_bold)?;
+        col += 1;
+
+        for key in self.keys_to_use.iter() {
             data_page.write_with_format(
                 0,
-                (idx + 1) as u16,
+                col,
                 ksf_map.get(key).unwrap(),
                 &centered_bold,
             )?;
+            col += 1;
         }
 
-        let mut row = 0;
         for (result, buf) in self.data.iter() {
-            data_page.write_with_format(row + 1, 0, result.session_number, &centered_bold)?;
-            let mut col = 1;
             row += 1;
+            col = 0;
+            data_page.write(row , col, result.session_number)?;
+            col += 1;
+            data_page.write(row, col, &result.session_data.chosen_assessment)?;
+            col += 1;
+            data_page.write(row, col, &result.session_data.chosen_condition)?;
+            col += 1;
+
             let at_mins = result.active_time / 60.0;
             for key in self.keys_to_use.iter() {
                 if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
@@ -112,11 +137,11 @@ impl TimeSeries {
                     ));
                 } else {
                     let count = *result.frequency_data.get(key).unwrap() as f32;
-                    match self.graphed_data {
-                        GraphedData::Count => {
+                    match self.y_axis {
+                        YAxis::Count => {
                             data_page.write(row, col, count)?;
                         }
-                        GraphedData::Rpm => {
+                        YAxis::Rpm => {
                             data_page.write(row, col, count / at_mins)?;
                         }
                     };
@@ -125,7 +150,7 @@ impl TimeSeries {
             }
         }
 
-        let chart_page = workbook.add_worksheet();
+        let chart_page = workbook.add_chartsheet();
         chart_page.set_name("Graph")?;
 
         let chart_markers = [
@@ -141,12 +166,12 @@ impl TimeSeries {
             .set_major_gridlines(false);
         chart
             .y_axis()
-            .set_name(&self.graphed_data.to_string())
+            .set_name(&self.y_axis.to_string())
             .set_major_gridlines(false);
 
         let max_row = self.data.len() as u32;
         for idx in 0..self.keys_to_use.len() {
-            let col = (idx + 1) as u16;
+            let col = (idx + 3) as u16;
             chart
                 .add_series()
                 .set_values(("Data", 1_u32, col, max_row, col))
@@ -160,6 +185,7 @@ impl TimeSeries {
         }
 
         chart_page.insert_chart(2, 2, &chart)?;
+        chart_page.set_active(true);
 
         workbook.save(self.save_path.join("time_series.xlsx"))?;
 
@@ -180,6 +206,7 @@ impl TimeSeries {
 
         if let Some(pathbufs) = self.select_file_dialog.take_picked_multiple() {
             self.data.clear();
+            self.chart_created = false;
             for buf in pathbufs {
                 match SessionResults::from_file_path(buf.as_path()) {
                     Ok(data) => self.data.push((data, buf)),
@@ -239,18 +266,24 @@ impl DataPro {
             });
             ui.add_space(8.0);
 
-            ui.heading("Y-Axis Data");
+            ui.heading("Y-Axis");
             egui::ComboBox::from_id_salt("time_series_type")
-                    .selected_text(self.time_series.graphed_data.to_string())
+                    .selected_text(self.time_series.y_axis.to_string())
                     .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.time_series.graphed_data, GraphedData::Count, "Count");
-                        ui.selectable_value(&mut self.time_series.graphed_data, GraphedData::Rpm, "RPM");
+                        ui.selectable_value(&mut self.time_series.y_axis, YAxis::Count, "Count");
+                        ui.selectable_value(&mut self.time_series.y_axis, YAxis::Rpm, "Rate per Min");
                     }
                 );
             ui.add_space(8.0);
 
             if ui.large_green_button("Create Time Series").clicked() {
                 quick_error!(self.time_series.create_time_series_graph());
+            }
+
+            if self.time_series.chart_created {
+                ui.monospace(RichText::new("Chart Created").color(Color32::GREEN));
+            } else {
+                ui.monospace(" ");
             }
 
         });
