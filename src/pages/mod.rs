@@ -18,4 +18,5 @@ pub use new_client::*;
 pub use prepare::*;
 pub use session::*;
 pub use shuffler::*;
+pub use time_series_chart::*;
 pub use timers::*;

@@ -8,7 +8,7 @@ use crate::{
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
-        time_series_chart::TimeSeries, visualize_timeline::VisualizeTimeline,
+        time_series_chart::TimeSeriesChart, visualize_timeline::VisualizeTimeline,
     },
     preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
@@ -45,7 +45,7 @@ pub struct DataPro {
     pub preference_assessment: PreferenceAssessments,
 
     pub visualize_timeline: VisualizeTimeline,
-    pub time_series: TimeSeries,
+    pub time_series: TimeSeriesChart,
 }
 
 impl Default for DataPro {
@@ -89,7 +89,7 @@ impl Default for DataPro {
             preference_assessment: PreferenceAssessments::default(),
 
             visualize_timeline: VisualizeTimeline::default(),
-            time_series: TimeSeries::default(),
+            time_series: TimeSeriesChart::default(),
         };
 
         // Initialize everything by "unloading" a client

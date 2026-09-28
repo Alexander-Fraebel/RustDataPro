@@ -1,10 +1,10 @@
 use crate::{
     app::DataPro,
-    data::SessionResults,
+    data::{Ksf, SessionResults},
     quick_error,
     utils::{ui_elements::DataProUiElements, windows_error_dialog},
 };
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use egui::{Color32, Key, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
@@ -17,7 +17,7 @@ use std::{fmt::Display, path::PathBuf};
 
 #[derive(Default, PartialEq, Eq)]
 pub enum YAxis {
-    Count,    
+    Count,
     #[default]
     Rpm,
 }
@@ -32,8 +32,9 @@ impl Display for YAxis {
 }
 
 #[derive(Default)]
-pub struct TimeSeries {
+pub struct TimeSeriesChart {
     pub data: Vec<(SessionResults, PathBuf)>,
+    pub ksf: Option<Ksf>,
     pub y_axis: YAxis,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
@@ -44,11 +45,14 @@ pub struct TimeSeries {
     pub chart_created: bool,
 }
 
-impl TimeSeries {
+impl TimeSeriesChart {
     pub fn prepare(&mut self, select_path: PathBuf, save_new_path: PathBuf) {
         *self = Self::default();
         self.select_path = select_path.clone();
-        self.select_file_dialog = FileDialog::new().initial_directory(select_path.clone()).add_file_filter_extensions("json files", vec!["json"]).default_file_filter("json files");
+        self.select_file_dialog = FileDialog::new()
+            .initial_directory(select_path.clone())
+            .add_file_filter_extensions("json files", vec!["json"])
+            .default_file_filter("json files");
         self.save_path = save_new_path.clone();
         self.save_file_dialog = FileDialog::new().initial_directory(save_new_path.clone());
     }
@@ -76,15 +80,14 @@ impl TimeSeries {
         };
     }
 
-    pub fn create_time_series_graph(&self) -> Result<()> {
+    pub fn collate_data(&self) -> Result<Workbook> {
         if self.data.is_empty() {
             return Err(anyhow!("no files selected"));
         }
 
-        if self.keys_to_use.is_empty() {
-            return Err(anyhow!("no keys selected"));
+        if self.ksf.is_none() {
+            return Err(anyhow!("no KSF determined"));
         }
-
 
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
         let ksf_map = self.data[0].0.ksf.create_map();
@@ -97,7 +100,7 @@ impl TimeSeries {
         data_page.set_freeze_panes(1, 1)?;
 
         // Always use these in order to maintain aligment as we go
-        let mut col = 0;        
+        let mut col = 0;
         let mut row = 0;
 
         data_page.write_with_format(0, col, "Session", &centered_bold)?;
@@ -107,20 +110,16 @@ impl TimeSeries {
         data_page.write_with_format(0, col, "Condition", &centered_bold)?;
         col += 1;
 
-        for key in self.keys_to_use.iter() {
-            data_page.write_with_format(
-                0,
-                col,
-                ksf_map.get(key).unwrap(),
-                &centered_bold,
-            )?;
+        let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+        for key in freq.chain(dura) {
+            data_page.write_with_format(0, col, ksf_map.get(key).unwrap(), &centered_bold)?;
             col += 1;
         }
 
         for (result, buf) in self.data.iter() {
             row += 1;
             col = 0;
-            data_page.write(row , col, result.session_number)?;
+            data_page.write(row, col, result.session_number)?;
             col += 1;
             data_page.write(row, col, &result.session_data.chosen_assessment)?;
             col += 1;
@@ -150,6 +149,16 @@ impl TimeSeries {
             }
         }
 
+        Ok(workbook)
+    }
+
+    pub fn create_time_series_graph(&self) -> Result<Workbook> {
+        let mut workbook = self.collate_data()?;
+
+        if self.keys_to_use.is_empty() {
+            return Err(anyhow!("no keys selected"));
+        }
+
         let chart_page = workbook.add_chartsheet();
         chart_page.set_name("Graph")?;
 
@@ -170,6 +179,7 @@ impl TimeSeries {
             .set_major_gridlines(false);
 
         let max_row = self.data.len() as u32;
+
         for idx in 0..self.keys_to_use.len() {
             let col = (idx + 3) as u16;
             chart
@@ -187,9 +197,7 @@ impl TimeSeries {
         chart_page.insert_chart(2, 2, &chart)?;
         chart_page.set_active(true);
 
-        workbook.save(self.save_path.join("time_series.xlsx"))?;
-
-        Ok(())
+        Ok(workbook)
     }
 
     pub fn file_dialog_controls(&mut self, ui: &mut Ui) {
@@ -205,6 +213,7 @@ impl TimeSeries {
         }
 
         if let Some(pathbufs) = self.select_file_dialog.take_picked_multiple() {
+            self.ksf = None;
             self.data.clear();
             self.chart_created = false;
             for buf in pathbufs {
@@ -213,6 +222,7 @@ impl TimeSeries {
                     Err(e) => windows_error_dialog(e),
                 }
             }
+            self.ksf = Some(self.data[0].0.ksf.clone());
         }
     }
 }
@@ -229,42 +239,108 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("Select Files From:");
-            ui.directory_picker(
-                &mut self.time_series.select_file_dialog,
-                &self.time_series.select_path,
-            );
-            ui.add_space(10.0);
-
-            ui.label("Save Graph To:");
-            ui.directory_picker(
-                &mut self.time_series.save_file_dialog,
-                &self.time_series.save_path,
-            );
-            ui.add_space(15.0);
-
-
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
+                    ui.label("Select Files From:");
+                    ui.directory_picker(
+                        &mut self.time_series.select_file_dialog,
+                        &self.time_series.select_path,
+                    );
+                    ui.add_space(10.0);
+
+                    ui.label("Save Graph To:");
+                    ui.directory_picker(
+                        &mut self.time_series.save_file_dialog,
+                        &self.time_series.save_path,
+                    );
+                    ui.add_space(10.0);
+
                     if ui.large_button("Select Data").clicked() {
                         self.time_series.select_file_dialog.pick_multiple();
                     }
-                    egui::ScrollArea::vertical()
-                        .id_salt("time series scroller")
-                        .show(ui, |ui| {
-                            for (_, file_name) in self.time_series.data.iter() {
-                                ui.monospace(file_name.file_name().unwrap().to_string_lossy());
-                            }
-                        });
-                });
-                ui.add_space(8.0);
-                
-                ui.vertical(|ui| {
+                    ui.add_space(10.0);
+
                     self.time_series.key_picker(ui);
                 });
 
+                ui.vertical(|ui| {
+                    ui.monospace("KSF");
+                    ui.group(|ui| {
+
+                        ui.horizontal(|ui| {
+
+                            ui.add_space(5.0);
+                            if let Some(ksf) = &self.time_series.ksf {
+                                let (freq, dura) = ksf.pairs();
+                                ui.vertical(|ui| {
+                                    ui.strong("Frequency Keys");
+                                    ui.add_space(2.0);
+                                    for (key, desc) in freq {
+                                        ui.add(egui::Label::new(
+                                            RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
+                                                .monospace()
+                                                .size(12.0),
+                                        ));
+                                    }
+                                });
+                                ui.add_space(10.0);
+                                ui.separator();
+                                ui.add_space(10.0);
+                                ui.vertical(|ui| {
+                                    ui.strong("Duration Keys");
+                                    ui.add_space(2.0);
+                                    for (key, desc) in dura {
+                                        ui.add(egui::Label::new(
+                                            RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
+                                                .monospace()
+                                                .size(12.0),
+                                        ));
+                                    }
+                                });
+                            } else {
+                                ui.vertical(|ui| {
+                                    ui.strong("Frequency Keys");
+                                    ui.add_space(50.0);
+                                });
+                                ui.add_space(10.0);
+                                ui.separator();
+                                ui.add_space(10.0);
+                                ui.vertical(|ui| {
+                                    ui.strong("Duration Keys");
+                                    ui.add_space(50.0);
+
+                                });
+                            }
+                            ui.add_space(5.0);
+                        });
+                    });
+                });
+
+
+                ui.vertical(|ui| {
+                    ui.monospace("Files");
+                    ui.group(|ui| {
+                        if self.time_series.data.is_empty() {
+                            for _ in 0..4 {
+                                ui.monospace("                              ");
+                            }
+                        } else {
+                            egui::ScrollArea::vertical()
+                                .id_salt("time series scroller").min_scrolled_height(128.0)
+                                .show(ui, |ui| {
+                                    for (_, file_name) in self.time_series.data.iter() {
+                                        ui.monospace(file_name.file_name().unwrap().to_string_lossy());
+                                    }
+                                });
+                        }
+
+                    });
+                })
             });
+
             ui.add_space(8.0);
+
+
 
             ui.heading("Y-Axis");
             egui::ComboBox::from_id_salt("time_series_type")
@@ -277,7 +353,21 @@ impl DataPro {
             ui.add_space(8.0);
 
             if ui.large_green_button("Create Time Series").clicked() {
-                quick_error!(self.time_series.create_time_series_graph());
+                match self.time_series.create_time_series_graph() {
+                    Ok(mut wkbk) => {
+                        quick_error!(wkbk.save(self.time_series.save_path.join("time_series_graph.xlsx")).context("error while saving"))
+                    }
+                    Err(e) => windows_error_dialog(e),
+                }
+            }
+
+            if ui.large_green_button("Collate Data from Files").clicked() {
+                match self.time_series.collate_data() {
+                    Ok(mut wkbk) => {
+                        quick_error!(wkbk.save(self.time_series.save_path.join("collated.xlsx")).context("error while saving"))
+                    }
+                    Err(e) => windows_error_dialog(e),
+                }
             }
 
             if self.time_series.chart_created {
