@@ -98,6 +98,9 @@ impl TimeSeriesChart {
         data_page.set_name("Data")?;
         data_page.set_column_range_width_pixels(0, 100, 80)?;
         data_page.set_freeze_panes(1, 1)?;
+        for row in 1..self.data.len() + 1 {
+            data_page.set_row_format(row as u32, &Format::new().set_num_format("0.00"))?;
+        }
 
         // Always use these in order to maintain aligment as we go
         let mut col = 0;
@@ -126,8 +129,8 @@ impl TimeSeriesChart {
             data_page.write(row, col, &result.session_data.chosen_condition)?;
             col += 1;
 
-            let at_mins = result.active_time / 60.0;
-            for key in self.keys_to_use.iter() {
+            let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+            for key in freq {
                 if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
                     return Err(anyhow!(
                         "the key {} is not in the KSF for file {}",
@@ -136,14 +139,20 @@ impl TimeSeriesChart {
                     ));
                 } else {
                     let count = *result.frequency_data.get(key).unwrap() as f32;
-                    match self.y_axis {
-                        YAxis::Count => {
-                            data_page.write(row, col, count)?;
-                        }
-                        YAxis::Rpm => {
-                            data_page.write(row, col, count / at_mins)?;
-                        }
-                    };
+                    data_page.write(row, col, count)?;
+                    col += 1;
+                }
+            }
+            for key in dura {
+                if !result.ksf.dura.iter().map(|(k, _)| k).contains(key) {
+                    return Err(anyhow!(
+                        "the key {} is not in the KSF for file {}",
+                        key.symbol_or_name(),
+                        buf.as_os_str().to_string_lossy()
+                    ));
+                } else {
+                    let time = result.duration_data.get(key).unwrap().1;
+                    data_page.write(row, col, time)?;
                     col += 1;
                 }
             }
@@ -241,19 +250,19 @@ impl DataPro {
 
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    ui.label("Select Files From:");
-                    ui.directory_picker(
-                        &mut self.time_series.select_file_dialog,
-                        &self.time_series.select_path,
-                    );
-                    ui.add_space(10.0);
+                    // ui.label("Select Files From:");
+                    // ui.directory_picker(
+                    //     &mut self.time_series.select_file_dialog,
+                    //     &self.time_series.select_path,
+                    // );
+                    // ui.add_space(10.0);
 
-                    ui.label("Save Graph To:");
-                    ui.directory_picker(
-                        &mut self.time_series.save_file_dialog,
-                        &self.time_series.save_path,
-                    );
-                    ui.add_space(10.0);
+                    // ui.label("Save Graph To:");
+                    // ui.directory_picker(
+                    //     &mut self.time_series.save_file_dialog,
+                    //     &self.time_series.save_path,
+                    // );
+                    // ui.add_space(10.0);
 
                     if ui.large_button("Select Data").clicked() {
                         self.time_series.select_file_dialog.pick_multiple();
