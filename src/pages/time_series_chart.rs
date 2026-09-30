@@ -9,7 +9,7 @@ use egui::{Color32, Key, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
 use rust_xlsxwriter::{
-    Format, FormatAlign,
+    Color, Format, FormatAlign, Formula,
     chart::{Chart, ChartMarker, ChartMarkerType},
     workbook::Workbook,
 };
@@ -91,15 +91,24 @@ impl TimeSeriesChart {
 
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
         let ksf_map = self.data[0].0.ksf.create_map();
+        let freq_cell_name_foramt = centered_bold
+            .clone()
+            .set_background_color(Color::RGB(0xC4D79B))
+            .set_rotation(90);
+        let dura_cell_name_foramt = centered_bold
+            .clone()
+            .set_background_color(Color::RGB(0xDA9694))
+            .set_rotation(90);
 
         let mut workbook = Workbook::default();
 
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
-        data_page.set_column_range_width_pixels(0, 100, 80)?;
-        data_page.set_freeze_panes(1, 1)?;
-        for row in 1..self.data.len() + 1 {
-            data_page.set_row_format(row as u32, &Format::new().set_num_format("0.00"))?;
+        data_page.set_column_range_width_pixels(0, 3, 80)?;
+        data_page.set_column_range_width_pixels(3, 100, 32)?;
+        data_page.set_freeze_panes(1, 4)?;
+        for col in 1..self.data.len() + 20 {
+            data_page.set_column_format(col as u16, &Format::new().set_num_format("0.0"))?;
         }
 
         // Always use these in order to maintain aligment as we go
@@ -112,10 +121,26 @@ impl TimeSeriesChart {
         col += 1;
         data_page.write_with_format(0, col, "Condition", &centered_bold)?;
         col += 1;
+        data_page.write_with_format(0, col, "Duration", &centered_bold)?;
+        col += 1;
 
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
-        for key in freq.chain(dura) {
-            data_page.write_with_format(0, col, ksf_map.get(key).unwrap(), &centered_bold)?;
+        for key in freq {
+            data_page.write_with_format(
+                0,
+                col,
+                ksf_map.get(key).unwrap(),
+                &freq_cell_name_foramt,
+            )?;
+            col += 1;
+        }
+        for key in dura {
+            data_page.write_with_format(
+                0,
+                col,
+                ksf_map.get(key).unwrap(),
+                &dura_cell_name_foramt,
+            )?;
             col += 1;
         }
 
@@ -127,6 +152,8 @@ impl TimeSeriesChart {
             data_page.write(row, col, &result.session_data.chosen_assessment)?;
             col += 1;
             data_page.write(row, col, &result.session_data.chosen_condition)?;
+            col += 1;
+            data_page.write(row, col, result.active_time)?;
             col += 1;
 
             let (freq, dura) = self.ksf.as_ref().unwrap().keys();
@@ -250,13 +277,6 @@ impl DataPro {
 
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    // ui.label("Select Files From:");
-                    // ui.directory_picker(
-                    //     &mut self.time_series.select_file_dialog,
-                    //     &self.time_series.select_path,
-                    // );
-                    // ui.add_space(10.0);
-
                     // ui.label("Save Graph To:");
                     // ui.directory_picker(
                     //     &mut self.time_series.save_file_dialog,
@@ -349,26 +369,14 @@ impl DataPro {
 
             ui.add_space(8.0);
 
-
-
-            ui.heading("Y-Axis");
-            egui::ComboBox::from_id_salt("time_series_type")
-                    .selected_text(self.time_series.y_axis.to_string())
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.time_series.y_axis, YAxis::Count, "Count");
-                        ui.selectable_value(&mut self.time_series.y_axis, YAxis::Rpm, "Rate per Min");
-                    }
-                );
-            ui.add_space(8.0);
-
-            if ui.large_green_button("Create Time Series").clicked() {
-                match self.time_series.create_time_series_graph() {
-                    Ok(mut wkbk) => {
-                        quick_error!(wkbk.save(self.time_series.save_path.join("time_series_graph.xlsx")).context("error while saving"))
-                    }
-                    Err(e) => windows_error_dialog(e),
-                }
-            }
+            // if ui.large_green_button("Create Time Series").clicked() {
+            //     match self.time_series.create_time_series_graph() {
+            //         Ok(mut wkbk) => {
+            //             quick_error!(wkbk.save(self.time_series.save_path.join("time_series_graph.xlsx")).context("error while saving"))
+            //         }
+            //         Err(e) => windows_error_dialog(e),
+            //     }
+            // }
 
             if ui.large_green_button("Collate Data from Files").clicked() {
                 match self.time_series.collate_data() {
