@@ -89,23 +89,35 @@ impl TimeSeriesChart {
             return Err(anyhow!("no KSF determined"));
         }
 
-        let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
         let ksf_map = self.data[0].0.ksf.create_map();
+
+        let num_freq_keys = self.data[0].0.ksf.freq.iter().count();
+        let num_dura_keys = self.data[0].0.ksf.dura.iter().count();
+
+        let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
         let freq_cell_name_foramt = centered_bold
             .clone()
             .set_background_color(Color::RGB(0xC4D79B))
             .set_rotation(90);
+        let freq_rate_cell_name_foramt = centered_bold
+            .clone()
+            .set_background_color(Color::RGB(0x76933C))
+            .set_rotation(90);
         let dura_cell_name_foramt = centered_bold
             .clone()
             .set_background_color(Color::RGB(0xDA9694))
+            .set_rotation(90);
+        let dura_pct_cell_name_foramt = centered_bold
+            .clone()
+            .set_background_color(Color::RGB(0x963634))
             .set_rotation(90);
 
         let mut workbook = Workbook::default();
 
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
-        data_page.set_column_range_width_pixels(0, 3, 80)?;
-        data_page.set_column_range_width_pixels(3, 100, 32)?;
+        data_page.set_column_range_width_pixels(0, 5, 80)?;
+        data_page.set_column_range_width_pixels(5, 100, 32)?;
         data_page.set_freeze_panes(1, 4)?;
         for col in 1..self.data.len() + 20 {
             data_page.set_column_format(col as u16, &Format::new().set_num_format("0.0"))?;
@@ -124,6 +136,7 @@ impl TimeSeriesChart {
         data_page.write_with_format(0, col, "Duration", &centered_bold)?;
         col += 1;
 
+        // Create the headings for the freq and dura keys
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
         for key in freq {
             data_page.write_with_format(
@@ -141,6 +154,7 @@ impl TimeSeriesChart {
                 ksf_map.get(key).unwrap(),
                 &dura_cell_name_foramt,
             )?;
+
             col += 1;
         }
 
