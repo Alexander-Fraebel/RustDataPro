@@ -91,37 +91,26 @@ impl TimeSeriesChart {
 
         let ksf_map = self.data[0].0.ksf.create_map();
 
-        let num_freq_keys = self.data[0].0.ksf.freq.iter().count();
-        let num_dura_keys = self.data[0].0.ksf.dura.iter().count();
+        let num_freq_keys = self.data[0].0.ksf.freq.iter().count() as u16;
+        let num_dura_keys = self.data[0].0.ksf.dura.iter().count() as u16;
+        let num_keys = num_freq_keys + num_dura_keys;
 
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
         let freq_cell_name_foramt = centered_bold
             .clone()
+            .set_align(FormatAlign::VerticalCenter)
             .set_background_color(Color::RGB(0xC4D79B))
-            .set_rotation(90);
-        let freq_rate_cell_name_foramt = centered_bold
-            .clone()
-            .set_background_color(Color::RGB(0x76933C))
             .set_rotation(90);
         let dura_cell_name_foramt = centered_bold
             .clone()
-            .set_background_color(Color::RGB(0xDA9694))
-            .set_rotation(90);
-        let dura_pct_cell_name_foramt = centered_bold
-            .clone()
-            .set_background_color(Color::RGB(0x963634))
+            .set_align(FormatAlign::VerticalCenter)
+            .set_background_color(Color::RGB(0x8DB4E2))
             .set_rotation(90);
 
         let mut workbook = Workbook::default();
 
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
-        data_page.set_column_range_width_pixels(0, 5, 80)?;
-        data_page.set_column_range_width_pixels(5, 100, 32)?;
-        data_page.set_freeze_panes(1, 4)?;
-        for col in 1..self.data.len() + 20 {
-            data_page.set_column_format(col as u16, &Format::new().set_num_format("0.0"))?;
-        }
 
         // Always use these in order to maintain aligment as we go
         let mut col = 0;
@@ -133,8 +122,9 @@ impl TimeSeriesChart {
         col += 1;
         data_page.write_with_format(0, col, "Condition", &centered_bold)?;
         col += 1;
-        data_page.write_with_format(0, col, "Duration", &centered_bold)?;
-        col += 1;
+
+        data_page.set_freeze_panes(1, col)?;
+        data_page.set_column_range_width_pixels(0, col, 80)?;
 
         // Create the headings for the freq and dura keys
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
@@ -145,6 +135,8 @@ impl TimeSeriesChart {
                 ksf_map.get(key).unwrap(),
                 &freq_cell_name_foramt,
             )?;
+            data_page.set_column_format(col, &Format::new().set_num_format("0"))?;
+            data_page.set_column_width_pixels(col, 35)?;
             col += 1;
         }
         for key in dura {
@@ -154,9 +146,18 @@ impl TimeSeriesChart {
                 ksf_map.get(key).unwrap(),
                 &dura_cell_name_foramt,
             )?;
-
+            data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
+            data_page.set_column_width_pixels(col, 40)?;
             col += 1;
         }
+        // Include Total Time and Active Time
+        data_page.write_with_format(0, col, "Total Time", &dura_cell_name_foramt)?;
+        data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
+        data_page.set_column_width_pixels(col, 50)?;
+        col += 1;
+        data_page.write_with_format(0, col, "Active Time", &dura_cell_name_foramt)?;
+        data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
+        data_page.set_column_width_pixels(col, 50)?;
 
         for (result, buf) in self.data.iter() {
             row += 1;
@@ -166,8 +167,6 @@ impl TimeSeriesChart {
             data_page.write(row, col, &result.session_data.chosen_assessment)?;
             col += 1;
             data_page.write(row, col, &result.session_data.chosen_condition)?;
-            col += 1;
-            data_page.write(row, col, result.active_time)?;
             col += 1;
 
             let (freq, dura) = self.ksf.as_ref().unwrap().keys();
@@ -197,6 +196,12 @@ impl TimeSeriesChart {
                     col += 1;
                 }
             }
+            // Include Total Time and Active Time
+            let time = result.total_time;
+            data_page.write(row, col, time)?;
+            col += 1;
+            let time = result.active_time;
+            data_page.write(row, col, time)?;
         }
 
         Ok(workbook)
