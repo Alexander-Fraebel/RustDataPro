@@ -99,12 +99,12 @@ impl TimeSeriesChart {
         let freq_cell_name_foramt = centered_bold
             .clone()
             .set_align(FormatAlign::VerticalCenter)
-            .set_background_color(Color::RGB(0xC4D79B))
+            .set_background_color(Color::RGB(0xD8E4BC))
             .set_rotation(90);
         let dura_cell_name_foramt = centered_bold
             .clone()
             .set_align(FormatAlign::VerticalCenter)
-            .set_background_color(Color::RGB(0x8DB4E2))
+            .set_background_color(Color::RGB(0xB8CCE4))
             .set_rotation(90);
 
         let mut workbook = Workbook::default();
@@ -150,15 +150,14 @@ impl TimeSeriesChart {
             data_page.set_column_width_pixels(col, 40)?;
             col += 1;
         }
-        // Include Total Time and Active Time
-        data_page.write_with_format(0, col, "Total Time", &dura_cell_name_foramt)?;
+        // Include Active Time
+        data_page.write_with_format(0, col, "AT (Secs)", &dura_cell_name_foramt)?;
         data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
         data_page.set_column_width_pixels(col, 50)?;
         col += 1;
-        data_page.write_with_format(0, col, "Active Time", &dura_cell_name_foramt)?;
+        data_page.write_with_format(0, col, "AT (Mins)", &dura_cell_name_foramt)?;
         data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
         data_page.set_column_width_pixels(col, 50)?;
-
         for (result, buf) in self.data.iter() {
             row += 1;
             col = 0;
@@ -196,12 +195,11 @@ impl TimeSeriesChart {
                     col += 1;
                 }
             }
-            // Include Total Time and Active Time
-            let time = result.total_time;
-            data_page.write(row, col, time)?;
+            // Include Active Time
+            let at = result.active_time;
+            data_page.write(row, col, at)?;
             col += 1;
-            let time = result.active_time;
-            data_page.write(row, col, time)?;
+            data_page.write(row, col, Formula::new(format!("=S{}/60", row + 1)))?;
         }
 
         Ok(workbook)
