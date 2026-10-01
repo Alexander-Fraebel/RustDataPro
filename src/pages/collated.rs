@@ -7,6 +7,7 @@ use crate::{
 use anyhow::{Context, Result, anyhow};
 use egui::{Color32, Key, RichText, Ui};
 use egui_file_dialog::FileDialog;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use rust_xlsxwriter::{Color, Format, FormatAlign, Formula, workbook::Workbook};
 use std::path::PathBuf;
@@ -17,8 +18,8 @@ pub fn idx_to_xlsx_col(mut idx: u16) -> String {
         col.push('A');
     }
     while idx > 0 {
-        idx -= 1;
         col.push((97_u8 + (idx as u8 % 26)) as char);
+        idx -= 1;
         idx /= 26;
     }
     col
@@ -28,12 +29,11 @@ pub fn idx_to_xlsx_col(mut idx: u16) -> String {
 pub struct TimeSeriesChart {
     pub data: Vec<(SessionResults, PathBuf)>,
     pub ksf: Option<Ksf>,
+    pub keys_selector: IndexMap<Key, bool>,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
     pub save_path: PathBuf,
-    pub keys_to_use: Vec<Key>,
-    pub key_to_use_string: String,
     pub created: bool,
 }
 
@@ -59,6 +59,7 @@ impl TimeSeriesChart {
         }
 
         let ksf_map = self.data[0].0.ksf.create_map();
+        let mut key_info: IndexMap<Key, (u16, String)> = IndexMap::new();
 
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
         let freq_cell_name_foramt = centered_bold
@@ -94,26 +95,36 @@ impl TimeSeriesChart {
         // Create the headings for the freq and dura keys
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
         for key in freq {
-            data_page.write_with_format(
-                0,
-                col,
-                ksf_map.get(key).unwrap(),
-                &freq_cell_name_foramt,
-            )?;
-            data_page.set_column_format(col, &Format::new().set_num_format("0"))?;
-            data_page.set_column_width_pixels(col, 35)?;
-            col += 1;
+            if let Some(b) = self.keys_selector.get(key) {
+                if *b {
+                    data_page.write_with_format(
+                        0,
+                        col,
+                        ksf_map.get(key).unwrap(),
+                        &freq_cell_name_foramt,
+                    )?;
+                    data_page.set_column_format(col, &Format::new().set_num_format("0"))?;
+                    data_page.set_column_width_pixels(col, 35)?;
+                    key_info.insert(key.clone(), (col, idx_to_xlsx_col(col)));
+                    col += 1;
+                }
+            }
         }
         for key in dura {
-            data_page.write_with_format(
-                0,
-                col,
-                ksf_map.get(key).unwrap(),
-                &dura_cell_name_foramt,
-            )?;
-            data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
-            data_page.set_column_width_pixels(col, 40)?;
-            col += 1;
+            if let Some(b) = self.keys_selector.get(key) {
+                if *b {
+                    data_page.write_with_format(
+                        0,
+                        col,
+                        ksf_map.get(key).unwrap(),
+                        &dura_cell_name_foramt,
+                    )?;
+                    data_page.set_column_format(col, &Format::new().set_num_format("0"))?;
+                    data_page.set_column_width_pixels(col, 35)?;
+                    key_info.insert(key.clone(), (col, idx_to_xlsx_col(col)));
+                    col += 1;
+                }
+            }
         }
         // Include Active Time
         data_page.write_with_format(0, col, "AT (Secs)", &dura_cell_name_foramt)?;
@@ -123,6 +134,8 @@ impl TimeSeriesChart {
         data_page.write_with_format(0, col, "AT (Mins)", &dura_cell_name_foramt)?;
         data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
         data_page.set_column_width_pixels(col, 50)?;
+
+        // Populate the data
         for (result, buf) in self.data.iter() {
             row += 1;
             col = 0;
@@ -135,29 +148,33 @@ impl TimeSeriesChart {
 
             let (freq, dura) = self.ksf.as_ref().unwrap().keys();
             for key in freq {
-                if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
-                    return Err(anyhow!(
-                        "the key {} is not in the KSF for file {}",
-                        key.symbol_or_name(),
-                        buf.as_os_str().to_string_lossy()
-                    ));
-                } else {
-                    let count = *result.frequency_data.get(key).unwrap() as f32;
-                    data_page.write(row, col, count)?;
-                    col += 1;
+                if key_info.contains_key(key) {
+                    if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
+                        return Err(anyhow!(
+                            "the key {} is not in the KSF for file {}",
+                            key.symbol_or_name(),
+                            buf.as_os_str().to_string_lossy()
+                        ));
+                    } else {
+                        let count = *result.frequency_data.get(key).unwrap() as f32;
+                        data_page.write(row, col, count)?;
+                        col += 1;
+                    }
                 }
             }
             for key in dura {
-                if !result.ksf.dura.iter().map(|(k, _)| k).contains(key) {
-                    return Err(anyhow!(
-                        "the key {} is not in the KSF for file {}",
-                        key.symbol_or_name(),
-                        buf.as_os_str().to_string_lossy()
-                    ));
-                } else {
-                    let time = result.duration_data.get(key).unwrap().1;
-                    data_page.write(row, col, time)?;
-                    col += 1;
+                if key_info.contains_key(key) {
+                    if !result.ksf.dura.iter().map(|(k, _)| k).contains(key) {
+                        return Err(anyhow!(
+                            "the key {} is not in the KSF for file {}",
+                            key.symbol_or_name(),
+                            buf.as_os_str().to_string_lossy()
+                        ));
+                    } else {
+                        let time = result.duration_data.get(key).unwrap().1;
+                        data_page.write(row, col, time)?;
+                        col += 1;
+                    }
                 }
             }
             // Include Active Time
@@ -167,7 +184,7 @@ impl TimeSeriesChart {
             data_page.write(
                 row,
                 col,
-                Formula::new(format!("={}{}/60", idx_to_xlsx_col(col), row + 1)),
+                Formula::new(format!("={}{}/60", idx_to_xlsx_col(col - 1), row + 1)),
             )?;
         }
 
@@ -197,6 +214,10 @@ impl TimeSeriesChart {
                 }
             }
             self.ksf = Some(self.data[0].0.ksf.clone());
+            self.keys_selector.clear();
+            for key in self.data[0].0.ksf.all_keys() {
+                self.keys_selector.insert(*key, true);
+            }
         }
     }
 }
@@ -229,15 +250,18 @@ impl DataPro {
                                     ui.strong("Frequency Keys");
                                     ui.add_space(2.0);
                                     for (key, desc) in freq {
-                                        ui.checkbox(
-                                            &mut true,
-                                            RichText::from(format!(
-                                                "{:>2} {}",
-                                                key.symbol_or_name(),
-                                                desc
-                                            ))
-                                            .monospace(),
-                                        );
+                                        if let Some(b) = self.time_series.keys_selector.get_mut(key)
+                                        {
+                                            ui.checkbox(
+                                                b,
+                                                RichText::from(format!(
+                                                    "{:>2} {}",
+                                                    key.symbol_or_name(),
+                                                    desc
+                                                ))
+                                                .monospace(),
+                                            );
+                                        }
                                     }
                                 });
                                 ui.add_space(10.0);
@@ -247,15 +271,18 @@ impl DataPro {
                                     ui.strong("Duration Keys");
                                     ui.add_space(2.0);
                                     for (key, desc) in dura {
-                                        ui.checkbox(
-                                            &mut true,
-                                            RichText::from(format!(
-                                                "{:>2} {}",
-                                                key.symbol_or_name(),
-                                                desc
-                                            ))
-                                            .monospace(),
-                                        );
+                                        if let Some(b) = self.time_series.keys_selector.get_mut(key)
+                                        {
+                                            ui.checkbox(
+                                                b,
+                                                RichText::from(format!(
+                                                    "{:>2} {}",
+                                                    key.symbol_or_name(),
+                                                    desc
+                                                ))
+                                                .monospace(),
+                                            );
+                                        }
                                     }
                                 });
                             } else {

@@ -76,6 +76,14 @@ impl Ksf {
         )
     }
 
+    /// Frequency keys follwoed by duration keys.
+    pub fn all_keys(&self) -> impl Iterator<Item = &Key> {
+        self.freq
+            .iter()
+            .map(|(k, _)| k)
+            .chain(self.dura.iter().map(|(k, _)| k))
+    }
+
     /// Frequency descriptions and duration descriptions.
     pub fn descriptions(&self) -> (impl Iterator<Item = &String>, impl Iterator<Item = &String>) {
         (
