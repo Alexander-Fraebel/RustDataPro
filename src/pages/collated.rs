@@ -28,14 +28,13 @@ pub fn idx_to_xlsx_col(mut idx: u16) -> String {
 pub struct TimeSeriesChart {
     pub data: Vec<(SessionResults, PathBuf)>,
     pub ksf: Option<Ksf>,
-    // pub y_axis: YAxis,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
     pub save_path: PathBuf,
     pub keys_to_use: Vec<Key>,
     pub key_to_use_string: String,
-    pub chart_created: bool,
+    pub created: bool,
 }
 
 impl TimeSeriesChart {
@@ -48,29 +47,6 @@ impl TimeSeriesChart {
             .default_file_filter("json files");
         self.save_path = save_new_path.clone();
         self.save_file_dialog = FileDialog::new().initial_directory(save_new_path.clone());
-    }
-
-    pub fn key_picker(&mut self, ui: &mut Ui) {
-        ui.heading("Choose Keys to Graph");
-        ui.label("Separate keys with commas.");
-        if ui
-            .text_edit_multiline(&mut self.key_to_use_string)
-            .changed()
-        {
-            self.keys_to_use.clear();
-            self.chart_created = false;
-            for name in self
-                .key_to_use_string
-                .split(",")
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-            {
-                match Key::from_name(name) {
-                    Some(key) => self.keys_to_use.push(key),
-                    None => (), // TODO: do something
-                }
-            }
-        };
     }
 
     pub fn collate_data(&self) -> Result<Workbook> {
@@ -213,7 +189,7 @@ impl TimeSeriesChart {
         if let Some(pathbufs) = self.select_file_dialog.take_picked_multiple() {
             self.ksf = None;
             self.data.clear();
-            self.chart_created = false;
+            self.created = false;
             for buf in pathbufs {
                 match SessionResults::from_file_path(buf.as_path()) {
                     Ok(data) => self.data.push((data, buf)),
@@ -238,14 +214,9 @@ impl DataPro {
             ui.add_space(5.0);
 
             ui.horizontal(|ui| {
-                ui.vertical(|ui| {
-                    if ui.large_button("Select Files").clicked() {
-                        self.time_series.select_file_dialog.pick_multiple();
-                    }
-                    ui.add_space(10.0);
-
-                    self.time_series.key_picker(ui);
-                });
+                if ui.large_button("Select Files").clicked() {
+                    self.time_series.select_file_dialog.pick_multiple();
+                }
 
                 ui.vertical(|ui| {
                     ui.monospace("KSF");
@@ -258,18 +229,15 @@ impl DataPro {
                                     ui.strong("Frequency Keys");
                                     ui.add_space(2.0);
                                     for (key, desc) in freq {
-                                        ui.horizontal(|ui| {
-                                            ui.add(egui::Label::new(
-                                                RichText::from(format!(
-                                                    "{:>2} {}",
-                                                    key.symbol_or_name(),
-                                                    desc
-                                                ))
-                                                .monospace()
-                                                .size(12.0),
-                                            ));
-                                            ui.checkbox(&mut true, "");
-                                        });
+                                        ui.checkbox(
+                                            &mut true,
+                                            RichText::from(format!(
+                                                "{:>2} {}",
+                                                key.symbol_or_name(),
+                                                desc
+                                            ))
+                                            .monospace(),
+                                        );
                                     }
                                 });
                                 ui.add_space(10.0);
@@ -279,18 +247,15 @@ impl DataPro {
                                     ui.strong("Duration Keys");
                                     ui.add_space(2.0);
                                     for (key, desc) in dura {
-                                        ui.horizontal(|ui| {
-                                            ui.add(egui::Label::new(
-                                                RichText::from(format!(
-                                                    "{:>2} {}",
-                                                    key.symbol_or_name(),
-                                                    desc
-                                                ))
-                                                .monospace()
-                                                .size(12.0),
-                                            ));
-                                            ui.checkbox(&mut true, "");
-                                        });
+                                        ui.checkbox(
+                                            &mut true,
+                                            RichText::from(format!(
+                                                "{:>2} {}",
+                                                key.symbol_or_name(),
+                                                desc
+                                            ))
+                                            .monospace(),
+                                        );
                                     }
                                 });
                             } else {
@@ -348,7 +313,7 @@ impl DataPro {
                 }
             }
 
-            if self.time_series.chart_created {
+            if self.time_series.created {
                 ui.monospace(RichText::new("Chart Created").color(Color32::GREEN));
             } else {
                 ui.monospace(" ");
