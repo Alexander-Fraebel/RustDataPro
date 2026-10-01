@@ -71,12 +71,7 @@ impl DataPro {
                         }
                         ui.add_space(4.0);
 
-                        // if ui.large_button("Visualize Timeline").clicked() {
-                        //     self.go_to_visualize_timeline();
-                        // }
-                        // ui.add_space(4.0);
-
-                        if ui.large_button("Time Series Grapher").clicked() {
+                        if ui.large_button("Collate Files").clicked() {
                             self.go_to_time_series();
                         }
 

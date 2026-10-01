@@ -8,34 +8,27 @@ use anyhow::{Context, Result, anyhow};
 use egui::{Color32, Key, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
-use rust_xlsxwriter::{
-    Color, Format, FormatAlign, Formula,
-    chart::{Chart, ChartMarker, ChartMarkerType},
-    workbook::Workbook,
-};
-use std::{fmt::Display, path::PathBuf};
+use rust_xlsxwriter::{Color, Format, FormatAlign, Formula, workbook::Workbook};
+use std::path::PathBuf;
 
-#[derive(Default, PartialEq, Eq)]
-pub enum YAxis {
-    Count,
-    #[default]
-    Rpm,
-}
-
-impl Display for YAxis {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            YAxis::Count => write!(f, "Frequency"),
-            YAxis::Rpm => write!(f, "RPM"),
-        }
+pub fn idx_to_xlsx_col(mut idx: u16) -> String {
+    let mut col = String::with_capacity(3);
+    if idx == 0 {
+        col.push('A');
     }
+    while idx > 0 {
+        idx -= 1;
+        col.push((97_u8 + (idx as u8 % 26)) as char);
+        idx /= 26;
+    }
+    col
 }
 
 #[derive(Default)]
 pub struct TimeSeriesChart {
     pub data: Vec<(SessionResults, PathBuf)>,
     pub ksf: Option<Ksf>,
-    pub y_axis: YAxis,
+    // pub y_axis: YAxis,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
@@ -90,10 +83,6 @@ impl TimeSeriesChart {
         }
 
         let ksf_map = self.data[0].0.ksf.create_map();
-
-        let num_freq_keys = self.data[0].0.ksf.freq.iter().count() as u16;
-        let num_dura_keys = self.data[0].0.ksf.dura.iter().count() as u16;
-        let num_keys = num_freq_keys + num_dura_keys;
 
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
         let freq_cell_name_foramt = centered_bold
@@ -199,56 +188,12 @@ impl TimeSeriesChart {
             let at = result.active_time;
             data_page.write(row, col, at)?;
             col += 1;
-            data_page.write(row, col, Formula::new(format!("=S{}/60", row + 1)))?;
+            data_page.write(
+                row,
+                col,
+                Formula::new(format!("={}{}/60", idx_to_xlsx_col(col), row + 1)),
+            )?;
         }
-
-        Ok(workbook)
-    }
-
-    pub fn create_time_series_graph(&self) -> Result<Workbook> {
-        let mut workbook = self.collate_data()?;
-
-        if self.keys_to_use.is_empty() {
-            return Err(anyhow!("no keys selected"));
-        }
-
-        let chart_page = workbook.add_chartsheet();
-        chart_page.set_name("Graph")?;
-
-        let chart_markers = [
-            ChartMarkerType::Circle,
-            ChartMarkerType::Square,
-            ChartMarkerType::Triangle,
-        ];
-
-        let mut chart = Chart::new_line();
-        chart
-            .x_axis()
-            .set_name("Session")
-            .set_major_gridlines(false);
-        chart
-            .y_axis()
-            .set_name(&self.y_axis.to_string())
-            .set_major_gridlines(false);
-
-        let max_row = self.data.len() as u32;
-
-        for idx in 0..self.keys_to_use.len() {
-            let col = (idx + 3) as u16;
-            chart
-                .add_series()
-                .set_values(("Data", 1_u32, col, max_row, col))
-                .set_categories(("Data", 1, 0, max_row, 0))
-                .set_name(("Data", 0, col))
-                .set_marker(
-                    ChartMarker::new()
-                        .set_type(chart_markers[idx % 3])
-                        .set_size(5),
-                );
-        }
-
-        chart_page.insert_chart(2, 2, &chart)?;
-        chart_page.set_active(true);
 
         Ok(workbook)
     }
@@ -285,23 +230,16 @@ impl DataPro {
         self.time_series.file_dialog_controls(ui);
 
         egui::CentralPanel::default().show(ui, |ui| {
-            // TODO: more description
-            ui.label("Create a simple line graph showing trends in the chosen Frequency keys across the selected sessions.");
-
-            ui.heading("Create Time Series For");
+            ui.heading("Collate Files For");
             self.client_picker(ui);
             ui.add_space(15.0);
 
+            ui.label("Gather the data from multiple files into a single Excel document.");
+            ui.add_space(5.0);
+
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    // ui.label("Save Graph To:");
-                    // ui.directory_picker(
-                    //     &mut self.time_series.save_file_dialog,
-                    //     &self.time_series.save_path,
-                    // );
-                    // ui.add_space(10.0);
-
-                    if ui.large_button("Select Data").clicked() {
+                    if ui.large_button("Select Files").clicked() {
                         self.time_series.select_file_dialog.pick_multiple();
                     }
                     ui.add_space(10.0);
@@ -312,9 +250,7 @@ impl DataPro {
                 ui.vertical(|ui| {
                     ui.monospace("KSF");
                     ui.group(|ui| {
-
                         ui.horizontal(|ui| {
-
                             ui.add_space(5.0);
                             if let Some(ksf) = &self.time_series.ksf {
                                 let (freq, dura) = ksf.pairs();
@@ -322,11 +258,18 @@ impl DataPro {
                                     ui.strong("Frequency Keys");
                                     ui.add_space(2.0);
                                     for (key, desc) in freq {
-                                        ui.add(egui::Label::new(
-                                            RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
+                                        ui.horizontal(|ui| {
+                                            ui.add(egui::Label::new(
+                                                RichText::from(format!(
+                                                    "{:>2} {}",
+                                                    key.symbol_or_name(),
+                                                    desc
+                                                ))
                                                 .monospace()
                                                 .size(12.0),
-                                        ));
+                                            ));
+                                            ui.checkbox(&mut true, "");
+                                        });
                                     }
                                 });
                                 ui.add_space(10.0);
@@ -336,11 +279,18 @@ impl DataPro {
                                     ui.strong("Duration Keys");
                                     ui.add_space(2.0);
                                     for (key, desc) in dura {
-                                        ui.add(egui::Label::new(
-                                            RichText::from(format!("{:>2} {}", key.symbol_or_name(), desc))
+                                        ui.horizontal(|ui| {
+                                            ui.add(egui::Label::new(
+                                                RichText::from(format!(
+                                                    "{:>2} {}",
+                                                    key.symbol_or_name(),
+                                                    desc
+                                                ))
                                                 .monospace()
                                                 .size(12.0),
-                                        ));
+                                            ));
+                                            ui.checkbox(&mut true, "");
+                                        });
                                     }
                                 });
                             } else {
@@ -354,14 +304,12 @@ impl DataPro {
                                 ui.vertical(|ui| {
                                     ui.strong("Duration Keys");
                                     ui.add_space(50.0);
-
                                 });
                             }
                             ui.add_space(5.0);
                         });
                     });
                 });
-
 
                 ui.vertical(|ui| {
                     ui.monospace("Files");
@@ -372,33 +320,29 @@ impl DataPro {
                             }
                         } else {
                             egui::ScrollArea::vertical()
-                                .id_salt("time series scroller").min_scrolled_height(128.0)
+                                .id_salt("time series scroller")
+                                .min_scrolled_height(128.0)
                                 .show(ui, |ui| {
                                     for (_, file_name) in self.time_series.data.iter() {
-                                        ui.monospace(file_name.file_name().unwrap().to_string_lossy());
+                                        ui.monospace(
+                                            file_name.file_name().unwrap().to_string_lossy(),
+                                        );
                                     }
                                 });
                         }
-
                     });
                 })
             });
 
             ui.add_space(8.0);
 
-            // if ui.large_green_button("Create Time Series").clicked() {
-            //     match self.time_series.create_time_series_graph() {
-            //         Ok(mut wkbk) => {
-            //             quick_error!(wkbk.save(self.time_series.save_path.join("time_series_graph.xlsx")).context("error while saving"))
-            //         }
-            //         Err(e) => windows_error_dialog(e),
-            //     }
-            // }
-
             if ui.large_green_button("Collate Data from Files").clicked() {
                 match self.time_series.collate_data() {
                     Ok(mut wkbk) => {
-                        quick_error!(wkbk.save(self.time_series.save_path.join("collated.xlsx")).context("error while saving"))
+                        quick_error!(
+                            wkbk.save(self.time_series.save_path.join("collated.xlsx"))
+                                .context("error while saving")
+                        )
                     }
                     Err(e) => windows_error_dialog(e),
                 }
@@ -409,7 +353,6 @@ impl DataPro {
             } else {
                 ui.monospace(" ");
             }
-
         });
     }
 }

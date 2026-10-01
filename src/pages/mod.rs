@@ -1,4 +1,5 @@
 pub mod about_page;
+pub mod collated;
 pub mod debug_page;
 pub mod edit_assessments;
 pub mod edit_ksfs;
@@ -8,15 +9,14 @@ pub mod session;
 pub mod settings;
 pub mod shuffler;
 pub mod sidebar;
-pub mod time_series_chart;
 pub mod timers;
 pub mod visualize_timeline;
 
+pub use collated::*;
 pub use edit_assessments::*;
 pub use edit_ksfs::*;
 pub use new_client::*;
 pub use prepare::*;
 pub use session::*;
 pub use shuffler::*;
-pub use time_series_chart::*;
 pub use timers::*;

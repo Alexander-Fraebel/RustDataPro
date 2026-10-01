@@ -8,7 +8,7 @@ use crate::{
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
-        time_series_chart::TimeSeriesChart, visualize_timeline::VisualizeTimeline,
+        collated::TimeSeriesChart, visualize_timeline::VisualizeTimeline,
     },
     preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
