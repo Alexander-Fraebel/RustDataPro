@@ -195,24 +195,25 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("Select Files From:");
-            ui.directory_picker(
-                &mut self.ioa_page.select_file_dialog,
-                &self.ioa_page.select_path,
-            );
-            ui.add_space(10.0);
+            // ui.label("Select Files From:");
+            // ui.directory_picker(
+            //     &mut self.ioa_page.select_file_dialog,
+            //     &self.ioa_page.select_path,
+            // );
+            // ui.add_space(10.0);
 
-            ui.label("Save IOA To:");
-            ui.directory_picker(
-                &mut self.ioa_page.save_file_dialog,
-                &self.ioa_page.save_path,
-            );
-            ui.add_space(15.0);
+            // ui.label("Save IOA To:");
+            // ui.directory_picker(
+            //     &mut self.ioa_page.save_file_dialog,
+            //     &self.ioa_page.save_path,
+            // );
+            // ui.add_space(15.0);
 
             if ui.large_button("Select Data").clicked() {
                 self.ioa_page.select_file_dialog.pick_multiple();
             }
             ui.add_space(5.0);
+
             ui.horizontal(|ui| {
                 ui.group(|ui| {
                     ui.vertical(|ui| {

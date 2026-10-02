@@ -14,7 +14,8 @@ fn write_excel_line<'a>(
     it: impl Iterator<Item = (&'a Key, &'a f32)>,
     format: &Format,
 ) -> Result<()> {
-    worksheet.write(row, 0, name)?;
+    let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
+    worksheet.write_with_format(row, 0, name, &centered_bold)?;
     let mut col = 1;
     for (_, n) in it {
         worksheet.write_number_with_format(row, col, *n, format)?;

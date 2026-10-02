@@ -82,6 +82,8 @@ impl TimeSeriesChart {
         let mut col = 0;
         let mut row = 0;
 
+        data_page.write_with_format(0, col, "DOA", &centered_bold)?;
+        col += 1;
         data_page.write_with_format(0, col, "Session", &centered_bold)?;
         col += 1;
         data_page.write_with_format(0, col, "Assessment", &centered_bold)?;
@@ -119,7 +121,7 @@ impl TimeSeriesChart {
                         ksf_map.get(key).unwrap(),
                         &dura_cell_name_foramt,
                     )?;
-                    data_page.set_column_format(col, &Format::new().set_num_format("0"))?;
+                    data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
                     data_page.set_column_width_pixels(col, 35)?;
                     key_info.insert(key.clone(), (col, idx_to_xlsx_col(col)));
                     col += 1;
@@ -139,6 +141,8 @@ impl TimeSeriesChart {
         for (result, buf) in self.data.iter() {
             row += 1;
             col = 0;
+            data_page.write(row, col, result.days_since_admission as f32)?;
+            col += 1;
             data_page.write(row, col, result.session_number)?;
             col += 1;
             data_page.write(row, col, &result.session_data.chosen_assessment)?;
@@ -234,11 +238,10 @@ impl DataPro {
             ui.label("Gather the data from multiple files into a single Excel document.");
             ui.add_space(5.0);
 
+            if ui.large_button("Select Files").clicked() {
+                self.time_series.select_file_dialog.pick_multiple();
+            }
             ui.horizontal(|ui| {
-                if ui.large_button("Select Files").clicked() {
-                    self.time_series.select_file_dialog.pick_multiple();
-                }
-
                 ui.vertical(|ui| {
                     ui.monospace("KSF");
                     ui.group(|ui| {
