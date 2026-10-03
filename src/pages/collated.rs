@@ -5,7 +5,7 @@ use crate::{
     utils::{ui_elements::DataProUiElements, windows_error_dialog},
 };
 use anyhow::{Context, Result, anyhow};
-use egui::{Color32, Key, RichText, Ui};
+use egui::{Key, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -34,7 +34,6 @@ pub struct TimeSeriesChart {
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
     pub save_path: PathBuf,
-    pub created: bool,
 }
 
 impl TimeSeriesChart {
@@ -61,7 +60,7 @@ impl TimeSeriesChart {
         let green_accent = Color::RGB(0xD8E4BC);
         let blue_accent = Color::RGB(0xB8CCE4);
 
-        let ksf_map = self.data[0].0.ksf.create_map();
+        let key_descriptions = self.data[0].0.ksf.create_map();
         let mut key_info: IndexMap<Key, (u16, String)> = IndexMap::new();
 
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
@@ -88,19 +87,22 @@ impl TimeSeriesChart {
         let mut row = 1;
 
         data_page.write_with_format(row, col, "DOA", &centered_bold)?;
+        data_page.set_column_format(col, &Format::new().set_align(FormatAlign::Center))?;
         col += 1;
         data_page.write_with_format(row, col, "Session", &centered_bold)?;
+        data_page.set_column_format(col, &Format::new().set_align(FormatAlign::Center))?;
         col += 1;
         data_page.write_with_format(row, col, "Assessment", &centered_bold)?;
+        data_page.set_column_format(col, &Format::new().set_align(FormatAlign::Center))?;
         col += 1;
         data_page.write_with_format(row, col, "Condition", &centered_bold)?;
+        data_page.set_column_format(col, &Format::new().set_align(FormatAlign::Center))?;
 
-        row += 1;
-        col += 1;
-        data_page.set_freeze_panes(row, col)?;
-        data_page.set_column_range_width_pixels(0, col, 80)?;
+        data_page.set_freeze_panes(row + 1, col + 1)?;
+        data_page.set_column_range_width_pixels(0, col + 1, 80)?;
 
         // Create the headings for the freq and dura keys
+        col += 1;
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
         for key in freq {
             if let Some(b) = self.keys_selector.get(key) {
@@ -108,14 +110,14 @@ impl TimeSeriesChart {
                     data_page.write_with_format(
                         row - 1,
                         col,
-                        key.symbol_or_name(),
-                        &freq_cell_key_foramt,
+                        key_descriptions.get(key).unwrap(),
+                        &freq_cell_name_foramt,
                     )?;
                     data_page.write_with_format(
                         row,
                         col,
-                        ksf_map.get(key).unwrap(),
-                        &freq_cell_name_foramt,
+                        key.symbol_or_name(),
+                        &freq_cell_key_foramt,
                     )?;
                     data_page.set_column_format(col, &Format::new().set_num_format("0"))?;
                     data_page.set_column_width_pixels(col, 35)?;
@@ -130,15 +132,16 @@ impl TimeSeriesChart {
                     data_page.write_with_format(
                         row - 1,
                         col,
-                        key.symbol_or_name(),
-                        &dura_cell_key_foramt,
+                        key_descriptions.get(key).unwrap(),
+                        &dura_cell_name_foramt,
                     )?;
                     data_page.write_with_format(
                         row,
                         col,
-                        ksf_map.get(key).unwrap(),
-                        &dura_cell_name_foramt,
+                        key.symbol_or_name(),
+                        &dura_cell_key_foramt,
                     )?;
+
                     data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
                     data_page.set_column_width_pixels(col, 35)?;
                     key_info.insert(key.clone(), (col, idx_to_xlsx_col(col)));
@@ -147,17 +150,18 @@ impl TimeSeriesChart {
             }
         }
         // Include Active Time
-        data_page.write_with_format(row - 1, col, "", &dura_cell_key_foramt)?;
-        data_page.write_with_format(row, col, "AT (Secs)", &dura_cell_name_foramt)?;
+        data_page.write_with_format(row, col, "", &dura_cell_key_foramt)?;
+        data_page.write_with_format(row - 1, col, "AT (Secs)", &dura_cell_name_foramt)?;
         data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
         data_page.set_column_width_pixels(col, 50)?;
         col += 1;
-        data_page.write_with_format(row - 1, col, "", &dura_cell_key_foramt)?;
-        data_page.write_with_format(row, col, "AT (Mins)", &dura_cell_name_foramt)?;
+        data_page.write_with_format(row, col, "", &dura_cell_key_foramt)?;
+        data_page.write_with_format(row - 1, col, "AT (Mins)", &dura_cell_name_foramt)?;
         data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
         data_page.set_column_width_pixels(col, 50)?;
 
         // Populate the data
+        row += 1;
         for (result, buf) in self.data.iter() {
             col = 0;
             data_page.write(row, col, result.days_since_admission as f32)?;
@@ -230,7 +234,6 @@ impl TimeSeriesChart {
         if let Some(pathbufs) = self.select_file_dialog.take_picked_multiple() {
             self.ksf = None;
             self.data.clear();
-            self.created = false;
             for buf in pathbufs {
                 match SessionResults::from_file_path(buf.as_path()) {
                     Ok(data) => self.data.push((data, buf)),
@@ -258,9 +261,24 @@ impl DataPro {
             ui.label("Gather the data from multiple files into a single Excel document.");
             ui.add_space(5.0);
 
-            if ui.large_button("Select Files").clicked() {
-                self.time_series.select_file_dialog.pick_multiple();
-            }
+            ui.horizontal(|ui| {
+                if ui.large_button("Select Files").clicked() {
+                    self.time_series.select_file_dialog.pick_multiple();
+                }
+                ui.add_space(5.0);
+                if ui.large_green_button("Collate Data from Files").clicked() {
+                    match self.time_series.collate_data() {
+                        Ok(mut wkbk) => {
+                            quick_error!(
+                                wkbk.save(self.time_series.save_path.join("collated.xlsx"))
+                                    .context("error while saving")
+                            )
+                        }
+                        Err(e) => windows_error_dialog(e),
+                    }
+                }
+            });
+
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     ui.monospace("KSF");
@@ -350,24 +368,6 @@ impl DataPro {
             });
 
             ui.add_space(8.0);
-
-            if ui.large_green_button("Collate Data from Files").clicked() {
-                match self.time_series.collate_data() {
-                    Ok(mut wkbk) => {
-                        quick_error!(
-                            wkbk.save(self.time_series.save_path.join("collated.xlsx"))
-                                .context("error while saving")
-                        )
-                    }
-                    Err(e) => windows_error_dialog(e),
-                }
-            }
-
-            if self.time_series.created {
-                ui.monospace(RichText::new("Chart Created").color(Color32::GREEN));
-            } else {
-                ui.monospace(" ");
-            }
         });
     }
 }
