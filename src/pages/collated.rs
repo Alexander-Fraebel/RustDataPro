@@ -9,20 +9,28 @@ use egui::{Key, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use rust_xlsxwriter::{Color, Format, FormatAlign, Formula, workbook::Workbook};
+use rust_xlsxwriter::{
+    Color, Format, FormatAlign, Formula, workbook::Workbook, worksheet::Worksheet,
+};
 use std::path::PathBuf;
 
-pub fn idx_to_xlsx_col(mut idx: u16) -> String {
-    let mut col = String::with_capacity(3);
-    if idx == 0 {
-        col.push('A');
+const GREEN_ACCENT: Color = Color::RGB(0xD8E4BC);
+const BLUE_ACCENT: Color = Color::RGB(0xB8CCE4);
+const ORANGE_ACCENT: Color = Color::RGB(0xFCD5B4);
+const PURPLE_ACCENT: Color = Color::RGB(0xCCC0DA);
+const NEON_PINK: Color = Color::RGB(0xFF10F0); // easy to see default color
+
+fn to_xlsx_col(mut col: u16) -> String {
+    let mut s = String::with_capacity(3);
+    if col == 0 {
+        s.push('A');
     }
-    while idx > 0 {
-        col.push((97_u8 + (idx as u8 % 26)) as char);
-        idx -= 1;
-        idx /= 26;
+    while col > 0 {
+        s.push((97_u8 + (col as u8 % 26)) as char);
+        col -= 1;
+        col /= 26;
     }
-    col
+    s
 }
 
 #[derive(Default)]
@@ -59,110 +67,192 @@ impl CollatePage {
             return Err(anyhow!("no KSF determined"));
         }
 
-        let green_accent = Color::RGB(0xD8E4BC);
-        let blue_accent = Color::RGB(0xB8CCE4);
-
         let key_descriptions = self.data[0].0.ksf.create_map();
-        let mut key_info: IndexMap<Key, (u16, String)> = IndexMap::new();
+        let mut key_columns: IndexMap<&'static str, (u16, String)> = IndexMap::new();
 
+        // Cell formatting to use
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
-        let freq_cell_name_foramt = centered_bold
+        let color_f = centered_bold.clone().set_background_color(GREEN_ACCENT);
+        let color_d = centered_bold.clone().set_background_color(BLUE_ACCENT);
+        let color_r = centered_bold.clone().set_background_color(ORANGE_ACCENT);
+        let color_p = centered_bold.clone().set_background_color(PURPLE_ACCENT);
+        let name_format = centered_bold
             .clone()
             .set_align(FormatAlign::VerticalCenter)
-            .set_background_color(green_accent)
             .set_rotation(90);
-        let freq_cell_key_foramt = centered_bold.clone().set_background_color(green_accent);
-        let dura_cell_name_foramt = centered_bold
-            .clone()
-            .set_align(FormatAlign::VerticalCenter)
-            .set_background_color(blue_accent)
-            .set_rotation(90);
-        let dura_cell_key_foramt = centered_bold.clone().set_background_color(blue_accent);
+        let name_format_f = name_format.clone().set_background_color(GREEN_ACCENT);
+        let name_format_d = name_format.clone().set_background_color(BLUE_ACCENT);
+        let name_format_r = name_format.clone().set_background_color(ORANGE_ACCENT);
+        let name_format_p = name_format.clone().set_background_color(PURPLE_ACCENT);
 
+        // Centered bold heading on the row give. Centered column. Sets column width to 80. Increment the column.
+        fn info_column(
+            worksheet: &mut Worksheet,
+            row: u32,
+            col: &mut u16,
+            name: &str,
+            format: &Format,
+        ) -> Result<()> {
+            worksheet.write_with_format(row, *col, name, format)?;
+            worksheet.set_column_format(*col, &Format::new().set_align(FormatAlign::Center))?;
+            worksheet.set_column_width(*col, 80)?;
+            *col += 1;
+            Ok(())
+        }
+
+        fn data_column(
+            worksheet: &mut Worksheet,
+            row: u32,
+            col: u16,
+            key_desc: &str,
+            key_symbol: &str,
+            name_format: &Format,
+            symbol_format: &Format,
+            width: u32,
+            num_format: &'static str,
+        ) -> Result<()> {
+            worksheet.write_with_format(row - 1, col, key_desc, &name_format)?;
+            worksheet.write_with_format(row, col, key_symbol, &symbol_format)?;
+            worksheet.set_column_format(col, &Format::new().set_num_format(num_format))?;
+            worksheet.set_column_width_pixels(col, width)?;
+            Ok(())
+        }
+
+        // Create workbook and worksheet
         let mut workbook = Workbook::default();
-
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
 
         // Use these in order to maintain aligment as we go
         let mut col = 0;
-        let mut row = 1;
+        let mut row = 2;
 
-        data_page.write_with_format(row, col, "DOA", &centered_bold)?;
-        data_page.set_column_format(col, &Format::new().set_align(FormatAlign::Center))?;
-        col += 1;
-        data_page.write_with_format(row, col, "Session", &centered_bold)?;
-        data_page.set_column_format(col, &Format::new().set_align(FormatAlign::Center))?;
-        col += 1;
-        data_page.write_with_format(row, col, "Assessment", &centered_bold)?;
-        data_page.set_column_format(col, &Format::new().set_align(FormatAlign::Center))?;
-        col += 1;
-        data_page.write_with_format(row, col, "Condition", &centered_bold)?;
-        data_page.set_column_format(col, &Format::new().set_align(FormatAlign::Center))?;
+        // Create information columns that won't hold data, just session description.
+        info_column(data_page, row, &mut col, "DOA", &centered_bold)?;
+        info_column(data_page, row, &mut col, "Session", &centered_bold)?;
+        info_column(data_page, row, &mut col, "Assessment", &centered_bold)?;
+        info_column(data_page, row, &mut col, "Condition", &centered_bold)?;
 
-        data_page.set_freeze_panes(row + 1, col + 1)?;
-        data_page.set_column_range_width_pixels(0, col + 1, 80)?;
+        data_page.set_freeze_panes(row + 1, col)?;
+        data_page.set_column_range_width_pixels(0, col, 80)?;
 
         // Create the headings for the freq and dura keys
-        col += 1;
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+        let start_freq = col;
         for key in freq {
             if let Some(b) = self.keys_selector.get(key) {
                 if *b {
-                    data_page.write_with_format(
-                        row - 1,
-                        col,
-                        key_descriptions.get(key).unwrap(),
-                        &freq_cell_name_foramt,
-                    )?;
-                    data_page.write_with_format(
+                    data_column(
+                        data_page,
                         row,
                         col,
+                        key_descriptions.get(key).unwrap(),
                         key.symbol_or_name(),
-                        &freq_cell_key_foramt,
+                        &name_format_f,
+                        &color_f,
+                        35,
+                        "0",
                     )?;
-                    data_page.set_column_format(col, &Format::new().set_num_format("0"))?;
-                    data_page.set_column_width_pixels(col, 35)?;
-                    key_info.insert(key.clone(), (col, idx_to_xlsx_col(col)));
+                    key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
                     col += 1;
                 }
             }
         }
+        data_page.merge_range(0, start_freq, 0, col - 1, "Frequency", &color_f)?;
+        let start_dura = col;
         for key in dura {
             if let Some(b) = self.keys_selector.get(key) {
                 if *b {
-                    data_page.write_with_format(
-                        row - 1,
-                        col,
-                        key_descriptions.get(key).unwrap(),
-                        &dura_cell_name_foramt,
-                    )?;
-                    data_page.write_with_format(
+                    data_column(
+                        data_page,
                         row,
                         col,
+                        key_descriptions.get(key).unwrap(),
                         key.symbol_or_name(),
-                        &dura_cell_key_foramt,
+                        &name_format_d,
+                        &color_d,
+                        50,
+                        "0.0",
                     )?;
-
-                    data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
-                    data_page.set_column_width_pixels(col, 35)?;
-                    key_info.insert(key.clone(), (col, idx_to_xlsx_col(col)));
+                    key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
                     col += 1;
                 }
             }
         }
         // Include Active Time
-        data_page.write_with_format(row, col, "", &dura_cell_key_foramt)?;
-        data_page.write_with_format(row - 1, col, "AT (Secs)", &dura_cell_name_foramt)?;
-        data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
-        data_page.set_column_width_pixels(col, 50)?;
+        data_column(
+            data_page,
+            row,
+            col,
+            "AT (Secs)",
+            "",
+            &name_format_d,
+            &color_d,
+            50,
+            "0.0",
+        )?;
+        key_columns.insert("AT (Secs)", (col, to_xlsx_col(col)));
         col += 1;
-        data_page.write_with_format(row, col, "", &dura_cell_key_foramt)?;
-        data_page.write_with_format(row - 1, col, "AT (Mins)", &dura_cell_name_foramt)?;
-        data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
-        data_page.set_column_width_pixels(col, 50)?;
+        data_column(
+            data_page,
+            row,
+            col,
+            "AT (Mins)",
+            "",
+            &name_format_d,
+            &color_d,
+            50,
+            "0.0",
+        )?;
+        key_columns.insert("AT (Mins)", (col, to_xlsx_col(col)));
+        col += 1;
+        data_page.merge_range(0, start_dura, 0, col - 1, "Duration", &color_d)?;
 
-        // Populate the data
+        // Headings for the rate information
+        let start_rate = col;
+        let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+        for key in freq {
+            if let Some(b) = self.keys_selector.get(key) {
+                if *b {
+                    data_column(
+                        data_page,
+                        row,
+                        col,
+                        key_descriptions.get(key).unwrap(),
+                        key.symbol_or_name(),
+                        &name_format_r,
+                        &color_r,
+                        50,
+                        "0.0",
+                    )?;
+                    col += 1;
+                }
+            }
+        }
+        data_page.merge_range(0, start_rate, 0, col - 1, "Rate (Per Minute)", &color_r)?;
+        let start_pct_at = col;
+        // Heading for Percent data
+        for key in dura {
+            if let Some(b) = self.keys_selector.get(key) {
+                if *b {
+                    data_column(
+                        data_page,
+                        row,
+                        col,
+                        key_descriptions.get(key).unwrap(),
+                        key.symbol_or_name(),
+                        &name_format_p,
+                        &color_p,
+                        50,
+                        "0.0%",
+                    )?;
+                    col += 1;
+                }
+            }
+        }
+        data_page.merge_range(0, start_pct_at, 0, col - 1, "Percent of Session", &color_p)?;
+
+        // Populate the basic data
         row += 1;
         for (result, buf) in self.data.iter() {
             col = 0;
@@ -177,10 +267,10 @@ impl CollatePage {
 
             let (freq, dura) = self.ksf.as_ref().unwrap().keys();
             for key in freq {
-                if key_info.contains_key(key) {
+                if key_columns.contains_key(key.symbol_or_name()) {
                     if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
                         return Err(anyhow!(
-                            "the key {} is not in the KSF for file {}",
+                            "the frequency key {} is not in the KSF for file {}",
                             key.symbol_or_name(),
                             buf.as_os_str().to_string_lossy()
                         ));
@@ -192,10 +282,10 @@ impl CollatePage {
                 }
             }
             for key in dura {
-                if key_info.contains_key(key) {
+                if key_columns.contains_key(key.symbol_or_name()) {
                     if !result.ksf.dura.iter().map(|(k, _)| k).contains(key) {
                         return Err(anyhow!(
-                            "the key {} is not in the KSF for file {}",
+                            "the duration key {} is not in the KSF for file {}",
                             key.symbol_or_name(),
                             buf.as_os_str().to_string_lossy()
                         ));
@@ -206,15 +296,66 @@ impl CollatePage {
                     }
                 }
             }
-            // Include Active Time
+            // Active time in seconds
             let at = result.active_time;
             data_page.write(row, col, at)?;
             col += 1;
+            // Formula for AT in minutes. This makes extending manually much easier.
             data_page.write(
                 row,
                 col,
-                Formula::new(format!("={}{}/60", idx_to_xlsx_col(col - 1), row + 1)),
+                Formula::new(format!(
+                    "={}{}/60",
+                    &key_columns.get("AT (Secs)").unwrap().1,
+                    row + 1
+                )), // have to add one because excel numbers start at 1
             )?;
+            col += 1;
+
+            // Populate the rate information
+            let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+            for key in freq {
+                if key_columns.contains_key(key.symbol_or_name()) {
+                    if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
+                        return Err(anyhow!(
+                            "the frequency key {} is not in the KSF for file {}",
+                            key.symbol_or_name(),
+                            buf.as_os_str().to_string_lossy()
+                        ));
+                    } else {
+                        let rpm = Formula::new(format!(
+                            "={}{}/{}{}",
+                            key_columns.get(key.symbol_or_name()).unwrap().1,
+                            row + 1, // have to add one because excel numbers start at 1
+                            key_columns.get("AT (Mins)").unwrap().1,
+                            row + 1
+                        ));
+                        data_page.write(row, col, rpm)?;
+                        col += 1;
+                    }
+                }
+            }
+            for key in dura {
+                if key_columns.contains_key(key.symbol_or_name()) {
+                    if !result.ksf.dura.iter().map(|(k, _)| k).contains(key) {
+                        return Err(anyhow!(
+                            "the duration key {} is not in the KSF for file {}",
+                            key.symbol_or_name(),
+                            buf.as_os_str().to_string_lossy()
+                        ));
+                    } else {
+                        let ratio = Formula::new(format!(
+                            "={}{}/{}{}",
+                            key_columns.get(key.symbol_or_name()).unwrap().1,
+                            row + 1, // have to add one because excel numbers start at 1
+                            key_columns.get("AT (Secs)").unwrap().1,
+                            row + 1
+                        ));
+                        data_page.write(row, col, ratio)?;
+                        col += 1;
+                    }
+                }
+            }
             row += 1;
         }
 
@@ -232,7 +373,10 @@ impl CollatePage {
         if let Some(pathbuf) = self.save_file_dialog.take_picked() {
             match self.collate_data() {
                 Ok(mut wkbk) => {
-                    quick_error!(wkbk.save(pathbuf).context("erro saving collated data file"))
+                    quick_error!(
+                        wkbk.save(pathbuf)
+                            .context("error saving collated data file")
+                    )
                 }
                 Err(e) => windows_error_dialog(e),
             }
@@ -265,7 +409,9 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("Gather the data from multiple files into a single Excel document.");
+            ui.label(
+                "Gather the data from multiple files into a single nicely formated Excel document.",
+            );
             ui.add_space(5.0);
 
             ui.horizontal(|ui| {
