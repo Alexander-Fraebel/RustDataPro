@@ -26,7 +26,7 @@ pub fn idx_to_xlsx_col(mut idx: u16) -> String {
 }
 
 #[derive(Default)]
-pub struct TimeSeriesChart {
+pub struct CollatePage {
     pub data: Vec<(SessionResults, PathBuf)>,
     pub ksf: Option<Ksf>,
     pub keys_selector: IndexMap<Key, bool>,
@@ -36,7 +36,7 @@ pub struct TimeSeriesChart {
     pub save_path: PathBuf,
 }
 
-impl TimeSeriesChart {
+impl CollatePage {
     pub fn prepare(&mut self, select_path: PathBuf, save_new_path: PathBuf) {
         *self = Self::default();
         self.select_path = select_path.clone();
@@ -45,7 +45,9 @@ impl TimeSeriesChart {
             .add_file_filter_extensions("json files", vec!["json"])
             .default_file_filter("json files");
         self.save_path = save_new_path.clone();
-        self.save_file_dialog = FileDialog::new().initial_directory(save_new_path.clone());
+        self.save_file_dialog = FileDialog::new()
+            .initial_directory(save_new_path.clone())
+            .default_file_name("collated.xlsx");
     }
 
     pub fn collate_data(&self) -> Result<Workbook> {
@@ -228,7 +230,12 @@ impl TimeSeriesChart {
         }
 
         if let Some(pathbuf) = self.save_file_dialog.take_picked() {
-            self.prepare(self.select_path.clone(), pathbuf);
+            match self.collate_data() {
+                Ok(mut wkbk) => {
+                    quick_error!(wkbk.save(pathbuf).context("erro saving collated data file"))
+                }
+                Err(e) => windows_error_dialog(e),
+            }
         }
 
         if let Some(pathbufs) = self.select_file_dialog.take_picked_multiple() {
@@ -251,7 +258,7 @@ impl TimeSeriesChart {
 
 impl DataPro {
     pub fn view_time_series_page(&mut self, ui: &mut Ui) {
-        self.time_series.file_dialog_controls(ui);
+        self.collate.file_dialog_controls(ui);
 
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Collate Files For");
@@ -263,19 +270,11 @@ impl DataPro {
 
             ui.horizontal(|ui| {
                 if ui.large_button("Select Files").clicked() {
-                    self.time_series.select_file_dialog.pick_multiple();
+                    self.collate.select_file_dialog.pick_multiple();
                 }
                 ui.add_space(5.0);
-                if ui.large_green_button("Collate Data from Files").clicked() {
-                    match self.time_series.collate_data() {
-                        Ok(mut wkbk) => {
-                            quick_error!(
-                                wkbk.save(self.time_series.save_path.join("collated.xlsx"))
-                                    .context("error while saving")
-                            )
-                        }
-                        Err(e) => windows_error_dialog(e),
-                    }
+                if ui.large_green_button("Collate Files").clicked() {
+                    self.collate.save_file_dialog.save_file();
                 }
             });
 
@@ -285,14 +284,13 @@ impl DataPro {
                     ui.group(|ui| {
                         ui.horizontal(|ui| {
                             ui.add_space(5.0);
-                            if let Some(ksf) = &self.time_series.ksf {
+                            if let Some(ksf) = &self.collate.ksf {
                                 let (freq, dura) = ksf.pairs();
                                 ui.vertical(|ui| {
                                     ui.strong("Frequency Keys");
                                     ui.add_space(2.0);
                                     for (key, desc) in freq {
-                                        if let Some(b) = self.time_series.keys_selector.get_mut(key)
-                                        {
+                                        if let Some(b) = self.collate.keys_selector.get_mut(key) {
                                             ui.checkbox(
                                                 b,
                                                 RichText::from(format!(
@@ -312,8 +310,7 @@ impl DataPro {
                                     ui.strong("Duration Keys");
                                     ui.add_space(2.0);
                                     for (key, desc) in dura {
-                                        if let Some(b) = self.time_series.keys_selector.get_mut(key)
-                                        {
+                                        if let Some(b) = self.collate.keys_selector.get_mut(key) {
                                             ui.checkbox(
                                                 b,
                                                 RichText::from(format!(
@@ -347,22 +344,31 @@ impl DataPro {
                 ui.vertical(|ui| {
                     ui.monospace("Files");
                     ui.group(|ui| {
-                        if self.time_series.data.is_empty() {
-                            for _ in 0..4 {
-                                ui.monospace("                              ");
-                            }
-                        } else {
-                            egui::ScrollArea::vertical()
-                                .id_salt("time series scroller")
-                                .min_scrolled_height(128.0)
-                                .show(ui, |ui| {
-                                    for (_, file_name) in self.time_series.data.iter() {
-                                        ui.monospace(
-                                            file_name.file_name().unwrap().to_string_lossy(),
+                        egui::ScrollArea::both()
+                            .id_salt("time series scroller")
+                            .max_width(225.0)
+                            .show(ui, |ui| {
+                                if self.collate.data.is_empty() {
+                                    for _ in 0..4 {
+                                        ui.monospace("                              ");
+                                    }
+                                } else {
+                                    for (_, file_name) in self.collate.data.iter() {
+                                        ui.add(
+                                            egui::Label::new(
+                                                RichText::new(
+                                                    file_name
+                                                        .file_name()
+                                                        .unwrap()
+                                                        .to_string_lossy(),
+                                                )
+                                                .monospace(),
+                                            )
+                                            .extend(),
                                         );
                                     }
-                                });
-                        }
+                                }
+                            });
                     });
                 })
             });

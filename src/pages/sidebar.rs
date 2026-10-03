@@ -72,7 +72,7 @@ impl DataPro {
                         ui.add_space(4.0);
 
                         if ui.large_button("Collate Files").clicked() {
-                            self.go_to_time_series();
+                            self.go_to_collate();
                         }
 
                         ui.add_space(4.0);

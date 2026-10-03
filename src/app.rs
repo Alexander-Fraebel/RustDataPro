@@ -7,8 +7,8 @@ use crate::{
     display_control::{DisplayControl, Page},
     ioa::{IoaPage, validate_files::validate_files},
     pages::{
-        CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
-        collated::TimeSeriesChart, visualize_timeline::VisualizeTimeline,
+        CollatePage, CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage,
+        Shuffler, Timers,
     },
     preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
@@ -27,7 +27,7 @@ pub struct DataPro {
     pub pick_root_directory: FileDialog,
     pub root_directory: PathBuf,
 
-    pub rng: StdRng, // StdRng is currently ChaCha12 initalized from SysRng, any similar prng is more than sufficient
+    pub rng: StdRng, // At time of writing StdRng is ChaCha12 initalized from SysRng, any similar prng is more than sufficient
 
     pub data: ClientAndSessionInfo,
     pub display_info: DisplayControl,
@@ -44,8 +44,7 @@ pub struct DataPro {
     pub edit_assessments: EditAssessments,
     pub preference_assessment: PreferenceAssessments,
 
-    pub visualize_timeline: VisualizeTimeline,
-    pub time_series: TimeSeriesChart,
+    pub collate: CollatePage,
 }
 
 impl Default for DataPro {
@@ -88,8 +87,7 @@ impl Default for DataPro {
             edit_assessments: EditAssessments::default(),
             preference_assessment: PreferenceAssessments::default(),
 
-            visualize_timeline: VisualizeTimeline::default(),
-            time_series: TimeSeriesChart::default(),
+            collate: CollatePage::default(),
         };
 
         // Initialize everything by "unloading" a client
@@ -223,6 +221,15 @@ impl DataPro {
             Ok(Path::new(&self.root_directory)
                 .join(&self.data.client.id.to_string())
                 .join(name))
+        }
+    }
+
+    /// Path to the client's directory
+    pub fn path_to_client_dir(&self) -> PathBuf {
+        if !self.data.client_loaded() {
+            self.root_dir()
+        } else {
+            Path::new(&self.root_directory).join(&self.data.client.id.to_string())
         }
     }
 
@@ -381,7 +388,7 @@ impl DataPro {
         self.edit_ksfs.prepare(&self.data, default_dir.clone());
         self.ioa_page
             .prepare(default_dir.clone(), default_dir.clone());
-        self.time_series
+        self.collate
             .prepare(default_dir.clone(), default_dir.clone());
     }
 
@@ -391,14 +398,16 @@ impl DataPro {
             .context("error reading client_data.txt")
         {
             Ok(client) => {
-                // Clear all data
+                // Clear all data to no fields are ptentially left dirty.
                 self.data.clear();
+
                 // Load the client data into ClientData
                 self.data.client = client;
 
-                self.time_series.prepare(
+                // Prepare the file collation page.
+                self.collate.prepare(
                     self.path_to_session_records_dir(),
-                    self.path_to_session_records_dir(),
+                    self.path_to_client_dir(),
                 );
 
                 // Load the KSF Data
@@ -540,7 +549,6 @@ impl eframe::App for DataPro {
             Page::PreferenceAssessment => self.view_preference_assessments_page(ui),
             Page::Shuffler => self.view_shuffler(ui),
             Page::Timers => self.view_timers(ui),
-            Page::Timeline => self.view_timeline_visualizer(ui),
             Page::TimeSeries => self.view_time_series_page(ui),
         }
     }
