@@ -106,13 +106,13 @@ impl TimeSeriesChart {
             if let Some(b) = self.keys_selector.get(key) {
                 if *b {
                     data_page.write_with_format(
-                        0,
+                        row - 1,
                         col,
                         key.symbol_or_name(),
                         &freq_cell_key_foramt,
                     )?;
                     data_page.write_with_format(
-                        1,
+                        row,
                         col,
                         ksf_map.get(key).unwrap(),
                         &freq_cell_name_foramt,
@@ -128,13 +128,13 @@ impl TimeSeriesChart {
             if let Some(b) = self.keys_selector.get(key) {
                 if *b {
                     data_page.write_with_format(
-                        0,
+                        row - 1,
                         col,
                         key.symbol_or_name(),
                         &dura_cell_key_foramt,
                     )?;
                     data_page.write_with_format(
-                        1,
+                        row,
                         col,
                         ksf_map.get(key).unwrap(),
                         &dura_cell_name_foramt,
@@ -147,17 +147,18 @@ impl TimeSeriesChart {
             }
         }
         // Include Active Time
-        data_page.write_with_format(0, col, "AT (Secs)", &dura_cell_name_foramt)?;
+        data_page.write_with_format(row - 1, col, "", &dura_cell_key_foramt)?;
+        data_page.write_with_format(row, col, "AT (Secs)", &dura_cell_name_foramt)?;
         data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
         data_page.set_column_width_pixels(col, 50)?;
         col += 1;
-        data_page.write_with_format(0, col, "AT (Mins)", &dura_cell_name_foramt)?;
+        data_page.write_with_format(row - 1, col, "", &dura_cell_key_foramt)?;
+        data_page.write_with_format(row, col, "AT (Mins)", &dura_cell_name_foramt)?;
         data_page.set_column_format(col, &Format::new().set_num_format("0.0"))?;
         data_page.set_column_width_pixels(col, 50)?;
 
         // Populate the data
         for (result, buf) in self.data.iter() {
-            row += 1;
             col = 0;
             data_page.write(row, col, result.days_since_admission as f32)?;
             col += 1;
@@ -208,6 +209,7 @@ impl TimeSeriesChart {
                 col,
                 Formula::new(format!("={}{}/60", idx_to_xlsx_col(col - 1), row + 1)),
             )?;
+            row += 1;
         }
 
         Ok(workbook)
