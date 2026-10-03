@@ -58,6 +58,9 @@ impl TimeSeriesChart {
             return Err(anyhow!("no KSF determined"));
         }
 
+        let green_accent = Color::RGB(0xD8E4BC);
+        let blue_accent = Color::RGB(0xB8CCE4);
+
         let ksf_map = self.data[0].0.ksf.create_map();
         let mut key_info: IndexMap<Key, (u16, String)> = IndexMap::new();
 
@@ -65,33 +68,36 @@ impl TimeSeriesChart {
         let freq_cell_name_foramt = centered_bold
             .clone()
             .set_align(FormatAlign::VerticalCenter)
-            .set_background_color(Color::RGB(0xD8E4BC))
+            .set_background_color(green_accent)
             .set_rotation(90);
+        let freq_cell_key_foramt = centered_bold.clone().set_background_color(green_accent);
         let dura_cell_name_foramt = centered_bold
             .clone()
             .set_align(FormatAlign::VerticalCenter)
-            .set_background_color(Color::RGB(0xB8CCE4))
+            .set_background_color(blue_accent)
             .set_rotation(90);
+        let dura_cell_key_foramt = centered_bold.clone().set_background_color(blue_accent);
 
         let mut workbook = Workbook::default();
 
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
 
-        // Always use these in order to maintain aligment as we go
+        // Use these in order to maintain aligment as we go
         let mut col = 0;
-        let mut row = 0;
+        let mut row = 1;
 
-        data_page.write_with_format(0, col, "DOA", &centered_bold)?;
+        data_page.write_with_format(row, col, "DOA", &centered_bold)?;
         col += 1;
-        data_page.write_with_format(0, col, "Session", &centered_bold)?;
+        data_page.write_with_format(row, col, "Session", &centered_bold)?;
         col += 1;
-        data_page.write_with_format(0, col, "Assessment", &centered_bold)?;
+        data_page.write_with_format(row, col, "Assessment", &centered_bold)?;
         col += 1;
-        data_page.write_with_format(0, col, "Condition", &centered_bold)?;
-        col += 1;
+        data_page.write_with_format(row, col, "Condition", &centered_bold)?;
 
-        data_page.set_freeze_panes(1, col)?;
+        row += 1;
+        col += 1;
+        data_page.set_freeze_panes(row, col)?;
         data_page.set_column_range_width_pixels(0, col, 80)?;
 
         // Create the headings for the freq and dura keys
@@ -101,6 +107,12 @@ impl TimeSeriesChart {
                 if *b {
                     data_page.write_with_format(
                         0,
+                        col,
+                        key.symbol_or_name(),
+                        &freq_cell_key_foramt,
+                    )?;
+                    data_page.write_with_format(
+                        1,
                         col,
                         ksf_map.get(key).unwrap(),
                         &freq_cell_name_foramt,
@@ -117,6 +129,12 @@ impl TimeSeriesChart {
                 if *b {
                     data_page.write_with_format(
                         0,
+                        col,
+                        key.symbol_or_name(),
+                        &dura_cell_key_foramt,
+                    )?;
+                    data_page.write_with_format(
+                        1,
                         col,
                         ksf_map.get(key).unwrap(),
                         &dura_cell_name_foramt,
