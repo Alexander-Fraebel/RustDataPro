@@ -14,11 +14,11 @@ use rust_xlsxwriter::{
 };
 use std::path::PathBuf;
 
+// These are colors used in Excel at time of writing
 const GREEN_ACCENT: Color = Color::RGB(0xD8E4BC);
 const BLUE_ACCENT: Color = Color::RGB(0xB8CCE4);
 const ORANGE_ACCENT: Color = Color::RGB(0xFCD5B4);
 const PURPLE_ACCENT: Color = Color::RGB(0xCCC0DA);
-const NEON_PINK: Color = Color::RGB(0xFF10F0); // easy to see default color
 
 fn to_xlsx_col(mut col: u16) -> String {
     let mut s = String::with_capacity(3);
@@ -127,13 +127,12 @@ impl CollatePage {
         let mut col = 0;
         let mut row = 2;
 
-        // Create information columns that won't hold data, just session description.
+        // Create the general information columns. Freeze the DOA and Session number panes along with the top rows.
         info_column(data_page, row, &mut col, "DOA", &centered_bold)?;
         info_column(data_page, row, &mut col, "Session", &centered_bold)?;
+        data_page.set_freeze_panes(row + 1, col)?;
         info_column(data_page, row, &mut col, "Assessment", &centered_bold)?;
         info_column(data_page, row, &mut col, "Condition", &centered_bold)?;
-
-        data_page.set_freeze_panes(row + 1, col)?;
         data_page.set_column_range_width_pixels(0, col, 80)?;
 
         // Create the headings for the freq and dura keys
