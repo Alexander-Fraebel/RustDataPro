@@ -10,7 +10,7 @@ use egui_file_dialog::FileDialog;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rust_xlsxwriter::{
-    Color, Format, FormatAlign, Formula, workbook::Workbook, worksheet::Worksheet,
+    Color, Format, FormatAlign, Formula, chart::Chart, workbook::Workbook, worksheet::Worksheet,
 };
 use std::path::PathBuf;
 
@@ -19,6 +19,8 @@ const GREEN_ACCENT: Color = Color::RGB(0xD8E4BC);
 const BLUE_ACCENT: Color = Color::RGB(0xB8CCE4);
 const ORANGE_ACCENT: Color = Color::RGB(0xFCD5B4);
 const PURPLE_ACCENT: Color = Color::RGB(0xCCC0DA);
+
+const LAST_ROW: u32 = u32::MAX;
 
 fn to_xlsx_col(mut col: u16) -> String {
     let mut s = String::with_capacity(3);
@@ -31,6 +33,38 @@ fn to_xlsx_col(mut col: u16) -> String {
         col /= 26;
     }
     s
+}
+
+fn info_column(
+    worksheet: &mut Worksheet,
+    row: u32,
+    col: &mut u16,
+    name: &str,
+    format: &Format,
+) -> Result<()> {
+    worksheet.write_with_format(row, *col, name, format)?;
+    worksheet.set_column_format(*col, &Format::new().set_align(FormatAlign::Center))?;
+    worksheet.set_column_width(*col, 80)?;
+    *col += 1;
+    Ok(())
+}
+
+fn data_column(
+    worksheet: &mut Worksheet,
+    row: u32,
+    col: u16,
+    key_desc: &str,
+    key_symbol: &str,
+    name_format: &Format,
+    symbol_format: &Format,
+    width: u32,
+    num_format: &'static str,
+) -> Result<()> {
+    worksheet.write_with_format(row - 1, col, key_symbol, &symbol_format)?;
+    worksheet.write_with_format(row, col, key_desc, &name_format)?;
+    worksheet.set_column_format(col, &Format::new().set_num_format(num_format))?;
+    worksheet.set_column_width_pixels(col, width)?;
+    Ok(())
 }
 
 #[derive(Default)]
@@ -85,39 +119,6 @@ impl CollatePage {
         let name_format_r = name_format.clone().set_background_color(ORANGE_ACCENT);
         let name_format_p = name_format.clone().set_background_color(PURPLE_ACCENT);
 
-        // Centered bold heading on the row give. Centered column. Sets column width to 80. Increment the column.
-        fn info_column(
-            worksheet: &mut Worksheet,
-            row: u32,
-            col: &mut u16,
-            name: &str,
-            format: &Format,
-        ) -> Result<()> {
-            worksheet.write_with_format(row, *col, name, format)?;
-            worksheet.set_column_format(*col, &Format::new().set_align(FormatAlign::Center))?;
-            worksheet.set_column_width(*col, 80)?;
-            *col += 1;
-            Ok(())
-        }
-
-        fn data_column(
-            worksheet: &mut Worksheet,
-            row: u32,
-            col: u16,
-            key_desc: &str,
-            key_symbol: &str,
-            name_format: &Format,
-            symbol_format: &Format,
-            width: u32,
-            num_format: &'static str,
-        ) -> Result<()> {
-            worksheet.write_with_format(row - 1, col, key_desc, &name_format)?;
-            worksheet.write_with_format(row, col, key_symbol, &symbol_format)?;
-            worksheet.set_column_format(col, &Format::new().set_num_format(num_format))?;
-            worksheet.set_column_width_pixels(col, width)?;
-            Ok(())
-        }
-
         // Create workbook and worksheet
         let mut workbook = Workbook::default();
         let data_page = workbook.add_worksheet();
@@ -139,71 +140,63 @@ impl CollatePage {
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
         let start_freq = col;
         for key in freq {
-            if let Some(b) = self.keys_selector.get(key) {
-                if *b {
-                    data_column(
-                        data_page,
-                        row,
-                        col,
-                        key_descriptions.get(key).unwrap(),
-                        key.symbol_or_name(),
-                        &name_format_f,
-                        &color_f,
-                        35,
-                        "0",
-                    )?;
-                    key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
-                    col += 1;
-                }
-            }
+            data_column(
+                data_page,
+                row,
+                col,
+                key_descriptions.get(key).unwrap(),
+                key.symbol_or_name(),
+                &name_format_f,
+                &color_f,
+                30,
+                "0",
+            )?;
+            key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
+            col += 1;
         }
         data_page.merge_range(0, start_freq, 0, col - 1, "Frequency", &color_f)?;
         let start_dura = col;
         for key in dura {
-            if let Some(b) = self.keys_selector.get(key) {
-                if *b {
-                    data_column(
-                        data_page,
-                        row,
-                        col,
-                        key_descriptions.get(key).unwrap(),
-                        key.symbol_or_name(),
-                        &name_format_d,
-                        &color_d,
-                        50,
-                        "0.0",
-                    )?;
-                    key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
-                    col += 1;
-                }
-            }
+            data_column(
+                data_page,
+                row,
+                col,
+                key_descriptions.get(key).unwrap(),
+                key.symbol_or_name(),
+                &name_format_d,
+                &color_d,
+                50,
+                "0.0",
+            )?;
+            key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
+            col += 1;
         }
-        // Include Active Time
+        // Include Active Time headings
         data_column(
             data_page,
             row,
             col,
-            "AT (Secs)",
-            "",
+            "(Seconds)",
+            "AT",
             &name_format_d,
             &color_d,
             50,
             "0.0",
         )?;
-        key_columns.insert("AT (Secs)", (col, to_xlsx_col(col)));
+        key_columns.insert("(Seconds)", (col, to_xlsx_col(col)));
         col += 1;
         data_column(
             data_page,
             row,
             col,
-            "AT (Mins)",
-            "",
+            "(Minutes)",
+            "AT ",
             &name_format_d,
             &color_d,
             50,
             "0.0",
         )?;
-        key_columns.insert("AT (Mins)", (col, to_xlsx_col(col)));
+        key_columns.insert("(Minutes)", (col, to_xlsx_col(col)));
         col += 1;
         data_page.merge_range(0, start_dura, 0, col - 1, "Duration", &color_d)?;
 
@@ -211,43 +204,35 @@ impl CollatePage {
         let start_rate = col;
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
         for key in freq {
-            if let Some(b) = self.keys_selector.get(key) {
-                if *b {
-                    data_column(
-                        data_page,
-                        row,
-                        col,
-                        key_descriptions.get(key).unwrap(),
-                        key.symbol_or_name(),
-                        &name_format_r,
-                        &color_r,
-                        50,
-                        "0.0",
-                    )?;
-                    col += 1;
-                }
-            }
+            data_column(
+                data_page,
+                row,
+                col,
+                key_descriptions.get(key).unwrap(),
+                "",
+                &name_format_r,
+                &color_r,
+                50,
+                "0.0",
+            )?;
+            col += 1;
         }
         data_page.merge_range(0, start_rate, 0, col - 1, "Rate (Per Minute)", &color_r)?;
         let start_pct_at = col;
         // Heading for Percent data
         for key in dura {
-            if let Some(b) = self.keys_selector.get(key) {
-                if *b {
-                    data_column(
-                        data_page,
-                        row,
-                        col,
-                        key_descriptions.get(key).unwrap(),
-                        key.symbol_or_name(),
-                        &name_format_p,
-                        &color_p,
-                        50,
-                        "0.0%",
-                    )?;
-                    col += 1;
-                }
-            }
+            data_column(
+                data_page,
+                row,
+                col,
+                key_descriptions.get(key).unwrap(),
+                "",
+                &name_format_p,
+                &color_p,
+                50,
+                "0.0%",
+            )?;
+            col += 1;
         }
         data_page.merge_range(0, start_pct_at, 0, col - 1, "Percent of Session", &color_p)?;
 
@@ -305,7 +290,10 @@ impl CollatePage {
                 col,
                 Formula::new(format!(
                     "={}{}/60",
-                    &key_columns.get("AT (Secs)").unwrap().1,
+                    &key_columns
+                        .get("(Seconds)")
+                        .expect("no (Seconds) key in key_columns")
+                        .1,
                     row + 1
                 )), // have to add one because excel numbers start at 1
             )?;
@@ -326,7 +314,10 @@ impl CollatePage {
                             "={}{}/{}{}",
                             key_columns.get(key.symbol_or_name()).unwrap().1,
                             row + 1, // have to add one because excel numbers start at 1
-                            key_columns.get("AT (Mins)").unwrap().1,
+                            key_columns
+                                .get("(Minutes)")
+                                .expect("no (Minutes) key in key_columns")
+                                .1,
                             row + 1
                         ));
                         data_page.write(row, col, rpm)?;
@@ -347,7 +338,10 @@ impl CollatePage {
                             "={}{}/{}{}",
                             key_columns.get(key.symbol_or_name()).unwrap().1,
                             row + 1, // have to add one because excel numbers start at 1
-                            key_columns.get("AT (Secs)").unwrap().1,
+                            key_columns
+                                .get("(Seconds)")
+                                .expect("no (Seconds) key in key_columns")
+                                .1,
                             row + 1
                         ));
                         data_page.write(row, col, ratio)?;
@@ -356,6 +350,26 @@ impl CollatePage {
                 }
             }
             row += 1;
+        }
+
+        if self.keys_selector.iter().filter(|(_, b)| **b).count() != 0 {
+            let chart = workbook.add_chartsheet();
+            let mut lines = Chart::new_line();
+
+            for selected_key in self
+                .keys_selector
+                .iter()
+                .filter(|(_, b)| **b)
+                .map(|(k, _)| k.symbol_or_name())
+            {
+                if let Some((_, col)) = key_columns.get(selected_key) {
+                    lines
+                        .add_series()
+                        // .set_categories(&format!("Data!$B$4:$B${}", LAST_ROW))
+                        .set_values(&format!("Data!${}$4:${}${}", col, col, LAST_ROW));
+                }
+            }
+            chart.insert_chart(1, 1, &lines)?;
         }
 
         Ok(workbook)
@@ -393,7 +407,7 @@ impl CollatePage {
             self.ksf = Some(self.data[0].0.ksf.clone());
             self.keys_selector.clear();
             for key in self.data[0].0.ksf.all_keys() {
-                self.keys_selector.insert(*key, true);
+                self.keys_selector.insert(*key, false);
             }
         }
     }
@@ -409,7 +423,7 @@ impl DataPro {
             ui.add_space(15.0);
 
             ui.label(
-                "Gather the data from multiple files into a single nicely formated Excel document.",
+                "Gather the data from multiple files into a single nicely formated Excel document. Shows frequency and duration data. Calculates rate per minute for frequncy and percentage of session of duration.",
             );
             ui.add_space(5.0);
 
@@ -422,6 +436,7 @@ impl DataPro {
                     self.collate.save_file_dialog.save_file();
                 }
             });
+            ui.add_space(5.0);
 
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
