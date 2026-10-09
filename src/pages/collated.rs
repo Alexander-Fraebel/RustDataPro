@@ -359,6 +359,7 @@ impl CollatePage {
 
         if self.keys_selector.iter().filter(|(_, b)| **b).count() != 0 {
             let chart = workbook.add_chartsheet();
+            chart.set_name("Graph")?;
             let mut lines = Chart::new_line();
 
             for selected_key in self
