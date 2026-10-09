@@ -20,7 +20,8 @@ const BLUE_ACCENT: Color = Color::RGB(0xB8CCE4);
 const ORANGE_ACCENT: Color = Color::RGB(0xFCD5B4);
 const PURPLE_ACCENT: Color = Color::RGB(0xCCC0DA);
 
-const LAST_ROW: u32 = u32::MAX;
+// const LAST_ROW: u32 = 1_048_576;
+// const LAST_COL: u16 = 16384;
 
 fn to_xlsx_col(mut col: u16) -> String {
     let mut s = String::with_capacity(3);
@@ -124,9 +125,13 @@ impl CollatePage {
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
 
-        // Use these in order to maintain aligment as we go
+        // Use and change these in order to maintain aligment as we go
         let mut col = 0;
         let mut row = 2;
+
+        // Align the data rows
+        let first_data_row = 4;
+        let last_data_row = self.data.len() as u32 + first_data_row;
 
         // Create the general information columns. Freeze the DOA and Session number panes along with the top rows.
         info_column(data_page, row, &mut col, "DOA", &centered_bold)?;
@@ -365,8 +370,15 @@ impl CollatePage {
                 if let Some((_, col)) = key_columns.get(selected_key) {
                     lines
                         .add_series()
-                        // .set_categories(&format!("Data!$B$4:$B${}", LAST_ROW))
-                        .set_values(&format!("Data!${}$4:${}${}", col, col, LAST_ROW));
+                        .set_name(selected_key)
+                        .set_categories(&format!("Data!$B${}:$B${}", first_data_row, last_data_row))
+                        .set_values(&format!(
+                            "Data!${}${}:${}${}",
+                            col.to_ascii_uppercase(),
+                            first_data_row,
+                            col.to_ascii_uppercase(),
+                            last_data_row
+                        ));
                 }
             }
             chart.insert_chart(1, 1, &lines)?;
