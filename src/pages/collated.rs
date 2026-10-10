@@ -25,10 +25,10 @@ const BLUE_ACCENT: Color = Color::RGB(0xB8CCE4);
 const ORANGE_ACCENT: Color = Color::RGB(0xFCD5B4);
 const PURPLE_ACCENT: Color = Color::RGB(0xCCC0DA);
 
-const FIRST_DATA_ROW: u32 = 4;
-
-// const LAST_ROW: u32 = 1_048_576;
-// const LAST_COL: u16 = 16384;
+const SECTION_ROW: u32 = 0;
+const KEY_SYMBOL_ROW: u32 = 1;
+const HEADING_NAME_ROW: u32 = 2;
+const FIRST_DATA_ROW: u32 = 3;
 
 fn to_xlsx_col(mut col: u16) -> String {
     let mut s = String::with_capacity(3);
@@ -49,7 +49,7 @@ fn info_heading(
     name: &str,
     format: &Format,
 ) -> Result<()> {
-    worksheet.write_with_format(FIRST_DATA_ROW - 2, *col, name, format)?;
+    worksheet.write_with_format(HEADING_NAME_ROW, *col, name, format)?;
     worksheet.set_column_format(*col, &Format::new().set_align(FormatAlign::Center))?;
     worksheet.set_column_width(*col, 80)?;
     *col += 1;
@@ -66,8 +66,8 @@ fn data_heading(
     width: u32,
     num_format: &'static str,
 ) -> Result<()> {
-    worksheet.write_with_format(FIRST_DATA_ROW - 3, col, key_symbol, &symbol_format)?;
-    worksheet.write_with_format(FIRST_DATA_ROW - 2, col, key_desc, &name_format)?;
+    worksheet.write_with_format(KEY_SYMBOL_ROW, col, key_symbol, &symbol_format)?;
+    worksheet.write_with_format(HEADING_NAME_ROW, col, key_desc, &name_format)?;
     worksheet.set_column_format(col, &Format::new().set_num_format(num_format))?;
     worksheet.set_column_width_pixels(col, width)?;
     Ok(())
@@ -139,7 +139,7 @@ impl CollatePage {
         // Create the general information columns. Freeze the DOA and Session number panes along with the top rows.
         info_heading(data_page, &mut col, "DOA", &centered_bold)?;
         info_heading(data_page, &mut col, "Session", &centered_bold)?;
-        data_page.set_freeze_panes(FIRST_DATA_ROW, col)?;
+        data_page.set_freeze_panes(HEADING_NAME_ROW + 1, col)?;
         info_heading(data_page, &mut col, "Assessment", &centered_bold)?;
         info_heading(data_page, &mut col, "Condition", &centered_bold)?;
         data_page.set_column_range_width_pixels(0, col, 80)?;
@@ -161,7 +161,14 @@ impl CollatePage {
             key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
             col += 1;
         }
-        data_page.merge_range(0, start_freq, 0, col - 1, "Frequency", &color_f)?;
+        data_page.merge_range(
+            SECTION_ROW,
+            start_freq,
+            SECTION_ROW,
+            col - 1,
+            "Frequency",
+            &color_f,
+        )?;
         let start_dura = col;
         for key in dura {
             data_heading(
@@ -202,7 +209,14 @@ impl CollatePage {
         )?;
         key_columns.insert("(Minutes)", (col, to_xlsx_col(col)));
         col += 1;
-        data_page.merge_range(0, start_dura, 0, col - 1, "Duration", &color_d)?;
+        data_page.merge_range(
+            SECTION_ROW,
+            start_dura,
+            SECTION_ROW,
+            col - 1,
+            "Duration",
+            &color_d,
+        )?;
 
         // Headings for the rate information
         let start_rate = col;
@@ -220,7 +234,14 @@ impl CollatePage {
             )?;
             col += 1;
         }
-        data_page.merge_range(0, start_rate, 0, col - 1, "Rate (Per Minute)", &color_r)?;
+        data_page.merge_range(
+            SECTION_ROW,
+            start_rate,
+            SECTION_ROW,
+            col - 1,
+            "Rate (Per Minute)",
+            &color_r,
+        )?;
         let start_pct_at = col;
         // Heading for Percent data
         for key in dura {
@@ -236,7 +257,14 @@ impl CollatePage {
             )?;
             col += 1;
         }
-        data_page.merge_range(0, start_pct_at, 0, col - 1, "Percent of Session", &color_p)?;
+        data_page.merge_range(
+            SECTION_ROW,
+            start_pct_at,
+            SECTION_ROW,
+            col - 1,
+            "Percent of Session",
+            &color_p,
+        )?;
 
         // Populate the basic data
         for (result, buf) in self.data.iter() {
@@ -359,7 +387,9 @@ impl CollatePage {
                 ChartMarkerType::Square,
                 ChartMarkerType::Triangle,
             ];
-            let fill_colors = ["#000000", "#FFFFFF"];
+            let fill_colors = ["#FFFFFF", "#000000", "#808080"];
+            let border_colors = ["#000000", "#000000", "#808080"];
+            let marker_size = [8, 8, 7];
 
             let chart = workbook.add_chartsheet();
             chart.set_name("Graph")?;
@@ -381,11 +411,15 @@ impl CollatePage {
                     lines
                         .add_series()
                         .set_name(desc)
-                        .set_categories(&format!("Data!$B${}:$B${}", FIRST_DATA_ROW, last_data_row))
+                        .set_categories(&format!(
+                            "Data!$B${}:$B${}",
+                            FIRST_DATA_ROW + 1, // offset from zero-based indexing to one-based naming
+                            last_data_row
+                        ))
                         .set_values(&format!(
                             "Data!${}${}:${}${}",
                             col.to_ascii_uppercase(),
-                            FIRST_DATA_ROW,
+                            FIRST_DATA_ROW + 1, // offset from zero-based indexing to one-based naming
                             col.to_ascii_uppercase(),
                             last_data_row
                         ))
@@ -395,13 +429,17 @@ impl CollatePage {
                         .set_marker(
                             ChartMarker::new()
                                 .set_type(marker_types[i % 3])
-                                .set_size(7)
+                                .set_size(marker_size[i % 3])
                                 .set_format(
                                     ChartFormat::new()
                                         .set_solid_fill(
-                                            ChartSolidFill::new().set_color(fill_colors[i % 2]),
+                                            ChartSolidFill::new()
+                                                .set_color(fill_colors[(i / 3) % 3]),
                                         )
-                                        .set_border(ChartBorder::new().set_color("#000000")),
+                                        .set_border(
+                                            ChartBorder::new()
+                                                .set_color(border_colors[(i / 3) % 3]),
+                                        ),
                                 ),
                         );
                 }
