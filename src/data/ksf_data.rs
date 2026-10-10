@@ -124,7 +124,9 @@ impl Ksf {
                 "duration": [
                     ["K", "Toy Engage"],
                     ["4", "Sr+"],
-                    ["6", "Sdelta"]
+                    ["6", "Sdelta"],
+                    ["J", "Stereotypy"],
+                    ["9", "Timer"]
                 ]
             }"#,
         ))

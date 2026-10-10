@@ -306,7 +306,7 @@ impl SessionResults {
         let mut session_time = 0.0;
         let max_session_time = 1200.0;
         timeline.push((Key::Tab, rounded_f32(session_time)));
-        for _ in 0..200 {
+        for _ in 0..270 {
             let gap = next_press
                 .next()
                 .expect("error producing next value for Exp distribution");
@@ -329,6 +329,11 @@ impl SessionResults {
                 } else {
                     d_keys_used.insert(k, t);
                 }
+                d_rates.iter_mut().for_each(|(key, r)| {
+                    if *key == k {
+                        *r = 1.0 - *r;
+                    }
+                });
             };
         }
         for (k, last_time) in d_keys_used {

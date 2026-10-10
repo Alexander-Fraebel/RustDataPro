@@ -229,7 +229,7 @@ impl CollatePage {
                 "",
                 &name_format_r,
                 &color_r,
-                50,
+                40,
                 "0.0",
             )?;
             col += 1;
@@ -323,8 +323,8 @@ impl CollatePage {
                         .get("(Seconds)")
                         .expect("no (Seconds) key in key_columns")
                         .1,
-                    row + 1
-                )), // have to add one because excel numbers start at 1
+                    row + 1 // have to add one because excel numbers start at 1
+                )),
             )?;
             col += 1;
 
@@ -388,8 +388,8 @@ impl CollatePage {
                 ChartMarkerType::Triangle,
             ];
             let fill_colors = ["#FFFFFF", "#000000", "#808080"];
-            let border_colors = ["#000000", "#000000", "#808080"];
-            let marker_size = [8, 8, 7];
+            let border_colors = ["#000000", "#000000", "#000000"];
+            let marker_size = [7, 7, 8];
 
             let chart = workbook.add_chartsheet();
             chart.set_name("Graph")?;
@@ -424,7 +424,8 @@ impl CollatePage {
                             last_data_row
                         ))
                         .set_format(
-                            ChartFormat::new().set_line(&ChartLine::new().set_color("#000000")),
+                            ChartFormat::new()
+                                .set_line(&ChartLine::new().set_color("#000000").set_width(1.5)),
                         )
                         .set_marker(
                             ChartMarker::new()
