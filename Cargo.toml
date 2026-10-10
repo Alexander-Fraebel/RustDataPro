@@ -25,6 +25,7 @@ serde_json = { version = "1.0.150", features = ["preserve_order"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
 rust_xlsxwriter = "0.96.0"
 rand = "0.10.2"
+rand_distr = "0.6.0"
 win-msgbox = "0.2.2"
 regex = "1.13.1"
 

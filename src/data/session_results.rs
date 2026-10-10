@@ -6,8 +6,11 @@ use anyhow::Result;
 use egui::Key;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use rand::SeedableRng;
+use rand_distr::Distribution;
 use rust_xlsxwriter::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::Path;
 
 /// Output of a single session. Includes the Client and Session data along with the recorded keypresses and times, and the KSF to translate those.
@@ -253,53 +256,86 @@ impl SessionResults {
         path: std::path::PathBuf,
         data: &ClientAndSessionInfo,
         session_number: u32,
+        include_reli: bool,
+        seed: u64,
     ) {
         use rand::{RngExt, make_rng, rngs::StdRng, seq::IndexedRandom};
         use std::fs::File;
 
         let client = &data.client;
-        let mut rng: StdRng = make_rng();
+
         let mut session_data = SessionInfo::default();
         session_data.chosen_assessment = data.chosen_assessment_name().clone();
         session_data.chosen_condition = data.chosen_condition_name().clone();
         session_data.data_collection_type = crate::data::DataCollectionType::Primary;
 
         let ksf = Ksf::example();
-        let mut fkeys = Vec::new();
+
+        // Fixed seed for consitency across trials
+        let mut seeded_rng: StdRng = StdRng::seed_from_u64(seed);
+        // System seeded so all trials are different
+        let mut rng: StdRng = make_rng();
 
         let mut frequency: IndexMap<Key, u32> = IndexMap::new();
+        let mut fkeys = Vec::new();
+        let mut f_rates = Vec::new();
         let (freq, dura) = ksf.keys();
         for k in freq {
             frequency.insert(*k, 0);
+            f_rates.push((*k, seeded_rng.random::<f32>()));
             fkeys.push(*k);
         }
         let mut duration: IndexMap<Key, (u32, f32)> = IndexMap::new();
         let mut dkeys = Vec::new();
+        let mut d_rates = Vec::new();
+        let mut d_keys_used = HashMap::new();
         for k in dura {
-            let n: u32 = rng.random_range(..50);
-            let f: f32 = rng.random::<f32>() * 50.0;
-            duration.insert(*k, (n, rounded_f32(f)));
+            duration.insert(*k, (0, 0.0));
+            d_rates.push((*k, seeded_rng.random::<f32>()));
             dkeys.push(*k);
         }
 
+        // Reciprocal of the average time between keypresses
+        let lambda: f32 = 1.0 / ((rng.random::<f32>() + 1.0) * 3.0);
+        let mut key_press_rng: StdRng = make_rng();
+        let mut next_press = rand_distr::Exp::new(lambda)
+            .unwrap()
+            .sample_iter(&mut key_press_rng);
+
         let mut timeline = Timeline::default();
         let mut session_time = 0.0;
+        let max_session_time = 1200.0;
         timeline.push((Key::Tab, rounded_f32(session_time)));
-        for _ in 0..150 {
-            session_time = session_time + rng.random::<f32>() * 4.0;
-            if rng.random_bool(0.9) {
-                let t = rounded_f32(session_time);
-                if rng.random_bool(0.5) {
-                    let k = fkeys.choose(&mut rng).unwrap();
-                    *frequency.get_mut(k).unwrap() += 1;
-                    timeline.push((*k, t));
-                } else {
-                    let k = dkeys.choose(&mut rng).unwrap();
-                    timeline.push((*k, t));
-                };
+        for _ in 0..200 {
+            let gap = next_press
+                .next()
+                .expect("error producing next value for Exp distribution");
+            if session_time + gap > max_session_time {
+                break;
             }
+            session_time = session_time + gap;
+
+            let t = rounded_f32(session_time);
+            if rng.random_bool(0.7) {
+                let k = f_rates.choose_weighted(&mut rng, |item| item.1).unwrap().0;
+                *frequency.get_mut(&k).unwrap() += 1;
+                timeline.push((k, t));
+            } else {
+                let k = d_rates.choose_weighted(&mut rng, |item| item.1).unwrap().0;
+                timeline.push((k, t));
+                if let Some(last_time) = d_keys_used.remove(&k) {
+                    duration.get_mut(&k).unwrap().0 += 1;
+                    duration.get_mut(&k).unwrap().1 += t - last_time;
+                } else {
+                    d_keys_used.insert(k, t);
+                }
+            };
         }
-        timeline.push((Key::Escape, session_time));
+        for (k, last_time) in d_keys_used {
+            duration.get_mut(&k).unwrap().0 += 1;
+            duration.get_mut(&k).unwrap().1 += rounded_f32(session_time) - last_time;
+        }
+        timeline.push((Key::Escape, rounded_f32(session_time)));
 
         let prim = SessionResults {
             datetime: String::from("TEST FILE"),
@@ -320,57 +356,6 @@ impl SessionResults {
             location: client.location.clone(),
         };
 
-        // Jitter the timing for the keypresses
-        session_data.data_collection_type = crate::data::DataCollectionType::Reliability;
-        for (_k, t) in timeline.iter_mut() {
-            *t += (rng.random::<f32>() - 0.5) * 0.7;
-        }
-        let (freq, dura) = ksf.keys();
-        // Jitter the duration lengths and counts
-        for k in dura {
-            let f: f32 = (rng.random::<f32>() - 0.5) * 5.0;
-            let d = duration.get_mut(k).unwrap();
-            d.1 += f;
-            if d.1.is_sign_negative() {
-                d.1 = 0.0;
-            }
-
-            let f: u32 = rng.random_range(..5);
-            if rng.random_bool(0.5) {
-                duration.get_mut(k).unwrap().0 += f;
-            } else {
-                duration.get_mut(k).unwrap().0 = duration.get_mut(k).unwrap().0.saturating_sub(f);
-            }
-        }
-        // Jitter the jitter the frequency counts
-        for k in freq {
-            let f: u32 = rng.random_range(..5);
-            if rng.random_bool(0.5) {
-                *frequency.get_mut(k).unwrap() += f;
-            } else {
-                *frequency.get_mut(k).unwrap() = frequency.get_mut(k).unwrap().saturating_sub(f);
-            }
-        }
-
-        let reli = SessionResults {
-            datetime: String::from("TEST FILE"),
-            session_data: session_data.clone(),
-            total_time: session_time,
-            pause_time: 0.0,
-            active_time: session_time,
-            frequency_data: frequency.clone(),
-            duration_data: duration.clone(),
-            timeline: timeline.clone(),
-            ksf: ksf.clone(),
-            client_name: client.name.clone(),
-            client_id: client.id.clone(),
-            case_manager: client.case_manager.clone(),
-            primary_therapist: client.primary_therapist.clone(),
-            session_number: session_number,
-            days_since_admission: client.days_since_admission().unwrap_or(i32::MIN),
-            location: client.location.clone(),
-        };
-
         let pfile = File::create(path.join(prim.json_file_name())).unwrap();
         let mut writer = std::io::BufWriter::new(pfile);
         std::io::Write::write_all(&mut writer, prim.to_json().unwrap().as_bytes()).unwrap();
@@ -379,12 +364,86 @@ impl SessionResults {
         let mut workbook = prim.to_xlsx().unwrap();
         workbook.save(path.join(prim.xlsx_file_name())).unwrap();
 
-        let rfile = File::create(path.join(reli.json_file_name())).unwrap();
-        let mut writer = std::io::BufWriter::new(rfile);
-        std::io::Write::write_all(&mut writer, reli.to_json().unwrap().as_bytes()).unwrap();
-        std::io::Write::flush(&mut writer).unwrap();
+        if include_reli {
+            // Reli data
+            session_data.data_collection_type = crate::data::DataCollectionType::Reliability;
 
-        let mut workbook = reli.to_xlsx().unwrap();
-        workbook.save(path.join(reli.xlsx_file_name())).unwrap();
+            // Jitter the timing for the keypresses
+            let mut error_val = rand_distr::Normal::new(0.0, 0.5)
+                .unwrap()
+                .sample_iter(&mut rng);
+            for (_k, t) in timeline.iter_mut() {
+                *t += error_val
+                    .next()
+                    .expect("error producing next value for Normal distribution")
+                    as f32;
+            }
+            // Introduce errors
+            for _ in 0..30 {
+                let r = 0..timeline.len();
+                if rng.random_bool(0.5) {
+                    timeline.remove(rng.random_range(r));
+                } else {
+                    if rng.random_bool(0.5) {
+                        timeline.swap_remove(rng.random_range(r));
+                    }
+                }
+            }
+            let (freq, dura) = ksf.keys();
+            // Jitter the duration lengths and counts
+            for k in dura {
+                let f: f32 = (rng.random::<f32>() - 0.5) * 5.0;
+                let d = duration.get_mut(k).unwrap();
+                d.1 += f;
+                if d.1.is_sign_negative() {
+                    d.1 = 0.0;
+                }
+
+                let f: u32 = rng.random_range(..5);
+                if rng.random_bool(0.5) {
+                    duration.get_mut(k).unwrap().0 += f;
+                } else {
+                    duration.get_mut(k).unwrap().0 =
+                        duration.get_mut(k).unwrap().0.saturating_sub(f);
+                }
+            }
+            // Jitter the jitter the frequency counts
+            for k in freq {
+                let f: u32 = rng.random_range(..5);
+                if rng.random_bool(0.5) {
+                    *frequency.get_mut(k).unwrap() += f;
+                } else {
+                    *frequency.get_mut(k).unwrap() =
+                        frequency.get_mut(k).unwrap().saturating_sub(f);
+                }
+            }
+
+            let reli = SessionResults {
+                datetime: String::from("TEST FILE"),
+                session_data: session_data.clone(),
+                total_time: session_time,
+                pause_time: 0.0,
+                active_time: session_time,
+                frequency_data: frequency.clone(),
+                duration_data: duration.clone(),
+                timeline: timeline.clone(),
+                ksf: ksf.clone(),
+                client_name: client.name.clone(),
+                client_id: client.id.clone(),
+                case_manager: client.case_manager.clone(),
+                primary_therapist: client.primary_therapist.clone(),
+                session_number: session_number,
+                days_since_admission: client.days_since_admission().unwrap_or(i32::MIN),
+                location: client.location.clone(),
+            };
+
+            let rfile = File::create(path.join(reli.json_file_name())).unwrap();
+            let mut writer = std::io::BufWriter::new(rfile);
+            std::io::Write::write_all(&mut writer, reli.to_json().unwrap().as_bytes()).unwrap();
+            std::io::Write::flush(&mut writer).unwrap();
+
+            let mut workbook = reli.to_xlsx().unwrap();
+            workbook.save(path.join(reli.xlsx_file_name())).unwrap();
+        }
     }
 }

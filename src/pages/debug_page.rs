@@ -57,6 +57,20 @@ impl DataPro {
                                 self.path_assessment_condition_dir(),
                                 &self.data,
                                 i,
+                                true,
+                                12345678,
+                            );
+                        }
+                        self.data.current_session += 20;
+                    }
+                    if ui.button("simulate 20 sessions (no reli)").clicked() {
+                        for i in self.data.current_session..=(self.data.current_session + 20) {
+                            SessionResults::simulate_session_results(
+                                self.path_assessment_condition_dir(),
+                                &self.data,
+                                i,
+                                false,
+                                12345678,
                             );
                         }
                         self.data.current_session += 20;
