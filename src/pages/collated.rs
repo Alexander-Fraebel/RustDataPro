@@ -25,6 +25,8 @@ const BLUE_ACCENT: Color = Color::RGB(0xB8CCE4);
 const ORANGE_ACCENT: Color = Color::RGB(0xFCD5B4);
 const PURPLE_ACCENT: Color = Color::RGB(0xCCC0DA);
 
+const FIRST_DATA_ROW: u32 = 4;
+
 // const LAST_ROW: u32 = 1_048_576;
 // const LAST_COL: u16 = 16384;
 
@@ -41,23 +43,21 @@ fn to_xlsx_col(mut col: u16) -> String {
     s
 }
 
-fn info_column(
+fn info_heading(
     worksheet: &mut Worksheet,
-    row: u32,
     col: &mut u16,
     name: &str,
     format: &Format,
 ) -> Result<()> {
-    worksheet.write_with_format(row, *col, name, format)?;
+    worksheet.write_with_format(FIRST_DATA_ROW - 2, *col, name, format)?;
     worksheet.set_column_format(*col, &Format::new().set_align(FormatAlign::Center))?;
     worksheet.set_column_width(*col, 80)?;
     *col += 1;
     Ok(())
 }
 
-fn data_column(
+fn data_heading(
     worksheet: &mut Worksheet,
-    row: u32,
     col: u16,
     key_desc: &str,
     key_symbol: &str,
@@ -66,8 +66,8 @@ fn data_column(
     width: u32,
     num_format: &'static str,
 ) -> Result<()> {
-    worksheet.write_with_format(row - 1, col, key_symbol, &symbol_format)?;
-    worksheet.write_with_format(row, col, key_desc, &name_format)?;
+    worksheet.write_with_format(FIRST_DATA_ROW - 3, col, key_symbol, &symbol_format)?;
+    worksheet.write_with_format(FIRST_DATA_ROW - 2, col, key_desc, &name_format)?;
     worksheet.set_column_format(col, &Format::new().set_num_format(num_format))?;
     worksheet.set_column_width_pixels(col, width)?;
     Ok(())
@@ -132,27 +132,24 @@ impl CollatePage {
 
         // Use and change these in order to maintain aligment as we go
         let mut col = 0;
-        let mut row = 2;
+        let mut row = FIRST_DATA_ROW;
 
-        // Align the data rows
-        let first_data_row = 4;
-        let last_data_row = self.data.len() as u32 + first_data_row;
+        let last_data_row = self.data.len() as u32 + FIRST_DATA_ROW;
 
         // Create the general information columns. Freeze the DOA and Session number panes along with the top rows.
-        info_column(data_page, row, &mut col, "DOA", &centered_bold)?;
-        info_column(data_page, row, &mut col, "Session", &centered_bold)?;
-        data_page.set_freeze_panes(row + 1, col)?;
-        info_column(data_page, row, &mut col, "Assessment", &centered_bold)?;
-        info_column(data_page, row, &mut col, "Condition", &centered_bold)?;
+        info_heading(data_page, &mut col, "DOA", &centered_bold)?;
+        info_heading(data_page, &mut col, "Session", &centered_bold)?;
+        data_page.set_freeze_panes(FIRST_DATA_ROW, col)?;
+        info_heading(data_page, &mut col, "Assessment", &centered_bold)?;
+        info_heading(data_page, &mut col, "Condition", &centered_bold)?;
         data_page.set_column_range_width_pixels(0, col, 80)?;
 
         // Create the headings for the freq and dura keys
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
         let start_freq = col;
         for key in freq {
-            data_column(
+            data_heading(
                 data_page,
-                row,
                 col,
                 key_descriptions.get(key).unwrap(),
                 key.symbol_or_name(),
@@ -167,9 +164,8 @@ impl CollatePage {
         data_page.merge_range(0, start_freq, 0, col - 1, "Frequency", &color_f)?;
         let start_dura = col;
         for key in dura {
-            data_column(
+            data_heading(
                 data_page,
-                row,
                 col,
                 key_descriptions.get(key).unwrap(),
                 key.symbol_or_name(),
@@ -182,9 +178,8 @@ impl CollatePage {
             col += 1;
         }
         // Include Active Time headings
-        data_column(
+        data_heading(
             data_page,
-            row,
             col,
             "(Seconds)",
             "AT",
@@ -195,9 +190,8 @@ impl CollatePage {
         )?;
         key_columns.insert("(Seconds)", (col, to_xlsx_col(col)));
         col += 1;
-        data_column(
+        data_heading(
             data_page,
-            row,
             col,
             "(Minutes)",
             "AT ",
@@ -214,9 +208,8 @@ impl CollatePage {
         let start_rate = col;
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
         for key in freq {
-            data_column(
+            data_heading(
                 data_page,
-                row,
                 col,
                 key_descriptions.get(key).unwrap(),
                 "",
@@ -231,9 +224,8 @@ impl CollatePage {
         let start_pct_at = col;
         // Heading for Percent data
         for key in dura {
-            data_column(
+            data_heading(
                 data_page,
-                row,
                 col,
                 key_descriptions.get(key).unwrap(),
                 "",
@@ -247,7 +239,6 @@ impl CollatePage {
         data_page.merge_range(0, start_pct_at, 0, col - 1, "Percent of Session", &color_p)?;
 
         // Populate the basic data
-        row += 1;
         for (result, buf) in self.data.iter() {
             col = 0;
             data_page.write(row, col, result.days_since_admission as f32)?;
@@ -390,11 +381,11 @@ impl CollatePage {
                     lines
                         .add_series()
                         .set_name(desc)
-                        .set_categories(&format!("Data!$B${}:$B${}", first_data_row, last_data_row))
+                        .set_categories(&format!("Data!$B${}:$B${}", FIRST_DATA_ROW, last_data_row))
                         .set_values(&format!(
                             "Data!${}${}:${}${}",
                             col.to_ascii_uppercase(),
-                            first_data_row,
+                            FIRST_DATA_ROW,
                             col.to_ascii_uppercase(),
                             last_data_row
                         ))
