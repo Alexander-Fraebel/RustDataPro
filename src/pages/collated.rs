@@ -10,7 +10,12 @@ use egui_file_dialog::FileDialog;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rust_xlsxwriter::{
-    Color, Format, FormatAlign, Formula, chart::Chart, workbook::Workbook, worksheet::Worksheet,
+    Color, Format, FormatAlign, Formula,
+    chart::{
+        Chart, ChartBorder, ChartFormat, ChartLine, ChartMarker, ChartMarkerType, ChartSolidFill,
+    },
+    workbook::Workbook,
+    worksheet::Worksheet,
 };
 use std::path::PathBuf;
 
@@ -358,20 +363,33 @@ impl CollatePage {
         }
 
         if self.keys_selector.iter().filter(|(_, b)| **b).count() != 0 {
+            let marker_types = [
+                ChartMarkerType::Circle,
+                ChartMarkerType::Square,
+                ChartMarkerType::Triangle,
+            ];
+            let fill_colors = ["#000000", "#FFFFFF"];
+
             let chart = workbook.add_chartsheet();
             chart.set_name("Graph")?;
             let mut lines = Chart::new_line();
 
-            for selected_key in self
+            for (i, (selected_key, desc)) in self
                 .keys_selector
                 .iter()
                 .filter(|(_, b)| **b)
-                .map(|(k, _)| k.symbol_or_name())
+                .map(|(k, _)| {
+                    (
+                        k.symbol_or_name(),
+                        key_descriptions.get(k).expect("key description missing"),
+                    )
+                })
+                .enumerate()
             {
                 if let Some((_, col)) = key_columns.get(selected_key) {
                     lines
                         .add_series()
-                        .set_name(selected_key)
+                        .set_name(desc)
                         .set_categories(&format!("Data!$B${}:$B${}", first_data_row, last_data_row))
                         .set_values(&format!(
                             "Data!${}${}:${}${}",
@@ -379,7 +397,22 @@ impl CollatePage {
                             first_data_row,
                             col.to_ascii_uppercase(),
                             last_data_row
-                        ));
+                        ))
+                        .set_format(
+                            ChartFormat::new().set_line(&ChartLine::new().set_color("#000000")),
+                        )
+                        .set_marker(
+                            ChartMarker::new()
+                                .set_type(marker_types[i % 3])
+                                .set_size(7)
+                                .set_format(
+                                    ChartFormat::new()
+                                        .set_solid_fill(
+                                            ChartSolidFill::new().set_color(fill_colors[i % 2]),
+                                        )
+                                        .set_border(ChartBorder::new().set_color("#000000")),
+                                ),
+                        );
                 }
             }
             chart.insert_chart(1, 1, &lines)?;
@@ -436,7 +469,7 @@ impl DataPro {
             ui.add_space(15.0);
 
             ui.label(
-                "Gather the data from multiple files into a single nicely formated Excel document. Shows frequency and duration data. Calculates rate per minute for frequncy and percentage of session of duration.",
+                "Gather the data from multiple files into a single nicely formated Excel document. Values that have been selected will also be graphed.",
             );
             ui.add_space(5.0);
 
