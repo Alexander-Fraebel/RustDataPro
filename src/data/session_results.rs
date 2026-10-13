@@ -304,7 +304,7 @@ impl SessionResults {
 
         let mut timeline = Timeline::default();
         let mut session_time = 0.0;
-        let max_session_time = 1200.0;
+        let max_session_time = 1000.0;
         timeline.push((Key::Tab, rounded_f32(session_time)));
         for _ in 0..270 {
             let gap = next_press
@@ -316,7 +316,7 @@ impl SessionResults {
             session_time = session_time + gap;
 
             let t = rounded_f32(session_time);
-            if rng.random_bool(0.7) {
+            if rng.random_bool(0.6) {
                 let k = f_rates.choose_weighted(&mut rng, |item| item.1).unwrap().0;
                 *frequency.get_mut(&k).unwrap() += 1;
                 timeline.push((k, t));
@@ -329,6 +329,7 @@ impl SessionResults {
                 } else {
                     d_keys_used.insert(k, t);
                 }
+                // Invert the rate at which the key appears so that high probability keys don't contantly go on and off
                 d_rates.iter_mut().for_each(|(key, r)| {
                     if *key == k {
                         *r = 1.0 - *r;
@@ -336,9 +337,9 @@ impl SessionResults {
                 });
             };
         }
-        for (k, last_time) in d_keys_used {
-            duration.get_mut(&k).unwrap().0 += 1;
-            duration.get_mut(&k).unwrap().1 += rounded_f32(session_time) - last_time;
+        for (k, last_time) in d_keys_used.iter() {
+            duration.get_mut(k).unwrap().0 += 1;
+            duration.get_mut(k).unwrap().1 += rounded_f32(session_time - last_time);
         }
         timeline.push((Key::Escape, rounded_f32(session_time)));
 
@@ -369,8 +370,8 @@ impl SessionResults {
         let mut workbook = prim.to_xlsx().unwrap();
         workbook.save(path.join(prim.xlsx_file_name())).unwrap();
 
+        // Create reli data that is slightly different
         if include_reli {
-            // Reli data
             session_data.data_collection_type = crate::data::DataCollectionType::Reliability;
 
             // Jitter the timing for the keypresses
@@ -380,46 +381,31 @@ impl SessionResults {
             for (_k, t) in timeline.iter_mut() {
                 *t += error_val
                     .next()
-                    .expect("error producing next value for Normal distribution")
-                    as f32;
+                    .expect("error producing next value for Normal distribution");
             }
-            // Introduce errors
-            for _ in 0..30 {
-                let r = 0..timeline.len();
-                if rng.random_bool(0.5) {
-                    timeline.remove(rng.random_range(r));
-                } else {
-                    if rng.random_bool(0.5) {
-                        timeline.swap_remove(rng.random_range(r));
-                    }
-                }
-            }
-            let (freq, dura) = ksf.keys();
-            // Jitter the duration lengths and counts
-            for k in dura {
-                let f: f32 = (rng.random::<f32>() - 0.5) * 5.0;
-                let d = duration.get_mut(k).unwrap();
-                d.1 += f;
-                if d.1.is_sign_negative() {
-                    d.1 = 0.0;
-                }
 
-                let f: u32 = rng.random_range(..5);
-                if rng.random_bool(0.5) {
-                    duration.get_mut(k).unwrap().0 += f;
-                } else {
-                    duration.get_mut(k).unwrap().0 =
-                        duration.get_mut(k).unwrap().0.saturating_sub(f);
+            for _ in 0..40 {
+                // Introduce omissions
+                if rng.random_bool(0.2) {
+                    let r = 0..timeline.len();
+                    timeline.remove(rng.random_range(r));
                 }
             }
-            // Jitter the jitter the frequency counts
-            for k in freq {
-                let f: u32 = rng.random_range(..5);
-                if rng.random_bool(0.5) {
-                    *frequency.get_mut(k).unwrap() += f;
-                } else {
-                    *frequency.get_mut(k).unwrap() =
-                        frequency.get_mut(k).unwrap().saturating_sub(f);
+
+            // Recalculate the summary data from the timeline
+            frequency.iter_mut().for_each(|x| *x.1 = 0);
+            duration.iter_mut().for_each(|x| *x.1 = (0, 0.0));
+            d_keys_used.clear();
+            for (key, time) in timeline.iter() {
+                if fkeys.contains(key) {
+                    *frequency.get_mut(key).unwrap() += 1
+                } else if dkeys.contains(key) {
+                    if let Some(last_time) = d_keys_used.remove(key) {
+                        duration.get_mut(key).unwrap().0 += 1;
+                        duration.get_mut(key).unwrap().1 += *time - last_time;
+                    } else {
+                        d_keys_used.insert(*key, *time);
+                    }
                 }
             }
 
