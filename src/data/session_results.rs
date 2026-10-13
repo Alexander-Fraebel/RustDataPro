@@ -316,7 +316,7 @@ impl SessionResults {
             session_time = session_time + gap;
 
             let t = rounded_f32(session_time);
-            if rng.random_bool(0.6) {
+            if rng.random_bool(0.7) {
                 let k = f_rates.choose_weighted(&mut rng, |item| item.1).unwrap().0;
                 *frequency.get_mut(&k).unwrap() += 1;
                 timeline.push((k, t));
@@ -407,6 +407,10 @@ impl SessionResults {
                         d_keys_used.insert(*key, *time);
                     }
                 }
+            }
+            for (k, last_time) in d_keys_used.iter() {
+                duration.get_mut(k).unwrap().0 += 1;
+                duration.get_mut(k).unwrap().1 += rounded_f32(session_time - last_time);
             }
 
             let reli = SessionResults {
