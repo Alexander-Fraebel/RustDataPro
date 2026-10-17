@@ -19,29 +19,18 @@ use rust_xlsxwriter::{
 };
 use std::path::PathBuf;
 
-// These are colors used in Excel at time of writing
-const GREEN_ACCENT: Color = Color::RGB(0xD8E4BC);
-const BLUE_ACCENT: Color = Color::RGB(0xB8CCE4);
-const ORANGE_ACCENT: Color = Color::RGB(0xFCD5B4);
-const PURPLE_ACCENT: Color = Color::RGB(0xCCC0DA);
+// Pastel color palette
+// const RED_ACCENT: Color = Color::RGB(0xF6C1C1);
+const ORANGE_ACCENT: Color = Color::RGB(0xFFE2BE);
+// const YELLOW_ACCENT: Color = Color::RGB(0xFFFDE2);
+// const GREEN_ACCENT: Color = Color::RGB(0xE9F6D7);
+const BLUE_ACCENT: Color = Color::RGB(0xC9E9EE);
+// const PURPLE_ACCENT: Color = Color::RGB(0xD2CCF4);
 
 const SECTION_ROW: u32 = 0;
 const KEY_SYMBOL_ROW: u32 = 1;
 const HEADING_NAME_ROW: u32 = 2;
 const FIRST_DATA_ROW: u32 = 3;
-
-fn to_xlsx_col(mut col: u16) -> String {
-    let mut s = String::with_capacity(3);
-    if col == 0 {
-        s.push('A');
-    }
-    while col > 0 {
-        s.push((97_u8 + (col as u8 % 26)) as char);
-        col -= 1;
-        col /= 26;
-    }
-    s
-}
 
 fn info_heading(
     worksheet: &mut Worksheet,
@@ -118,23 +107,25 @@ impl CollatePage {
             ));
         }
 
-        let key_descriptions = self.data[0].0.ksf.create_map();
-        let mut key_columns: IndexMap<&'static str, (u16, String)> = IndexMap::new();
+        let ksf = &self.data[0].0.ksf;
+        let key_descriptions = ksf.create_map();
+        let mut key_columns: IndexMap<&'static str, u16> = IndexMap::new();
+        let normalized_offset = (ksf.freq.len() + ksf.dura.len() + 2) as u16;
 
         // Cell formatting to use
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
-        let color_f = centered_bold.clone().set_background_color(GREEN_ACCENT);
+        let color_f = centered_bold.clone().set_background_color(ORANGE_ACCENT);
         let color_d = centered_bold.clone().set_background_color(BLUE_ACCENT);
         let color_r = centered_bold.clone().set_background_color(ORANGE_ACCENT);
-        let color_p = centered_bold.clone().set_background_color(PURPLE_ACCENT);
+        let color_p = centered_bold.clone().set_background_color(BLUE_ACCENT);
         let name_format = centered_bold
             .clone()
             .set_align(FormatAlign::VerticalCenter)
             .set_rotation(90);
-        let name_format_f = name_format.clone().set_background_color(GREEN_ACCENT);
+        let name_format_f = name_format.clone().set_background_color(ORANGE_ACCENT);
         let name_format_d = name_format.clone().set_background_color(BLUE_ACCENT);
         let name_format_r = name_format.clone().set_background_color(ORANGE_ACCENT);
-        let name_format_p = name_format.clone().set_background_color(PURPLE_ACCENT);
+        let name_format_p = name_format.clone().set_background_color(BLUE_ACCENT);
 
         // Create workbook and worksheet
         let mut workbook = Workbook::default();
@@ -167,7 +158,7 @@ impl CollatePage {
                 30,
                 "0",
             )?;
-            key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
+            key_columns.insert(key.symbol_or_name(), col);
             col += 1;
         }
         data_page.merge_range(
@@ -190,7 +181,7 @@ impl CollatePage {
                 50,
                 "0.0",
             )?;
-            key_columns.insert(key.symbol_or_name(), (col, to_xlsx_col(col)));
+            key_columns.insert(key.symbol_or_name(), col);
             col += 1;
         }
         // Include Active Time headings
@@ -204,7 +195,7 @@ impl CollatePage {
             50,
             "0.0",
         )?;
-        key_columns.insert("(Seconds)", (col, to_xlsx_col(col)));
+        key_columns.insert("(Seconds)", col);
         col += 1;
         data_heading(
             data_page,
@@ -216,7 +207,7 @@ impl CollatePage {
             50,
             "0.0",
         )?;
-        key_columns.insert("(Minutes)", (col, to_xlsx_col(col)));
+        key_columns.insert("(Minutes)", col);
         col += 1;
         data_page.merge_range(
             SECTION_ROW,
@@ -328,8 +319,7 @@ impl CollatePage {
                     "={}{}/60",
                     &key_columns
                         .get("(Seconds)")
-                        .expect("no (Seconds) key in key_columns")
-                        .1,
+                        .expect("no (Seconds) key in key_columns"),
                     row + 1 // have to add one because excel numbers start at 1
                 )),
             )?;
@@ -348,12 +338,11 @@ impl CollatePage {
                     } else {
                         let rpm = Formula::new(format!(
                             "={}{}/{}{}",
-                            key_columns.get(key.symbol_or_name()).unwrap().1,
+                            key_columns.get(key.symbol_or_name()).unwrap(),
                             row + 1, // have to add one because excel numbers start at 1
                             key_columns
                                 .get("(Minutes)")
-                                .expect("no (Minutes) key in key_columns")
-                                .1,
+                                .expect("no (Minutes) key in key_columns"),
                             row + 1
                         ));
                         data_page.write(row, col, rpm)?;
@@ -372,12 +361,11 @@ impl CollatePage {
                     } else {
                         let ratio = Formula::new(format!(
                             "={}{}/{}{}",
-                            key_columns.get(key.symbol_or_name()).unwrap().1,
+                            key_columns.get(key.symbol_or_name()).unwrap(),
                             row + 1, // have to add one because excel numbers start at 1
                             key_columns
                                 .get("(Seconds)")
-                                .expect("no (Seconds) key in key_columns")
-                                .1,
+                                .expect("no (Seconds) key in key_columns"),
                             row + 1
                         ));
                         data_page.write(row, col, ratio)?;
@@ -398,60 +386,123 @@ impl CollatePage {
             let border_colors = ["#000000", "#000000", "#000000"];
             let marker_size = [7, 7, 8];
 
-            let chart = workbook.add_chartsheet();
-            chart.set_name("Graph")?;
-            let mut lines = Chart::new_line();
-
-            for (i, (selected_key, desc)) in self
+            let f_graph_keys: Vec<(&str, &String)> = self
                 .keys_selector
                 .iter()
-                .filter(|(_, b)| **b)
+                .filter(|(k, b)| **b && ksf.is_freq(k))
                 .map(|(k, _)| {
                     (
                         k.symbol_or_name(),
                         key_descriptions.get(k).expect("key description missing"),
                     )
                 })
-                .enumerate()
-            {
-                if let Some((_, col)) = key_columns.get(selected_key) {
-                    lines
-                        .add_series()
-                        .set_name(desc)
-                        .set_categories(&format!(
-                            "Data!$B${}:$B$10000",
-                            FIRST_DATA_ROW + 1, // offset from zero-based indexing to one-based naming
-                        ))
-                        .set_values(&format!(
-                            "Data!${}${}:${}${}",
-                            col.to_ascii_uppercase(),
-                            FIRST_DATA_ROW + 1, // offset from zero-based indexing to one-based naming
-                            col.to_ascii_uppercase(),
-                            last_data_row
-                        ))
-                        .set_format(
-                            ChartFormat::new()
-                                .set_line(&ChartLine::new().set_color("#000000").set_width(1.5)),
-                        )
-                        .set_marker(
-                            ChartMarker::new()
-                                .set_type(marker_types[i % 3])
-                                .set_size(marker_size[i % 3])
-                                .set_format(
-                                    ChartFormat::new()
-                                        .set_solid_fill(
-                                            ChartSolidFill::new()
-                                                .set_color(fill_colors[(i / 3) % 3]),
-                                        )
-                                        .set_border(
-                                            ChartBorder::new()
-                                                .set_color(border_colors[(i / 3) % 3]),
-                                        ),
+                .collect();
+
+            if !f_graph_keys.is_empty() {
+                let fchart = workbook.add_chartsheet();
+                fchart.set_name("Freq Graph")?;
+                fchart.set_tab_color(ORANGE_ACCENT);
+
+                let mut flines = Chart::new_line();
+                for (i, (selected_key, desc)) in f_graph_keys.into_iter().enumerate() {
+                    if let Some(col) = key_columns.get(selected_key) {
+                        let offset_col = col + normalized_offset;
+                        flines
+                            .add_series()
+                            .set_name(desc)
+                            .set_values((
+                                "Data",
+                                FIRST_DATA_ROW,
+                                offset_col,
+                                last_data_row,
+                                offset_col,
+                            ))
+                            .set_categories(("Data", FIRST_DATA_ROW, 1, 10000, 1))
+                            .set_format(
+                                ChartFormat::new().set_line(
+                                    &ChartLine::new().set_color("#000000").set_width(1.5),
                                 ),
-                        );
+                            )
+                            .set_marker(
+                                ChartMarker::new()
+                                    .set_type(marker_types[i % 3])
+                                    .set_size(marker_size[i % 3])
+                                    .set_format(
+                                        ChartFormat::new()
+                                            .set_solid_fill(
+                                                ChartSolidFill::new()
+                                                    .set_color(fill_colors[(i / 3) % 3]),
+                                            )
+                                            .set_border(
+                                                ChartBorder::new()
+                                                    .set_color(border_colors[(i / 3) % 3]),
+                                            ),
+                                    ),
+                            );
+                    }
                 }
+                fchart.insert_chart(1, 1, &flines)?;
             }
-            chart.insert_chart(1, 1, &lines)?;
+
+            let d_graph_keys: Vec<(&str, &String)> = self
+                .keys_selector
+                .iter()
+                .filter(|(k, b)| **b && ksf.is_dura(k))
+                .map(|(k, _)| {
+                    (
+                        k.symbol_or_name(),
+                        key_descriptions.get(k).expect("key description missing"),
+                    )
+                })
+                .collect();
+
+            if !d_graph_keys.is_empty() {
+                let dchart = workbook.add_chartsheet();
+                dchart.set_name("Dura Graph")?;
+                dchart.set_tab_color(BLUE_ACCENT);
+
+                let mut dlines = Chart::new_line();
+                dlines.y_axis().set_min(0.0);
+                dlines.y_axis().set_max(1.0);
+                for (i, (selected_key, desc)) in d_graph_keys.into_iter().enumerate() {
+                    if let Some(col) = key_columns.get(selected_key) {
+                        let offset_col = col + normalized_offset;
+                        dlines
+                            .add_series()
+                            .set_name(desc)
+                            .set_values((
+                                "Data",
+                                FIRST_DATA_ROW,
+                                offset_col,
+                                last_data_row,
+                                offset_col,
+                            ))
+                            .set_categories(("Data", FIRST_DATA_ROW, 1, 10000, 1))
+                            .set_format(
+                                ChartFormat::new().set_line(
+                                    &ChartLine::new().set_color("#000000").set_width(1.5),
+                                ),
+                            )
+                            .set_marker(
+                                ChartMarker::new()
+                                    .set_type(marker_types[i % 3])
+                                    .set_size(marker_size[i % 3])
+                                    .set_format(
+                                        ChartFormat::new()
+                                            .set_solid_fill(
+                                                ChartSolidFill::new()
+                                                    .set_color(fill_colors[(i / 3) % 3]),
+                                            )
+                                            .set_border(
+                                                ChartBorder::new()
+                                                    .set_color(border_colors[(i / 3) % 3]),
+                                            ),
+                                    ),
+                            );
+                    }
+                }
+                dchart.insert_chart(1, 1, &dlines)?;
+            }
         }
 
         Ok(workbook)
