@@ -14,6 +14,7 @@ use rust_xlsxwriter::{
     chart::{
         Chart, ChartBorder, ChartFormat, ChartLine, ChartMarker, ChartMarkerType, ChartSolidFill,
     },
+    utility::column_number_to_name,
     workbook::Workbook,
     worksheet::Worksheet,
 };
@@ -57,7 +58,12 @@ fn data_heading(
 ) -> Result<()> {
     worksheet.write_with_format(KEY_SYMBOL_ROW, col, key_symbol, &symbol_format)?;
     worksheet.write_with_format(HEADING_NAME_ROW, col, key_desc, &name_format)?;
-    worksheet.set_column_format(col, &Format::new().set_num_format(num_format))?;
+    worksheet.set_column_format(
+        col,
+        &Format::new()
+            .set_num_format(num_format)
+            .set_align(FormatAlign::Center),
+    )?;
     worksheet.set_column_width_pixels(col, width)?;
     Ok(())
 }
@@ -107,36 +113,41 @@ impl CollatePage {
             ));
         }
 
-        let ksf = &self.data[0].0.ksf;
+        let first_item = self.data[0].0.clone();
+
+        let ksf = &first_item.ksf;
         let key_descriptions = ksf.create_map();
         let mut key_columns: IndexMap<&'static str, u16> = IndexMap::new();
         let normalized_offset = (ksf.freq.len() + ksf.dura.len() + 2) as u16;
 
         // Cell formatting to use
-        let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
+        let centered = Format::new().set_align(FormatAlign::Center);
+        let centered_bold = centered.clone().set_bold();
         let color_f = centered_bold.clone().set_background_color(ORANGE_ACCENT);
         let color_d = centered_bold.clone().set_background_color(BLUE_ACCENT);
-        let color_r = centered_bold.clone().set_background_color(ORANGE_ACCENT);
-        let color_p = centered_bold.clone().set_background_color(BLUE_ACCENT);
-        let name_format = centered_bold
-            .clone()
-            .set_align(FormatAlign::VerticalCenter)
-            .set_rotation(90);
+        let fully_centered_bold = centered_bold.clone().set_align(FormatAlign::VerticalCenter);
+        let name_format = fully_centered_bold.clone().set_rotation(90);
         let name_format_f = name_format.clone().set_background_color(ORANGE_ACCENT);
         let name_format_d = name_format.clone().set_background_color(BLUE_ACCENT);
-        let name_format_r = name_format.clone().set_background_color(ORANGE_ACCENT);
-        let name_format_p = name_format.clone().set_background_color(BLUE_ACCENT);
 
         // Create workbook and worksheet
         let mut workbook = Workbook::default();
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
+        data_page.merge_range(
+            0,
+            0,
+            1,
+            2,
+            &format!("Assessment: {}", first_item.session_data.chosen_assessment),
+            &fully_centered_bold,
+        )?;
 
         // Use and change these in order to maintain alignment as we go
         let mut col = 0;
         let mut row = FIRST_DATA_ROW;
 
-        let last_data_row = self.data.len() as u32 + FIRST_DATA_ROW;
+        let last_data_row = (self.data.len() as u32 + FIRST_DATA_ROW) - 1;
 
         // Create the general information columns. Freeze the DOA and Session number panes along with the top rows.
         info_heading(data_page, &mut col, "DOA", &centered_bold)?;
@@ -145,7 +156,7 @@ impl CollatePage {
         data_page.set_freeze_panes(HEADING_NAME_ROW + 1, col)?;
 
         // Create the headings for the freq and dura keys
-        let (freq, dura) = self.ksf.as_ref().unwrap().freq_and_dura_keys();
+        let (freq, dura) = ksf.freq_and_dura_keys();
         let start_freq = col;
         for key in freq {
             data_heading(
@@ -220,15 +231,15 @@ impl CollatePage {
 
         // Headings for the rate information
         let start_rate = col;
-        let (freq, dura) = self.ksf.as_ref().unwrap().freq_and_dura_keys();
+        let (freq, dura) = ksf.freq_and_dura_keys();
         for key in freq {
             data_heading(
                 data_page,
                 col,
                 key_descriptions.get(key).unwrap(),
                 "",
-                &name_format_r,
-                &color_r,
+                &name_format_f,
+                &color_f,
                 40,
                 "0.0",
             )?;
@@ -240,7 +251,7 @@ impl CollatePage {
             SECTION_ROW,
             col - 1,
             "Rate (Per Minute)",
-            &color_r,
+            &color_f,
         )?;
         let start_pct_at = col;
         // Heading for Percent data
@@ -250,8 +261,8 @@ impl CollatePage {
                 col,
                 key_descriptions.get(key).unwrap(),
                 "",
-                &name_format_p,
-                &color_p,
+                &name_format_d,
+                &color_d,
                 50,
                 "0.0%",
             )?;
@@ -263,7 +274,7 @@ impl CollatePage {
             SECTION_ROW,
             col - 1,
             "Percent of Session",
-            &color_p,
+            &color_d,
         )?;
 
         // Populate the basic data
@@ -317,9 +328,11 @@ impl CollatePage {
                 col,
                 Formula::new(format!(
                     "={}{}/60",
-                    &key_columns
-                        .get("(Seconds)")
-                        .expect("no (Seconds) key in key_columns"),
+                    column_number_to_name(
+                        *key_columns
+                            .get("(Seconds)")
+                            .expect("no (Seconds) key in key_columns")
+                    ),
                     row + 1 // have to add one because excel numbers start at 1
                 )),
             )?;
@@ -338,11 +351,13 @@ impl CollatePage {
                     } else {
                         let rpm = Formula::new(format!(
                             "={}{}/{}{}",
-                            key_columns.get(key.symbol_or_name()).unwrap(),
+                            column_number_to_name(*key_columns.get(key.symbol_or_name()).unwrap()),
                             row + 1, // have to add one because excel numbers start at 1
-                            key_columns
-                                .get("(Minutes)")
-                                .expect("no (Minutes) key in key_columns"),
+                            column_number_to_name(
+                                *key_columns
+                                    .get("(Minutes)")
+                                    .expect("no (Minutes) key in key_columns")
+                            ),
                             row + 1
                         ));
                         data_page.write(row, col, rpm)?;
@@ -361,11 +376,13 @@ impl CollatePage {
                     } else {
                         let ratio = Formula::new(format!(
                             "={}{}/{}{}",
-                            key_columns.get(key.symbol_or_name()).unwrap(),
+                            column_number_to_name(*key_columns.get(key.symbol_or_name()).unwrap()),
                             row + 1, // have to add one because excel numbers start at 1
-                            key_columns
-                                .get("(Seconds)")
-                                .expect("no (Seconds) key in key_columns"),
+                            column_number_to_name(
+                                *key_columns
+                                    .get("(Seconds)")
+                                    .expect("no (Seconds) key in key_columns")
+                            ),
                             row + 1
                         ));
                         data_page.write(row, col, ratio)?;
@@ -404,6 +421,8 @@ impl CollatePage {
                 fchart.set_tab_color(ORANGE_ACCENT);
 
                 let mut flines = Chart::new_line();
+                flines.y_axis().set_name("Rate (Per Minute)");
+                flines.x_axis().set_name("Session");
                 for (i, (selected_key, desc)) in f_graph_keys.into_iter().enumerate() {
                     if let Some(col) = key_columns.get(selected_key) {
                         let offset_col = col + normalized_offset;
@@ -464,6 +483,8 @@ impl CollatePage {
                 let mut dlines = Chart::new_line();
                 dlines.y_axis().set_min(0.0);
                 dlines.y_axis().set_max(1.0);
+                dlines.y_axis().set_name("Percent of Session");
+                dlines.x_axis().set_name("Session");
                 for (i, (selected_key, desc)) in d_graph_keys.into_iter().enumerate() {
                     if let Some(col) = key_columns.get(selected_key) {
                         let offset_col = col + normalized_offset;
