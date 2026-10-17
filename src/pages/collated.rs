@@ -51,7 +51,7 @@ fn info_heading(
 ) -> Result<()> {
     worksheet.write_with_format(HEADING_NAME_ROW, *col, name, format)?;
     worksheet.set_column_format(*col, &Format::new().set_align(FormatAlign::Center))?;
-    worksheet.set_column_width(*col, 80)?;
+    worksheet.set_column_width_pixels(*col, 70)?;
     *col += 1;
     Ok(())
 }
@@ -98,13 +98,22 @@ impl CollatePage {
             .default_file_name("collated.xlsx");
     }
 
-    pub fn collate_data(&self) -> Result<Workbook> {
+    pub fn collate_data(&mut self) -> Result<Workbook> {
         if self.data.is_empty() {
             return Err(anyhow!("no files selected"));
         }
 
         if self.ksf.is_none() {
             return Err(anyhow!("no KSF determined"));
+        }
+
+        if !self
+            .data
+            .iter()
+            .map(|(a, _)| &a.session_data.chosen_assessment)
+            .all_equal()
+        {
+            return Err(anyhow!("all sessions must be for the same assessment"));
         }
 
         let key_descriptions = self.data[0].0.ksf.create_map();
@@ -130,7 +139,7 @@ impl CollatePage {
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
 
-        // Use and change these in order to maintain aligment as we go
+        // Use and change these in order to maintain alignment as we go
         let mut col = 0;
         let mut row = FIRST_DATA_ROW;
 
@@ -139,10 +148,8 @@ impl CollatePage {
         // Create the general information columns. Freeze the DOA and Session number panes along with the top rows.
         info_heading(data_page, &mut col, "DOA", &centered_bold)?;
         info_heading(data_page, &mut col, "Session", &centered_bold)?;
-        data_page.set_freeze_panes(HEADING_NAME_ROW + 1, col)?;
-        info_heading(data_page, &mut col, "Assessment", &centered_bold)?;
         info_heading(data_page, &mut col, "Condition", &centered_bold)?;
-        data_page.set_column_range_width_pixels(0, col, 80)?;
+        data_page.set_freeze_panes(HEADING_NAME_ROW + 1, col)?;
 
         // Create the headings for the freq and dura keys
         let (freq, dura) = self.ksf.as_ref().unwrap().keys();
@@ -272,8 +279,6 @@ impl CollatePage {
             data_page.write(row, col, result.days_since_admission as f32)?;
             col += 1;
             data_page.write(row, col, result.session_number)?;
-            col += 1;
-            data_page.write(row, col, &result.session_data.chosen_assessment)?;
             col += 1;
             data_page.write(row, col, &result.session_data.chosen_condition)?;
             col += 1;
@@ -485,6 +490,10 @@ impl CollatePage {
             for key in self.data[0].0.ksf.all_keys() {
                 self.keys_selector.insert(*key, false);
             }
+            let assessment = &self.data[0].0.session_data.chosen_assessment;
+            self.save_file_dialog = FileDialog::new()
+                .initial_directory(self.save_path.clone())
+                .default_file_name(&format!("{}_collated.xlsx", assessment));
         }
     }
 }
