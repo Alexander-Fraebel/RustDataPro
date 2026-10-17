@@ -279,7 +279,7 @@ impl SessionResults {
         let mut frequency: IndexMap<Key, u32> = IndexMap::new();
         let mut fkeys = Vec::new();
         let mut f_rates = Vec::new();
-        let (freq, dura) = ksf.keys();
+        let (freq, dura) = ksf.freq_and_dura_keys();
         for k in freq {
             frequency.insert(*k, 0);
             f_rates.push((*k, seeded_rng.random::<f32>()));

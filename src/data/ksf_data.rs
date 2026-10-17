@@ -68,21 +68,31 @@ impl Ksf {
         (self.freq.iter(), self.dura.iter())
     }
 
-    /// Frequency keys and duration keys.
-    pub fn keys(&self) -> (impl Iterator<Item = &Key>, impl Iterator<Item = &Key>) {
+    /// Iterator over frequency keys.
+    pub fn freq_keys(&self) -> impl Iterator<Item = &Key> {
+        self.freq.iter().map(|(k, _)| k)
+    }
+
+    /// Iterator over duration keys.
+    pub fn dura_keys(&self) -> impl Iterator<Item = &Key> {
+        self.dura.iter().map(|(k, _)| k)
+    }
+
+    /// Two iterators. The first over frequency keys and the second over duration keys.
+    pub fn freq_and_dura_keys(&self) -> (impl Iterator<Item = &Key>, impl Iterator<Item = &Key>) {
         (
             self.freq.iter().map(|(k, _)| k),
             self.dura.iter().map(|(k, _)| k),
         )
     }
 
-    /// Frequency keys follwoed by duration keys.
-    pub fn all_keys(&self) -> impl Iterator<Item = &Key> {
-        self.freq
-            .iter()
-            .map(|(k, _)| k)
-            .chain(self.dura.iter().map(|(k, _)| k))
-    }
+    /// Iterator over frequency keys and then duration keys.
+    // pub fn all_keys(&self) -> impl Iterator<Item = &Key> {
+    //     self.freq
+    //         .iter()
+    //         .map(|(k, _)| k)
+    //         .chain(self.dura.iter().map(|(k, _)| k))
+    // }
 
     /// Frequency descriptions and duration descriptions.
     pub fn descriptions(&self) -> (impl Iterator<Item = &String>, impl Iterator<Item = &String>) {
@@ -100,8 +110,18 @@ impl Ksf {
 
     /// Are all keys unique across both frequency and duration?
     pub fn keys_unique(&self) -> bool {
-        let (f, d) = self.keys();
+        let (f, d) = self.freq_and_dura_keys();
         f.chain(d).all_unique()
+    }
+
+    /// Does the provided key appear as a frequency key in this KSF?
+    pub fn is_freq(&self, key: &Key) -> bool {
+        self.freq_keys().contains(key)
+    }
+
+    /// Does the provided key appear as a duration key in this KSF?
+    pub fn is_dura(&self, key: &Key) -> bool {
+        self.dura_keys().contains(key)
     }
 
     pub fn example() -> Ksf {

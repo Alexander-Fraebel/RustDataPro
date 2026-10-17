@@ -113,7 +113,9 @@ impl CollatePage {
             .map(|(a, _)| &a.session_data.chosen_assessment)
             .all_equal()
         {
-            return Err(anyhow!("all sessions must be for the same assessment"));
+            return Err(anyhow!(
+                "all sessions must be for the same kind of assessment"
+            ));
         }
 
         let key_descriptions = self.data[0].0.ksf.create_map();
@@ -152,7 +154,7 @@ impl CollatePage {
         data_page.set_freeze_panes(HEADING_NAME_ROW + 1, col)?;
 
         // Create the headings for the freq and dura keys
-        let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+        let (freq, dura) = self.ksf.as_ref().unwrap().freq_and_dura_keys();
         let start_freq = col;
         for key in freq {
             data_heading(
@@ -227,7 +229,7 @@ impl CollatePage {
 
         // Headings for the rate information
         let start_rate = col;
-        let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+        let (freq, dura) = self.ksf.as_ref().unwrap().freq_and_dura_keys();
         for key in freq {
             data_heading(
                 data_page,
@@ -283,7 +285,7 @@ impl CollatePage {
             data_page.write(row, col, &result.session_data.chosen_condition)?;
             col += 1;
 
-            let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+            let (freq, dura) = self.ksf.as_ref().unwrap().freq_and_dura_keys();
             for key in freq {
                 if key_columns.contains_key(key.symbol_or_name()) {
                     if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
@@ -334,7 +336,7 @@ impl CollatePage {
             col += 1;
 
             // Populate the rate information
-            let (freq, dura) = self.ksf.as_ref().unwrap().keys();
+            let (freq, dura) = self.ksf.as_ref().unwrap().freq_and_dura_keys();
             for key in freq {
                 if key_columns.contains_key(key.symbol_or_name()) {
                     if !result.ksf.freq.iter().map(|(k, _)| k).contains(key) {
@@ -417,9 +419,8 @@ impl CollatePage {
                         .add_series()
                         .set_name(desc)
                         .set_categories(&format!(
-                            "Data!$B${}:$B${}",
+                            "Data!$B${}:$B$10000",
                             FIRST_DATA_ROW + 1, // offset from zero-based indexing to one-based naming
-                            last_data_row
                         ))
                         .set_values(&format!(
                             "Data!${}${}:${}${}",
@@ -477,23 +478,36 @@ impl CollatePage {
         }
 
         if let Some(pathbufs) = self.select_file_dialog.take_picked_multiple() {
+            // Clear everything
             self.ksf = None;
             self.data.clear();
+            self.keys_selector.clear();
+
+            // Load the selected files if possible
             for buf in pathbufs {
                 match SessionResults::from_file_path(buf.as_path()) {
                     Ok(data) => self.data.push((data, buf)),
                     Err(e) => windows_error_dialog(e),
                 }
             }
-            self.ksf = Some(self.data[0].0.ksf.clone());
-            self.keys_selector.clear();
-            for key in self.data[0].0.ksf.all_keys() {
-                self.keys_selector.insert(*key, false);
+
+            // If at least one file was loaded then set up everything the page needs.
+            if let Some(first_item) = self.data.first() {
+                let ksf = &first_item.0.ksf;
+                for key in ksf.freq_keys() {
+                    self.keys_selector.insert(*key, false);
+                }
+                for key in ksf.dura_keys() {
+                    self.keys_selector.insert(*key, false);
+                }
+
+                self.ksf = Some(first_item.0.ksf.clone());
+
+                let assessment = &first_item.0.session_data.chosen_assessment;
+                self.save_file_dialog = FileDialog::new()
+                    .initial_directory(self.save_path.clone())
+                    .default_file_name(&format!("{}_collated.xlsx", assessment));
             }
-            let assessment = &self.data[0].0.session_data.chosen_assessment;
-            self.save_file_dialog = FileDialog::new()
-                .initial_directory(self.save_path.clone())
-                .default_file_name(&format!("{}_collated.xlsx", assessment));
         }
     }
 }

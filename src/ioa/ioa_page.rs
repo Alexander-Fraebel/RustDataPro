@@ -61,7 +61,7 @@ impl IoaPage {
             } else {
                 r.total_time
             };
-            let (freq, dura) = p.ksf.keys();
+            let (freq, dura) = p.ksf.freq_and_dura_keys();
             for key in freq.chain(dura) {
                 // 10 Second Interval-by-Interval IOA
                 let r10 = single_pair_interval_ioa(
