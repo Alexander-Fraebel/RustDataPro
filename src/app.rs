@@ -338,6 +338,14 @@ impl DataPro {
                 self.edit_assessments
                     .prepare(&self.data, assessments_path.clone());
                 self.choose_first_assessment_and_condition();
+                let preferred_ksf = if let Some(chosen_assessment) = self.data.chosen_assessment() {
+                    chosen_assessment.preferred_ksf.clone()
+                } else {
+                    String::new()
+                };
+                if self.data.ksfs.contains_key(&preferred_ksf) {
+                    self.data.session.chosen_ksf_name = preferred_ksf.clone();
+                }
             }
             Err(e) => {
                 windows_error_dialog(e.context(format!(
