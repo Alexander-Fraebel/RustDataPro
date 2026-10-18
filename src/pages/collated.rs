@@ -134,6 +134,7 @@ impl CollatePage {
         let mut workbook = Workbook::default();
         let data_page = workbook.add_worksheet();
         data_page.set_name("Data")?;
+        data_page.set_tab_color(Color::Red);
         data_page.merge_range(
             0,
             0,
