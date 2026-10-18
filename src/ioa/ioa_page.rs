@@ -49,7 +49,10 @@ impl IoaPage {
     pub fn prepare(&mut self, select_path: PathBuf, save_new_path: PathBuf) {
         *self = Self::default();
         self.select_path = select_path.clone();
-        self.select_file_dialog = FileDialog::new().initial_directory(select_path.clone());
+        self.select_file_dialog = FileDialog::new()
+            .initial_directory(select_path.clone())
+            .add_file_filter_extensions("json files", vec!["json"])
+            .default_file_filter("json files");
         self.save_path = save_new_path.clone();
         self.save_file_dialog = FileDialog::new().initial_directory(save_new_path.clone());
     }
@@ -195,20 +198,6 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            // ui.label("Select Files From:");
-            // ui.directory_picker(
-            //     &mut self.ioa_page.select_file_dialog,
-            //     &self.ioa_page.select_path,
-            // );
-            // ui.add_space(10.0);
-
-            // ui.label("Save IOA To:");
-            // ui.directory_picker(
-            //     &mut self.ioa_page.save_file_dialog,
-            //     &self.ioa_page.save_path,
-            // );
-            // ui.add_space(15.0);
-
             if ui.large_button("Select Data").clicked() {
                 self.ioa_page.select_file_dialog.pick_multiple();
             }
@@ -223,7 +212,11 @@ impl DataPro {
                             .id_salt("prim_info_area")
                             .show(ui, |ui| {
                                 for (_, path) in self.ioa_page.prim_data.iter() {
-                                    ui.strong(format!("{}", quick_file_name(&path)));
+                                    ui.label(
+                                        RichText::new(format!("{}", quick_file_name(&path)))
+                                            .monospace()
+                                            .strong(),
+                                    );
                                 }
                             });
                     })
@@ -236,7 +229,11 @@ impl DataPro {
                             .content_margin(10.0)
                             .show(ui, |ui| {
                                 for (_, path) in self.ioa_page.reli_data.iter() {
-                                    ui.strong(format!("{}", quick_file_name(&path)));
+                                    ui.label(
+                                        RichText::new(format!("{}", quick_file_name(&path)))
+                                            .monospace()
+                                            .strong(),
+                                    );
                                 }
                             });
                     });

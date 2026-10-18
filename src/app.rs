@@ -314,6 +314,14 @@ impl DataPro {
         match KsfsData::from_file_path(&path) {
             Ok(ksf) => {
                 self.data.ksfs = ksf;
+                let preferred_ksf = if let Some(chosen_assessment) = self.data.chosen_assessment() {
+                    chosen_assessment.preferred_ksf.clone()
+                } else {
+                    String::new()
+                };
+                if self.data.ksfs.contains_key(&preferred_ksf) {
+                    self.data.session.chosen_ksf_name = preferred_ksf.clone();
+                }
             }
             Err(e) => {
                 self.data.ksfs = KsfsData::default();

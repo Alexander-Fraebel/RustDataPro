@@ -62,7 +62,7 @@ impl PrepareSession {
                     ui.end_row();
 
                     // Saved to client file.
-                    ui.label("Date of Admission\n(MM-DD-YYY)");
+                    ui.label("Date of Admission\n(MM-DD-YYYY)");
                     if app.prep_session.edit_doa {
                         let doa = ui.add(egui::TextEdit::singleline(
                             &mut app.data.client.date_of_admission,
@@ -204,20 +204,6 @@ impl PrepareSession {
                         true => egui::RichText::new(&app.data.session.chosen_assessment),
                         false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
                     };
-                    // TODO: delete this permanently in favor of using Assessment Page?
-                    // let assessment_box =
-                    //     ui.text_edit_singleline(&mut app.data.session.chosen_assessment);
-                    // if assessment_box.changed() {
-                    //     app.data.session.chosen_condition.clear();
-                    //     app.prep_session.can_start_session = app.ready_to_start_session()
-                    // };
-                    // if assessment_box.lost_focus() {
-                    //     app.data
-                    //         .assessments
-                    //         .entry(app.data.session.chosen_assessment.clone())
-                    //         .or_insert(Assessment::default());
-                    //     app.prep_session.can_start_session = app.ready_to_start_session()
-                    // }
                     egui::ComboBox::from_id_salt("assessment")
                         .selected_text(assessment_text)
                         .show_ui(ui, |ui| {
@@ -250,20 +236,6 @@ impl PrepareSession {
                         true => egui::RichText::new(&app.data.session.chosen_condition),
                         false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
                     };
-                    // TODO: delete this permanently in favor of using Assessment Page?
-                    // let condition_box =
-                    //     ui.text_edit_singleline(&mut app.data.session.chosen_condition);
-                    // if condition_box.lost_focus() {
-                    //     if let Some(conds) = app
-                    //         .data
-                    //         .assessments
-                    //         .get_mut(&app.data.session.chosen_assessment)
-                    //     {
-                    //         conds
-                    //             .conditions
-                    //             .insert(app.data.session.chosen_condition.clone());
-                    //     }
-                    // }
                     egui::ComboBox::from_id_salt("condition")
                         .selected_text(condition_text)
                         .show_ui(ui, |ui| {

@@ -12,7 +12,8 @@ use itertools::Itertools;
 use rust_xlsxwriter::{
     Color, Format, FormatAlign, Formula,
     chart::{
-        Chart, ChartBorder, ChartFormat, ChartLine, ChartMarker, ChartMarkerType, ChartSolidFill,
+        Chart, ChartBorder, ChartFormat, ChartLegendPosition, ChartLine, ChartMarker,
+        ChartMarkerType, ChartSolidFill,
     },
     utility::column_number_to_name,
     workbook::Workbook,
@@ -118,7 +119,7 @@ impl CollatePage {
         let ksf = &first_item.ksf;
         let key_descriptions = ksf.create_map();
         let mut key_columns: IndexMap<&'static str, u16> = IndexMap::new();
-        let normalized_offset = (ksf.freq.len() + ksf.dura.len() + 2) as u16;
+        let normalized_offset = (ksf.freq.len() + ksf.dura.len() + 3) as u16;
 
         // Cell formatting to use
         let centered = Format::new().set_align(FormatAlign::Center);
@@ -157,13 +158,14 @@ impl CollatePage {
         data_page.set_freeze_panes(HEADING_NAME_ROW + 1, col)?;
 
         // Create the headings for the freq and dura keys
-        let (freq, dura) = ksf.freq_and_dura_keys();
         let start_freq = col;
-        for key in freq {
+        for key in ksf.freq_keys() {
             data_heading(
                 data_page,
                 col,
-                key_descriptions.get(key).unwrap(),
+                key_descriptions
+                    .get(key)
+                    .expect("frequency key not found while creating heading"),
                 key.symbol_or_name(),
                 &name_format_f,
                 &color_f,
@@ -182,11 +184,13 @@ impl CollatePage {
             &color_f,
         )?;
         let start_dura = col;
-        for key in dura {
+        for key in ksf.dura_keys() {
             data_heading(
                 data_page,
                 col,
-                key_descriptions.get(key).unwrap(),
+                key_descriptions
+                    .get(key)
+                    .expect("duration key not found while creating heading"),
                 key.symbol_or_name(),
                 &name_format_d,
                 &color_d,
@@ -197,30 +201,20 @@ impl CollatePage {
             col += 1;
         }
         // Include Active Time headings
-        data_heading(
-            data_page,
-            col,
-            "(Seconds)",
-            "AT",
-            &name_format_d,
-            &color_d,
-            50,
-            "0.0",
-        )?;
-        key_columns.insert("(Seconds)", col);
-        col += 1;
-        data_heading(
-            data_page,
-            col,
-            "(Minutes)",
-            "AT ",
-            &name_format_d,
-            &color_d,
-            50,
-            "0.0",
-        )?;
-        key_columns.insert("(Minutes)", col);
-        col += 1;
+        for time in ["(Seconds)", "(Minutes)", "(Hours)"] {
+            data_heading(
+                data_page,
+                col,
+                time,
+                "AT",
+                &name_format_d,
+                &color_d,
+                50,
+                "0.0",
+            )?;
+            key_columns.insert(time, col);
+            col += 1;
+        }
         data_page.merge_range(
             SECTION_ROW,
             start_dura,
@@ -338,6 +332,21 @@ impl CollatePage {
                 )),
             )?;
             col += 1;
+            // Formula for AT in hours.
+            data_page.write(
+                row,
+                col,
+                Formula::new(format!(
+                    "={}{}/3600",
+                    column_number_to_name(
+                        *key_columns
+                            .get("(Seconds)")
+                            .expect("no (Seconds) key in key_columns")
+                    ),
+                    row + 1 // have to add one because excel numbers start at 1
+                )),
+            )?;
+            col += 1;
 
             // Populate the rate information
             let (freq, dura) = self.ksf.as_ref().unwrap().freq_and_dura_keys();
@@ -411,25 +420,36 @@ impl CollatePage {
                 .map(|(k, _)| {
                     (
                         k.symbol_or_name(),
-                        key_descriptions.get(k).expect("key description missing"),
+                        key_descriptions
+                            .get(k)
+                            .expect("key description missing while creating frequency graph"),
                     )
                 })
                 .collect();
 
+            // Frequency graph
             if !f_graph_keys.is_empty() {
                 let fchart = workbook.add_chartsheet();
                 fchart.set_name("Freq Graph")?;
                 fchart.set_tab_color(ORANGE_ACCENT);
 
                 let mut flines = Chart::new_line();
-                flines.y_axis().set_name("Rate (Per Minute)");
-                flines.x_axis().set_name("Session");
+                flines
+                    .y_axis()
+                    .set_name("Rate (Per Minute)")
+                    .set_major_gridlines(false);
+                flines.x_axis().set_name("Session Number");
+                flines
+                    .legend()
+                    .set_overlay(true)
+                    .set_position(ChartLegendPosition::TopRight);
                 for (i, (selected_key, desc)) in f_graph_keys.into_iter().enumerate() {
                     if let Some(col) = key_columns.get(selected_key) {
                         let offset_col = col + normalized_offset;
                         flines
                             .add_series()
                             .set_name(desc)
+                            .set_categories(("Data", FIRST_DATA_ROW, 1, 10000, 1))
                             .set_values((
                                 "Data",
                                 FIRST_DATA_ROW,
@@ -437,7 +457,6 @@ impl CollatePage {
                                 last_data_row,
                                 offset_col,
                             ))
-                            .set_categories(("Data", FIRST_DATA_ROW, 1, 10000, 1))
                             .set_format(
                                 ChartFormat::new().set_line(
                                     &ChartLine::new().set_color("#000000").set_width(1.5),
@@ -461,7 +480,8 @@ impl CollatePage {
                             );
                     }
                 }
-                fchart.insert_chart(1, 1, &flines)?;
+                flines.title().set_name("Frequency");
+                fchart.insert_chart(0, 0, &flines)?;
             }
 
             let d_graph_keys: Vec<(&str, &String)> = self
@@ -471,27 +491,39 @@ impl CollatePage {
                 .map(|(k, _)| {
                     (
                         k.symbol_or_name(),
-                        key_descriptions.get(k).expect("key description missing"),
+                        key_descriptions
+                            .get(k)
+                            .expect("key description missing while creating duration graph"),
                     )
                 })
                 .collect();
 
+            // Duration graph
             if !d_graph_keys.is_empty() {
                 let dchart = workbook.add_chartsheet();
                 dchart.set_name("Dura Graph")?;
                 dchart.set_tab_color(BLUE_ACCENT);
 
                 let mut dlines = Chart::new_line();
-                dlines.y_axis().set_min(0.0);
-                dlines.y_axis().set_max(1.0);
-                dlines.y_axis().set_name("Percent of Session");
-                dlines.x_axis().set_name("Session");
+                dlines
+                    .y_axis()
+                    .set_min(0.0)
+                    .set_max(1.0)
+                    .set_num_format("0%")
+                    .set_name("Percent of Session")
+                    .set_major_gridlines(false);
+                dlines.x_axis().set_name("Session Number");
+                dlines
+                    .legend()
+                    .set_overlay(true)
+                    .set_position(ChartLegendPosition::TopRight);
                 for (i, (selected_key, desc)) in d_graph_keys.into_iter().enumerate() {
                     if let Some(col) = key_columns.get(selected_key) {
                         let offset_col = col + normalized_offset;
                         dlines
                             .add_series()
                             .set_name(desc)
+                            .set_categories(("Data", FIRST_DATA_ROW, 1, 10000, 1))
                             .set_values((
                                 "Data",
                                 FIRST_DATA_ROW,
@@ -499,7 +531,6 @@ impl CollatePage {
                                 last_data_row,
                                 offset_col,
                             ))
-                            .set_categories(("Data", FIRST_DATA_ROW, 1, 10000, 1))
                             .set_format(
                                 ChartFormat::new().set_line(
                                     &ChartLine::new().set_color("#000000").set_width(1.5),
@@ -523,7 +554,8 @@ impl CollatePage {
                             );
                     }
                 }
-                dchart.insert_chart(1, 1, &dlines)?;
+                dlines.title().set_name("Duration");
+                dchart.insert_chart(0, 0, &dlines)?;
             }
         }
 
@@ -678,7 +710,7 @@ impl DataPro {
                     ui.group(|ui| {
                         egui::ScrollArea::both()
                             .id_salt("time series scroller")
-                            .max_width(225.0)
+                            .max_width(300.0)
                             .show(ui, |ui| {
                                 if self.collate.data.is_empty() {
                                     for _ in 0..4 {
