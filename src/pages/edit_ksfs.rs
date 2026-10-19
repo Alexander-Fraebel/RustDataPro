@@ -205,8 +205,12 @@ impl DataPro {
     pub fn view_edit_ksf_page(&mut self, ui: &mut egui::Ui) {
         self.edit_ksfs.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = self.edit_ksfs.file_dialog.take_picked() {
-            self.data.client.alternate_ksfs_path = pathbuf.to_string_lossy().to_string();
+            self.data.client.ksfs_path = pathbuf.to_string_lossy().to_string();
             self.edit_ksfs.save_path = pathbuf;
+            self.load_ksfs_file()
+                .expect("unable to load KsfsData from file");
+            self.overwrite_client_data()
+                .expect("unable to save ClientData");
         }
 
         egui::CentralPanel::default().show(ui, |ui| {

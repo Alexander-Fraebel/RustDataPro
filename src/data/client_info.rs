@@ -12,8 +12,8 @@ pub struct ClientInfo {
     pub primary_therapist: String,
     pub date_of_admission: String,
     pub location: String,
-    pub alternate_ksfs_path: String,
-    pub alternate_assessments_path: String,
+    pub ksfs_path: String,
+    pub assessments_path: String,
 }
 
 impl ClientInfo {

@@ -177,8 +177,12 @@ impl DataPro {
     pub fn view_edit_assessments_page(&mut self, ui: &mut egui::Ui) {
         self.edit_assessments.file_dialog.update(ui.ctx());
         if let Some(pathbuf) = self.edit_assessments.file_dialog.take_picked() {
-            self.data.client.alternate_assessments_path = pathbuf.to_string_lossy().to_string();
+            self.data.client.assessments_path = pathbuf.to_string_lossy().to_string();
             self.edit_assessments.save_path = pathbuf;
+            self.load_assessments()
+                .expect("unable to load Assessments from file");
+            self.overwrite_client_data()
+                .expect("unable to save ClientData");
         }
 
         egui::CentralPanel::default().show(ui, |ui| {

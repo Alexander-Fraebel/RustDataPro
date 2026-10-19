@@ -241,21 +241,21 @@ impl DataPro {
 
     /// Path to assessments.txt if a client has been chosen or the default directory otherwise.
     pub fn path_to_assessments(&self) -> PathBuf {
-        if self.data.client.alternate_assessments_path.is_empty() {
+        if self.data.client.assessments_path.is_empty() {
             self.path_to(ASSESSMENTS_FILE_NAME)
                 .unwrap_or_else(|_| self.root_dir())
         } else {
-            self.data.client.alternate_assessments_path.clone().into()
+            self.data.client.assessments_path.clone().into()
         }
     }
 
     /// Path to ksf_data.txt if a client has been chosen or the default directory otherwise.
     pub fn path_to_ksf_data(&self) -> PathBuf {
-        if self.data.client.alternate_ksfs_path.is_empty() {
+        if self.data.client.ksfs_path.is_empty() {
             self.path_to(KSF_FILE_NAME)
                 .unwrap_or_else(|_| self.root_dir())
         } else {
-            self.data.client.alternate_ksfs_path.clone().into()
+            self.data.client.ksfs_path.clone().into()
         }
     }
 
@@ -330,6 +330,24 @@ impl DataPro {
         };
     }
 
+    pub fn load_ksfs_file(&mut self) -> Result<()> {
+        let ksfs_path = self.path_to_ksf_data();
+        match KsfsData::from_file_path(&ksfs_path) {
+            Ok(ksfs_data) => {
+                self.data.ksfs = ksfs_data;
+                self.edit_ksfs.prepare(&self.data, ksfs_path.clone());
+            }
+            Err(e) => {
+                windows_error_dialog(e.context(format!(
+                    "unable to read {}, the file may be missing or corrupt",
+                    KSF_FILE_NAME
+                )));
+                // self.overwrite_ksf_data()?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn load_assessments(&mut self) -> Result<()> {
         let assessments_path = self.path_to_assessments();
         match AssessmentsData::from_file_path(&assessments_path) {
@@ -352,7 +370,7 @@ impl DataPro {
                     "unable to read {}, the file may be missing or corrupt",
                     ASSESSMENTS_FILE_NAME
                 )));
-                self.overwrite_assessments()?;
+                // self.overwrite_assessments()?;
             }
         }
         Ok(())
