@@ -259,18 +259,15 @@ impl PrepareSession {
                     ui.end_row();
 
                     if ui
-                        .checkbox(
-                            &mut app.data.session.limit_session_length,
-                            "Max Session Length",
-                        )
+                        .checkbox(&mut app.data.session.limit_active_time, "Max Active Time")
                         .clicked()
                     {
                         check_if_session_can_start = true;
                     };
                     if ui
                         .add_enabled(
-                            app.data.session.limit_session_length,
-                            egui::DragValue::new(&mut app.data.session.maximum_session_length)
+                            app.data.session.limit_active_time,
+                            egui::DragValue::new(&mut app.data.session.max_active_time)
                                 .speed(1.0)
                                 .suffix("  secs")
                                 .range(0.0..=999_999.0), // maximum is about 11.5 days, well within precision limits of f32
@@ -282,15 +279,15 @@ impl PrepareSession {
                     ui.end_row();
 
                     if ui
-                        .checkbox(&mut app.data.session.limit_total_length, "Max Total Length")
+                        .checkbox(&mut app.data.session.limit_total_time, "Max Total Time")
                         .clicked()
                     {
                         check_if_session_can_start = true;
                     };
                     if ui
                         .add_enabled(
-                            app.data.session.limit_total_length,
-                            egui::DragValue::new(&mut app.data.session.maximum_total_length)
+                            app.data.session.limit_total_time,
+                            egui::DragValue::new(&mut app.data.session.max_total_time)
                                 .speed(1.0)
                                 .suffix("  secs")
                                 .range(0.0..=999_999.0), // maximum is about 11.5 days, well within precision limits of f32

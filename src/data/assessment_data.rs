@@ -35,16 +35,16 @@ impl Assessment {
         }
     }
 
-    pub fn new_with_session<I>(session: u32, conditions: I) -> Self
-    where
-        I: IntoIterator<Item = String>,
-    {
-        Self {
-            session,
-            preferred_ksf: String::new(),
-            conditions: IndexSet::from_iter(conditions.into_iter()),
-        }
-    }
+    // pub fn new_with_session<I>(session: u32, conditions: I) -> Self
+    // where
+    //     I: IntoIterator<Item = String>,
+    // {
+    //     Self {
+    //         session,
+    //         preferred_ksf: String::new(),
+    //         conditions: IndexSet::from_iter(conditions.into_iter()),
+    //     }
+    // }
 
     pub fn first_condition(&self) -> Option<&String> {
         self.conditions.first()

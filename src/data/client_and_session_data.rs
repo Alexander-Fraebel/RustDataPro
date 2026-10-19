@@ -100,12 +100,12 @@ impl ClientAndSessionInfo {
 
     pub fn max_session_length_set_correctly(&self) -> bool {
         // It is false that: session length is limited and the maximum session length is zero
-        !(self.session.limit_session_length && self.session.maximum_session_length == 0.0)
+        !(self.session.limit_active_time && self.session.max_active_time == 0.0)
     }
 
     pub fn max_total_length_set_correctly(&self) -> bool {
         // It is false that: total length is limited and the maximum total length is zero
-        !(self.session.limit_total_length && self.session.maximum_total_length == 0.0)
+        !(self.session.limit_total_time && self.session.max_total_time == 0.0)
     }
 
     pub fn update_misconfigurations(&mut self) {

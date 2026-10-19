@@ -312,16 +312,16 @@ impl DataPro {
 
     pub fn view_session(&mut self, ui: &mut Ui) {
         // Stop the session when the active time limit is exceeded
-        if self.data.session.limit_session_length && self.session.main_timer.is_active() {
-            if self.session.main_timer.active_time() >= self.data.session.maximum_session_length {
+        if self.data.session.limit_active_time && self.session.main_timer.is_active() {
+            if self.session.main_timer.active_time() >= self.data.session.max_active_time {
                 self.session.stop_all_timers();
                 self.session.save_discard_open = true;
             }
         }
 
         // Stop the session when the total time limit is exceeded
-        if self.data.session.limit_total_length && !self.session.main_timer.is_stopped() {
-            if self.session.main_timer.total_time() >= self.data.session.maximum_total_length {
+        if self.data.session.limit_total_time && !self.session.main_timer.is_stopped() {
+            if self.session.main_timer.total_time() >= self.data.session.max_total_time {
                 self.session.stop_all_timers();
                 self.session.save_discard_open = true;
             }
@@ -482,19 +482,19 @@ impl DataPro {
                 });
                 ui.group(|ui| {
                     ui.vertical(|ui| {
-                        if self.data.session.limit_session_length {
+                        if self.data.session.limit_active_time {
                             ui.label(format!(
                                 "Max Session Time: {}",
-                                self.data.session.maximum_session_length
+                                self.data.session.max_active_time
                             ));
                         } else {
                             ui.label("Max Session Time: N/A");
                         }
 
-                        if self.data.session.limit_total_length {
+                        if self.data.session.limit_total_time {
                             ui.label(format!(
                                 "Max Total Time: {}",
-                                self.data.session.maximum_total_length
+                                self.data.session.max_total_time
                             ));
                         } else {
                             ui.label("Max Total Time: N/A");

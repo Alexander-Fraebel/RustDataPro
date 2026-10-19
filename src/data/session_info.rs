@@ -36,10 +36,10 @@ pub struct SessionInfo {
     pub therapist: String,
     pub data_collector: String,
     pub data_collection_type: DataCollectionType,
-    pub limit_session_length: bool,
-    pub maximum_session_length: f32,
-    pub limit_total_length: bool,
-    pub maximum_total_length: f32,
+    pub limit_active_time: bool,
+    pub max_active_time: f32,
+    pub limit_total_time: bool,
+    pub max_total_time: f32,
 }
 
 impl SessionInfo {
