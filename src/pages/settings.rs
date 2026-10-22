@@ -1,4 +1,6 @@
-use crate::{app::DataPro, config::path_to_config_file, quick_error};
+use crate::{
+    app::DataPro, config::path_to_config_file, quick_error, utils::ui_elements::DataProUiElements,
+};
 use anyhow::Context;
 use std::process::Command;
 
@@ -7,12 +9,16 @@ impl DataPro {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
 
+            ui.label("Clients Directory");
+            ui.directory_picker(&mut self.pick_root_directory, &self.root_directory);
+            ui.add_space(10.0);
+
             ui.horizontal(|ui| {
-                ui.label("UI Scaling");
+                ui.label("Text Size");
                 if ui
                     .add(
                         egui::DragValue::new(&mut self.config.zoom)
-                            .range(1.0..=8.0)
+                            .range(0.5..=4.0)
                             .speed(0.1)
                             .fixed_decimals(1),
                     )

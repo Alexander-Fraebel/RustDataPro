@@ -20,21 +20,15 @@ impl DataPro {
                     .show(ui, |ui| {
                         ui.add_space(4.0);
 
-                        ui.label("Clients Directory");
-                        ui.directory_picker(&mut self.pick_root_directory, &self.root_directory);
+                        ui.horizontal(|ui| {
+                            if ui.button("About").clicked() {
+                                self.go_to_about();
+                            }
 
-                        ui.add_space(4.0);
-                        ui.separator();
-                        ui.add_space(4.0);
-
-                        if ui.button("About").clicked() {
-                            self.go_to_about();
-                        }
-                        ui.add_space(4.0);
-
-                        if ui.button("Settings").clicked() {
-                            self.go_to_settings();
-                        }
+                            if ui.button("Settings").clicked() {
+                                self.go_to_settings();
+                            }
+                        });
 
                         ui.add_space(4.0);
                         ui.separator();
