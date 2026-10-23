@@ -9,16 +9,12 @@ impl DataPro {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
 
-            ui.label("Clients Directory");
-            ui.directory_picker(&mut self.pick_root_directory, &self.root_directory);
-            ui.add_space(10.0);
-
             ui.horizontal(|ui| {
                 ui.label("Text Size");
                 if ui
                     .add(
                         egui::DragValue::new(&mut self.config.zoom)
-                            .range(0.5..=4.0)
+                            .range(0.25..=4.0)
                             .speed(0.1)
                             .fixed_decimals(1),
                     )
@@ -30,13 +26,19 @@ impl DataPro {
             });
             ui.add_space(10.0);
 
-            ui.label("Default Root Directory");
-            if ui
-                .text_edit_singleline(&mut self.config.root_dir)
-                .lost_focus()
-            {
-                quick_error!(self.overwrite_config());
-            }
+            ui.group(|ui| {
+                ui.label("Clients Directory");
+                ui.directory_picker(&mut self.pick_root_directory, &self.root_directory);
+                ui.add_space(10.0);
+
+                ui.label("Default Root Directory");
+                if ui
+                    .text_edit_singleline(&mut self.config.root_dir)
+                    .lost_focus()
+                {
+                    quick_error!(self.overwrite_config());
+                }
+            });
             ui.add_space(10.0);
 
             ui.collapsing("Advanced", |ui| {
