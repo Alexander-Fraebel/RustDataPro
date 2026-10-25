@@ -3,12 +3,6 @@ use egui::{RichText, Ui};
 
 impl DataPro {
     pub fn view_sidebar(&mut self, ui: &mut Ui) {
-        self.pick_root_directory.update(ui.ctx());
-        if let Some(pathbuf) = self.pick_root_directory.take_picked() {
-            // If we change root directory immedately reset all data files, otherwise we have dirty data selections that refers to things which may not exist
-            self.data.clear();
-            self.root_directory = pathbuf.clone();
-        }
         egui::Panel::left("sidebar")
             .default_size(170.0)
             .min_size(170.0)

@@ -6,23 +6,31 @@ use std::process::Command;
 
 impl DataPro {
     pub fn view_settings(&mut self, ui: &mut egui::Ui) {
+        self.pick_root_directory.update(ui.ctx());
+        if let Some(pathbuf) = self.pick_root_directory.take_picked() {
+            // If we change root directory immedately reset all data files, otherwise we have dirty data selections that refers to things which may not exist
+            self.data.clear();
+            self.root_directory = pathbuf.clone();
+        }
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(10.0);
 
-            ui.horizontal(|ui| {
-                ui.label("Text Size");
-                if ui
-                    .add(
-                        egui::DragValue::new(&mut self.config.zoom)
-                            .range(0.25..=4.0)
-                            .speed(0.1)
-                            .fixed_decimals(1),
-                    )
-                    .lost_focus()
-                {
-                    ui.ctx().set_pixels_per_point(self.config.zoom);
-                    quick_error!(self.overwrite_config());
-                }
+            ui.group(|ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Text Size");
+                    if ui
+                        .add(
+                            egui::DragValue::new(&mut self.config.zoom)
+                                .range(0.25..=4.0)
+                                .speed(0.1)
+                                .fixed_decimals(1),
+                        )
+                        .lost_focus()
+                    {
+                        ui.ctx().set_pixels_per_point(self.config.zoom);
+                        quick_error!(self.overwrite_config());
+                    }
+                });
             });
             ui.add_space(10.0);
 
