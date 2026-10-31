@@ -21,7 +21,7 @@ pub struct IoaPage {
     pub prim_data: Vec<(SessionResults, PathBuf)>,
     pub reli_data: Vec<(SessionResults, PathBuf)>,
     pub ioa_finished: bool,
-    pub strict: bool,
+    pub strict: bool, // if true ignore intervals with no data from either recorder when calculating reliability, defaults to true
     pub none_val: f32,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
@@ -228,12 +228,26 @@ impl DataPro {
                             .id_salt("reli_info_area")
                             .content_margin(10.0)
                             .show(ui, |ui| {
-                                for (_, path) in self.ioa_page.reli_data.iter() {
-                                    ui.label(
-                                        RichText::new(format!("{}", quick_file_name(&path)))
-                                            .monospace()
-                                            .strong(),
-                                    );
+                                for ((r, r_path), (p, _)) in self
+                                    .ioa_page
+                                    .reli_data
+                                    .iter()
+                                    .zip(self.ioa_page.prim_data.iter())
+                                {
+                                    if r.complement_of(p) {
+                                        ui.label(
+                                            RichText::new(format!("{}", quick_file_name(&r_path)))
+                                                .monospace()
+                                                .strong(),
+                                        );
+                                    } else {
+                                        ui.label(
+                                            RichText::new(format!("{}", quick_file_name(&r_path)))
+                                                .color(Color32::RED)
+                                                .monospace()
+                                                .strong(),
+                                        );
+                                    }
                                 }
                             });
                     });

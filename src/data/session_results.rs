@@ -35,6 +35,13 @@ pub struct SessionResults {
 }
 
 impl SessionResults {
+    // Is this file the complement of another file? Do they have the same Ksf, Client ID, and Session Number?
+    pub fn complement_of(&self, other: &Self) -> bool {
+        self.ksf == other.ksf
+            && self.client_id == other.client_id
+            && self.session_number == other.session_number
+    }
+
     pub fn file_name_stem(&self) -> String {
         format!(
             "{}-{}-{}_S{:>03}{}", // always format the session number to three digits to help sorting and alignment

@@ -8,7 +8,7 @@ use std::{
     path::Path,
 };
 
-/// Alphanumeric keys only
+/// KSFs can use only Alphanumeric keys
 pub const ALLOWED_KSF_KEYS: [Key; 36] = [
     Key::Num0,
     Key::Num1,
@@ -48,8 +48,9 @@ pub const ALLOWED_KSF_KEYS: [Key; 36] = [
     Key::Z,
 ];
 
-/// Keyboard Setup File. Two list of keybinds with their descriptions: Frequency and Duration.
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
+/// A single Keyboard Setup File.
+/// List of frequency keybinds and duration keybinds.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ksf {
     #[serde(rename(serialize = "frequency", deserialize = "frequency"))]
     pub freq: Vec<(Key, String)>,
@@ -68,6 +69,22 @@ impl Ksf {
         (self.freq.iter(), self.dura.iter())
     }
 
+    /// Two iterators. The first over frequency keys and the second over duration keys.
+    pub fn freq_and_dura_keys(&self) -> (impl Iterator<Item = &Key>, impl Iterator<Item = &Key>) {
+        (
+            self.freq.iter().map(|(k, _)| k),
+            self.dura.iter().map(|(k, _)| k),
+        )
+    }
+
+    /// Frequency descriptions and duration descriptions.
+    pub fn descriptions(&self) -> (impl Iterator<Item = &String>, impl Iterator<Item = &String>) {
+        (
+            self.freq.iter().map(|(_, d)| d),
+            self.dura.iter().map(|(_, d)| d),
+        )
+    }
+
     /// Iterator over frequency keys.
     pub fn freq_keys(&self) -> impl Iterator<Item = &Key> {
         self.freq.iter().map(|(k, _)| k)
@@ -78,31 +95,7 @@ impl Ksf {
         self.dura.iter().map(|(k, _)| k)
     }
 
-    /// Two iterators. The first over frequency keys and the second over duration keys.
-    pub fn freq_and_dura_keys(&self) -> (impl Iterator<Item = &Key>, impl Iterator<Item = &Key>) {
-        (
-            self.freq.iter().map(|(k, _)| k),
-            self.dura.iter().map(|(k, _)| k),
-        )
-    }
-
-    /// Iterator over frequency keys and then duration keys.
-    // pub fn all_keys(&self) -> impl Iterator<Item = &Key> {
-    //     self.freq
-    //         .iter()
-    //         .map(|(k, _)| k)
-    //         .chain(self.dura.iter().map(|(k, _)| k))
-    // }
-
-    /// Frequency descriptions and duration descriptions.
-    pub fn descriptions(&self) -> (impl Iterator<Item = &String>, impl Iterator<Item = &String>) {
-        (
-            self.freq.iter().map(|(_, d)| d),
-            self.dura.iter().map(|(_, d)| d),
-        )
-    }
-
-    /// Create an IndexMap by cloning the contents of the Ksf.
+    /// Create an IndexMap by cloning the contents of the Ksf. Assumes all keys are unique.
     pub fn create_map(&self) -> IndexMap<Key, String> {
         let (f, d) = self.pairs();
         IndexMap::from_iter(f.chain(d).cloned())
@@ -112,6 +105,11 @@ impl Ksf {
     pub fn keys_unique(&self) -> bool {
         let (f, d) = self.freq_and_dura_keys();
         f.chain(d).all_unique()
+    }
+
+    /// Does the provided key appear in this KSF?
+    pub fn contains(&self, key: &Key) -> bool {
+        self.freq_keys().contains(key) || self.dura_keys().contains(key)
     }
 
     /// Does the provided key appear as a frequency key in this KSF?
@@ -160,7 +158,7 @@ impl Ksf {
     );
 }
 
-/// A map of KSFs kept in insertion order and index by name.
+/// A map of KSFs indexed by name. The order of the map is stable.
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct KsfsData(pub IndexMap<String, Ksf>);
 
