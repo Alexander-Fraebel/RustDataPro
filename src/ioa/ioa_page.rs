@@ -12,6 +12,7 @@ use anyhow::{Context, Result};
 use egui::{Color32, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use std::{
+    collections::BTreeMap,
     fs::File,
     io::{BufWriter, Write},
     path::{Path, PathBuf},
@@ -27,6 +28,13 @@ pub struct IoaPage {
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
     pub save_path: PathBuf,
+    pub data: BTreeMap<
+        u32,
+        (
+            Option<(SessionResults, PathBuf)>,
+            Option<(SessionResults, PathBuf)>,
+        ),
+    >,
 }
 
 impl Default for IoaPage {
@@ -41,6 +49,7 @@ impl Default for IoaPage {
             select_path: PathBuf::default(),
             save_file_dialog: FileDialog::new(),
             save_path: PathBuf::default(),
+            data: Default::default(),
         }
     }
 }
@@ -182,10 +191,22 @@ impl DataPro {
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match SessionResults::from_file_path(buf.as_path()) {
-                    Ok(data) => match data.session_data.data_collection_type {
-                        DataCollectionType::Primary => self.ioa_page.prim_data.push((data, buf)),
+                    Ok(results) => match results.session_data.data_collection_type {
+                        DataCollectionType::Primary => {
+                            self.ioa_page
+                                .data
+                                .entry(results.session_number)
+                                .and_modify(|e| e.0 = Some((results.clone(), buf.clone())))
+                                .or_insert((Some((results.clone(), buf.clone())), None));
+                            self.ioa_page.prim_data.push((results, buf));
+                        }
                         DataCollectionType::Reliability => {
-                            self.ioa_page.reli_data.push((data, buf))
+                            self.ioa_page
+                                .data
+                                .entry(results.session_number)
+                                .and_modify(|e| e.1 = Some((results.clone(), buf.clone())))
+                                .or_insert((None, Some((results.clone(), buf.clone()))));
+                            self.ioa_page.reli_data.push((results, buf))
                         }
                     },
                     Err(e) => windows_error_dialog(e),
@@ -198,68 +219,66 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            if ui.large_button("Select Data").clicked() {
-                self.ioa_page.select_file_dialog.pick_multiple();
-            }
+            ui.horizontal(|ui| {
+                if ui.large_button("Select Data").clicked() {
+                    self.ioa_page.select_file_dialog.pick_multiple();
+                }
+                ui.add_space(5.0);
+                if ui.large_green_button("Calculate IOA").clicked() {
+                    self.save_new_ioa_data()
+                        .unwrap_or_else(|e| windows_error_dialog(e))
+                }
+            });
             ui.add_space(5.0);
 
-            ui.horizontal(|ui| {
-                ui.group(|ui| {
-                    ui.vertical(|ui| {
-                        ui.add_sized([110.0, 20.0], egui::Label::new("Primary Data"));
-                        egui::containers::ScrollArea::vertical()
-                            .content_margin(10.0)
-                            .id_salt("prim_info_area")
+            ui.group(|ui| {
+                egui::containers::ScrollArea::vertical()
+                    .content_margin(15.0)
+                    .min_scrolled_height(200.0)
+                    .max_height(200.0)
+                    .id_salt("prim_info_area")
+                    .show(ui, |ui| {
+                        egui::Grid::new("compare_prim_and_reli_grid")
+                            .min_col_width(40.0)
                             .show(ui, |ui| {
-                                for (_, path) in self.ioa_page.prim_data.iter() {
-                                    ui.label(
-                                        RichText::new(format!("{}", quick_file_name(&path)))
-                                            .monospace()
-                                            .strong(),
-                                    );
-                                }
-                            });
-                    })
-                });
-                ui.group(|ui| {
-                    ui.vertical(|ui| {
-                        ui.add_sized([110.0, 20.0], egui::Label::new("Reliability Data"));
-                        egui::containers::ScrollArea::vertical()
-                            .id_salt("reli_info_area")
-                            .content_margin(10.0)
-                            .show(ui, |ui| {
-                                for ((r, r_path), (p, _)) in self
-                                    .ioa_page
-                                    .reli_data
-                                    .iter()
-                                    .zip(self.ioa_page.prim_data.iter())
-                                {
-                                    if r.complement_of(p) {
-                                        ui.label(
-                                            RichText::new(format!("{}", quick_file_name(&r_path)))
-                                                .monospace()
-                                                .strong(),
-                                        );
+                                ui.label(RichText::new("Primary Data").monospace().underline());
+                                ui.monospace("");
+                                ui.monospace(
+                                    RichText::new("Reliability Data").monospace().underline(),
+                                );
+                                ui.end_row();
+                                for (_, (p, r)) in self.ioa_page.data.iter() {
+                                    if let Some((_, path)) = p {
+                                        let name =
+                                            RichText::new(format!("{}", quick_file_name(&path)))
+                                                .monospace();
+                                        if r.is_none() {
+                                            ui.label(name.color(Color32::RED));
+                                        } else {
+                                            ui.label(name.strong());
+                                        }
                                     } else {
-                                        ui.label(
-                                            RichText::new(format!("{}", quick_file_name(&r_path)))
-                                                .color(Color32::RED)
-                                                .monospace()
-                                                .strong(),
-                                        );
+                                        ui.monospace("missing");
                                     }
+                                    ui.monospace("");
+                                    if let Some((_, path)) = r {
+                                        let name =
+                                            RichText::new(format!("{}", quick_file_name(&path)))
+                                                .monospace();
+                                        if p.is_none() {
+                                            ui.label(name.color(Color32::RED));
+                                        } else {
+                                            ui.label(name.strong());
+                                        }
+                                    } else {
+                                        ui.monospace("missing");
+                                    }
+                                    ui.end_row();
                                 }
                             });
                     });
-                });
             });
             ui.add_space(20.0);
-
-            if ui.large_green_button("Calculate IOA").clicked() {
-                self.save_new_ioa_data()
-                    .unwrap_or_else(|e| windows_error_dialog(e))
-            }
-            ui.add_space(5.0);
 
             if self.ioa_page.ioa_finished {
                 ui.monospace(
