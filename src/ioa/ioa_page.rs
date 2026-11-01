@@ -156,7 +156,7 @@ impl IoaPage {
         let ksf = &simplified[0].0.0.ksf;
         let mut ioa_data = IoaData::from_ksf(ksf);
 
-        self.interval_ioa(&mut ioa_data, &simplified);
+        self.interval_ioa(&mut ioa_data, &simplified)?;
         self.frequency_ioa(&mut ioa_data, &simplified)?;
         self.duration_ioa(&mut ioa_data, &simplified)?;
 

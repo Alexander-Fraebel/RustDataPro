@@ -77,14 +77,14 @@ impl IoaDataMap {
         for (n, (prim, reli)) in self.0.iter() {
             let p = prim
                 .as_ref()
-                .context(format!("no primary data for session {n}"))?;
+                .context(format!("no primary data for S{n:>03}"))?;
             let r = reli
                 .as_ref()
-                .context(format!("no reliability data for session {n}"))?;
+                .context(format!("no reliability data for S{n:>03}"))?;
 
             if !p.0.complement_of(&r.0) {
                 return Err(anyhow::anyhow!(
-                    "the primary and reliability files for session {n} cannot be compared"
+                    "the primary and reliability files for S{n:>03} cannot be compared\ncheck that the Assessment, Condition, Client ID, KSF, and Session Number all match"
                 ));
             }
 
@@ -96,25 +96,25 @@ impl IoaDataMap {
         for ((p, _), (r, _)) in out.iter() {
             if &p.ksf != ksf {
                 return Err(anyhow::anyhow!(
-                    "the KSF for the primary file for session {} does not match the KSF for the first file\nall files must have the same KSF",
+                    "the KSF for the primary file for S{:>03} does not match the KSF for the first file\nall files must have the same KSF",
                     p.session_number
                 ));
             }
             if &r.ksf != ksf {
                 return Err(anyhow::anyhow!(
-                    "the KSF for the reliability file for session {} does not match the KSF for the first file\nall files must have the same KSF",
+                    "the KSF for the reliability file for S{:>03} does not match the KSF for the first file\nall files must have the same KSF",
                     r.session_number
                 ));
             }
             if &p.client_id != client_id {
                 return Err(anyhow::anyhow!(
-                    "the Client ID for the primary file for session {} does not match the Client ID for the first file\nall files must have the same Client ID",
+                    "the Client ID for the primary file for S{:>03} does not match the Client ID for the first file\nall files must have the same Client ID",
                     p.session_number
                 ));
             }
             if &r.client_id != client_id {
                 return Err(anyhow::anyhow!(
-                    "the Client ID for the reliability file for session {} does not match the Client ID for the first file\nall files must have the same Client ID",
+                    "the Client ID for the reliability file for S{:>03} does not match the Client ID for the first file\nall files must have the same Client ID",
                     r.session_number
                 ));
             }

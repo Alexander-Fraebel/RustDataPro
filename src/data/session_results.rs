@@ -35,21 +35,33 @@ pub struct SessionResults {
 }
 
 impl SessionResults {
-    // Is this file the complement of another file? Do they have the same Ksf, Client ID, and Session Number?
+    /// Is this file the complement of another file? Do they have the same Ksf, Client ID, Session Number, Assessment, and Condition?
     pub fn complement_of(&self, other: &Self) -> bool {
         self.ksf == other.ksf
             && self.client_id == other.client_id
             && self.session_number == other.session_number
+            && self.session_data.chosen_assessment == other.session_data.chosen_assessment
+            && self.session_data.chosen_condition == other.session_data.chosen_condition
     }
 
     pub fn file_name_stem(&self) -> String {
         format!(
-            "{}-{}-{}_S{:>03}{}", // always format the session number to three digits to help sorting and alignment
-            self.session_data.chosen_assessment,
-            self.session_data.chosen_condition,
+            "{}-{}-{}_S{:>03}-{}", // three digit aligned session number is sufficient for six sessions every working day for about seven months
+            self.session_data
+                .chosen_assessment
+                .chars()
+                .filter(|c| !c.is_whitespace()) // remove whitespace from file name
+                .take(5) // maximum length for better alignment
+                .collect::<String>(),
+            self.session_data
+                .chosen_condition
+                .chars()
+                .filter(|c| !c.is_whitespace()) // remove whitespace from file name
+                .take(5) // maximum length for better alignment
+                .collect::<String>(),
             self.client_id,
             self.session_number,
-            self.session_data.data_collection_type.abbrev()
+            self.session_data.data_collection_type.abbrev(),
         )
     }
 
@@ -151,12 +163,12 @@ impl SessionResults {
         information.write(row, col + 1, &self.location)?;
         row += 1;
 
-        information.write_with_format(row, col, "Total Time:", &bold)?;
-        information.write(row, col + 1, rounded_f32(self.total_time))?;
-        row += 1;
-
         information.write_with_format(row, col, "Active Time:", &bold)?;
         information.write(row, col + 1, rounded_f32(self.active_time))?;
+        row += 1;
+
+        information.write_with_format(row, col, "Total Time:", &bold)?;
+        information.write(row, col + 1, rounded_f32(self.total_time))?;
 
         row = 1;
         col += 3;
@@ -228,8 +240,8 @@ impl SessionResults {
         summary.write_with_format(drow, 1, "Duration Data", &bold)?;
         summary.write_with_format(drow + 2, 1, "Duration", &bold)?;
         summary.write_with_format(drow + 3, 1, "Bouts", &bold)?;
-        summary.write_with_format(drow + 4, 1, "% of TT", &bold)?;
         summary.write_with_format(drow + 5, 1, "% of AT", &bold)?;
+        // summary.write_with_format(drow + 4, 1, "% of TT", &bold)?;
         let tt = self.total_time;
         let at = self.active_time;
         let mut col = 2;
@@ -241,14 +253,15 @@ impl SessionResults {
             summary.write(drow + 5, col, rounded_f32(duration / at * 100.0))?;
             col += 1;
         }
-        summary.write_with_format(drow + 1, col, "TT", &centered_bold)?;
-        summary.insert_note(drow + 1, col, &Note::new("Total Time"))?;
-        summary.write(drow + 2, col, tt)?;
-        col += 1;
 
         summary.write_with_format(drow + 1, col, "AT", &centered_bold)?;
         summary.insert_note(drow + 1, col, &Note::new("Active Time"))?;
         summary.write(drow + 2, col, at)?;
+        // col += 1;
+
+        // summary.write_with_format(drow + 1, col, "TT", &centered_bold)?;
+        // summary.insert_note(drow + 1, col, &Note::new("Total Time"))?;
+        // summary.write(drow + 2, col, tt)?;
 
         Ok(workbook)
     }
