@@ -20,8 +20,8 @@ use regex::Regex;
 use std::cell::LazyCell;
 
 const LEAF_PAIR_FIND: LazyCell<Regex> =
-    LazyCell::new(|| Regex::new(r#"(\s*)\[\s*(".+")\s*,\s*(".+")\s*]"#).unwrap());
-const LEAF_PAIR_REPLACE: &'static str = r#"$1[$2, $3]"#;
+    LazyCell::new(|| Regex::new(r#"\[\n\s+(.+),\n\s+(.+)\n\s+\]"#).unwrap());
+const LEAF_PAIR_REPLACE: &'static str = r#"[$1, $2]"#;
 
 const NUM_NAME_FIND: LazyCell<Regex> =
     LazyCell::new(|| Regex::new(r#""Num([0123456789])""#).unwrap());

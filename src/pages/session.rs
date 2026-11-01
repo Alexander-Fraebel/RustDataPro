@@ -12,7 +12,7 @@ use crate::{
 };
 use anyhow::Result;
 use chrono::{DateTime, Local};
-use egui::{Color32, Key, Layout, RichText, Ui};
+use egui::{Color32, Key, Label, Layout, RichText, Ui};
 use egui_extras::Column;
 use indexmap::IndexMap;
 
@@ -25,9 +25,13 @@ const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 const LEFT_MARGIN: f32 = 5.0;
 const TOP_MARGIN: f32 = 5.0;
 
-const STIME: &'static str = "Session Time: ";
-const PTIME: &'static str = " Paused Time: ";
-const TTIME: &'static str = "  Total Time: ";
+const STIME: &'static str = "Active Time: ";
+const PTIME: &'static str = "Paused Time: ";
+const TTIME: &'static str = " Total Time: ";
+
+const START_SYMBOL: &'static str = "ST";
+const PAUSE_SYMBOL: &'static str = "PT";
+const END_SYMBOL: &'static str = "ESC";
 
 macro_rules! record_keypress {
     ($self:expr, $key:expr, $time:expr) => {
@@ -149,7 +153,7 @@ impl SessionPage {
         *self = Self::default()
     }
 
-    /// Stops all timers, records the final keypress (simulates it if session ended another way), disallows unpressing keys, then opens the Save/Discard dialog.
+    /// Stops all timers, simulates the final keypress, disallows unpressing keys, then opens the Save/Discard dialog.
     /// This should only occur once in a session, when it ends.
     fn stop_all_timers(&mut self) {
         if self.main_timer.was_started() {
@@ -159,12 +163,12 @@ impl SessionPage {
             self.main_timer.stop();
             self.timeline
                 .push((Key::Escape, rounded_f32(self.main_timer.total_time())));
-            self.keypresses_display.push("e");
+            self.keypresses_display.push(END_SYMBOL);
         }
         self.unpress_available = false;
     }
 
-    /// Pause or unpause all timers, including the session timer. This method MUST be the only way to pause or unpause any timers.
+    /// Pause or unpause all timers, including the session timer. This method MUST be the only way to pause or unpause any timers to avoid errors synchronizing the process.
     fn pause_unpause_all_timers(&mut self) {
         for (timer, _, _, _) in self.dura_keys.iter_mut() {
             if timer.was_started() {
@@ -172,6 +176,14 @@ impl SessionPage {
             }
         }
         self.main_timer.toggle_pause();
+        self.timeline
+            .push(((Key::Space), rounded_f32(self.main_timer.total_time())));
+        if self.main_timer.is_paused() {
+            self.keypresses_display.push(PAUSE_SYMBOL);
+        } else {
+            self.keypresses_display.push(START_SYMBOL);
+        }
+
         self.unpress_available = false;
     }
 
@@ -179,7 +191,8 @@ impl SessionPage {
     fn unpress_key(&mut self) {
         if self.unpress_available {
             // Cannot unpress a pause of start of session
-            if ["t", "p"].contains(self.keypresses_display.iter().last().unwrap()) {
+            if [START_SYMBOL, PAUSE_SYMBOL].contains(self.keypresses_display.iter().last().unwrap())
+            {
                 self.unpress_available = false;
                 return;
             }
@@ -193,7 +206,9 @@ impl SessionPage {
                         } else {
                             timer.undo();
                         }
-                        if ["t", "p"].contains(self.keypresses_display.iter().last().unwrap()) {
+                        if [START_SYMBOL, PAUSE_SYMBOL]
+                            .contains(self.keypresses_display.iter().last().unwrap())
+                        {
                             self.unpress_available = false;
                             return;
                         }
@@ -203,7 +218,9 @@ impl SessionPage {
                 for (counter, key, _) in self.freq_keys.iter_mut() {
                     if key == &removed_key {
                         *counter = counter.saturating_sub(1);
-                        if ["t", "p"].contains(self.keypresses_display.iter().last().unwrap()) {
+                        if [START_SYMBOL, PAUSE_SYMBOL]
+                            .contains(self.keypresses_display.iter().last().unwrap())
+                        {
                             self.unpress_available = false;
                             return;
                         }
@@ -234,7 +251,7 @@ impl SessionPage {
         self.main_timer.start();
         self.start_time = Local::now();
         self.timeline.push((Key::Tab, 0.0));
-        self.keypresses_display.push("t");
+        self.keypresses_display.push(START_SYMBOL);
     }
 }
 
@@ -251,8 +268,8 @@ impl DataPro {
             .path_assessment_condition_dir()
             .join(&format!("{stem}.xlsx"));
 
-        // Append _ex (extended) to each file if they already exist
-        // A session might have needed to be extended multiple times to we loop until we reach a new name
+        // Append _ex (extended) to each file if it already exists
+        // A session might have needed to be extended multiple times so we loop until we reach a new name
         let mut ex = String::new();
         while txt_file_name.exists() {
             ex.push_str("_ex");
@@ -286,7 +303,7 @@ impl DataPro {
         }
 
         SessionResults {
-            datetime: date_time_string(&self.session.start_time),
+            session_start_time: date_time_string(&self.session.start_time),
             total_time: rounded_f32(self.session.main_timer.total_time()),
             pause_time: rounded_f32(self.session.main_timer.paused_time()),
             active_time: rounded_f32(self.session.main_timer.active_time()),
@@ -350,13 +367,6 @@ impl DataPro {
         if self.session.clicked_keys.contains_key(&egui::Key::Space) {
             if self.session.main_timer.was_started() {
                 self.session.pause_unpause_all_timers();
-                self.session.unpress_available = false;
-                self.session.timeline.push((
-                    (Key::Space),
-                    rounded_f32(self.session.main_timer.total_time()),
-                ));
-                self.session.keypresses_display.push("p");
-                self.session.unpress_available = true;
             }
         }
         if self
@@ -624,7 +634,7 @@ impl DataPro {
                     ui.group(|ui| {
                         ui.heading("Controls");
                         ui.label(
-                            "TAB to start.\nESC return to end session.\nSPACE to pause/unpause.",
+                            "TAB to start session.\nESC to end session.\nSPACE to pause/unpause.",
                         );
                     });
                     ui.horizontal(|ui| {
@@ -661,11 +671,15 @@ impl DataPro {
                     ui.vertical(|ui| {
                         ui.group(|ui| {
                             ui.horizontal(|ui| {
+                                ui.spacing_mut().item_spacing = [0.0, 0.0].into();
                                 for k in self.session.keypresses_display
                                     [(self.session.keypresses_display.len() - 10)..]
                                     .iter()
                                 {
-                                    ui.monospace(*k);
+                                    ui.add_sized(
+                                        [25.0, 15.0],
+                                        Label::new(RichText::new(*k).monospace()),
+                                    );
                                 }
                             });
                         });
@@ -673,7 +687,7 @@ impl DataPro {
                             ui.label("BACKSPACE to undo last entry.");
                         } else {
                             ui.weak("BACKSPACE to undo last entry.")
-                                .on_hover_text("Cannot undo pause.");
+                                .on_hover_text("Cannot undo pause or start of session.");
                         }
                     })
                 });

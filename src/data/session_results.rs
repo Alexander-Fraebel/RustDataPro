@@ -1,8 +1,9 @@
 use crate::data::ClientAndSessionInfo;
 use crate::data::{Ksf, SessionInfo, timeline::Timeline};
-use crate::utils::rounded_f32;
+use crate::utils::{date_time_string, rounded_f32};
 use anyhow::Context;
 use anyhow::Result;
+use chrono::Local;
 use egui::Key;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -16,7 +17,7 @@ use std::path::Path;
 /// Output of a single session. Includes the Client and Session data along with the recorded keypresses and times, and the KSF to translate those.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SessionResults {
-    pub datetime: String,
+    pub session_start_time: String,
     pub client_name: String,
     pub client_id: String,
     pub case_manager: String,
@@ -135,6 +136,11 @@ impl SessionResults {
         /////////////////////////
         let bold = Format::new().set_bold();
         let centered_bold = Format::new().set_align(FormatAlign::Center).set_bold();
+        let percentage = Format::new().set_num_format("0.0%");
+        let one_decimal = Format::new().set_num_format("0.0");
+        let centered_underlined = Format::new()
+            .set_align(FormatAlign::Center)
+            .set_underline(FormatUnderline::Single);
 
         ///////////////////////////
         // Information Worksheet //
@@ -142,9 +148,14 @@ impl SessionResults {
 
         let information = workbook.add_worksheet();
         information.set_name("Information")?;
-        information.set_column_width_pixels(0, 90)?;
-        information.set_column_width_pixels(3, 90)?;
-        information.set_column_width_pixels(3, 90)?;
+        information.set_column_width_pixels(column_name_to_number("A"), 90)?;
+        information.set_column_width_pixels(column_name_to_number("B"), 90)?;
+        information.set_column_width_pixels(column_name_to_number("C"), 20)?;
+        information.set_column_width_pixels(column_name_to_number("D"), 90)?;
+        information.set_column_width_pixels(column_name_to_number("E"), 90)?;
+        information.set_column_width_pixels(column_name_to_number("F"), 20)?;
+        information.set_column_width_pixels(column_name_to_number("G"), 90)?;
+        information.set_column_width_pixels(column_name_to_number("H"), 90)?;
 
         ///////////////////////////////
         // Basic Session Information //
@@ -164,11 +175,15 @@ impl SessionResults {
         row += 1;
 
         information.write_with_format(row, col, "Active Time:", &bold)?;
-        information.write(row, col + 1, rounded_f32(self.active_time))?;
+        information.write_with_format(row, col + 1, self.active_time, &one_decimal)?;
+        row += 1;
+
+        information.write_with_format(row, col, "Paused Time:", &bold)?;
+        information.write_with_format(row, col + 1, self.pause_time, &one_decimal)?;
         row += 1;
 
         information.write_with_format(row, col, "Total Time:", &bold)?;
-        information.write(row, col + 1, rounded_f32(self.total_time))?;
+        information.write_with_format(row, col + 1, self.total_time, &one_decimal)?;
 
         row = 1;
         col += 3;
@@ -178,10 +193,6 @@ impl SessionResults {
 
         information.write_with_format(row, col, "Condition:", &bold)?;
         information.write(row, col + 1, &self.session_data.chosen_condition)?;
-        row += 1;
-
-        information.write_with_format(row, col, "KSF:", &bold)?;
-        information.write(row, col + 1, &self.session_data.chosen_ksf_name)?;
         row += 1;
 
         information.write_with_format(row, col, "Data Type:", &bold)?;
@@ -196,6 +207,13 @@ impl SessionResults {
         ///////////////////////
         row = 1;
         col += 3;
+        information.write_with_format(row, col, "KSF Name:", &bold)?;
+        information.write(row, col + 1, &self.session_data.chosen_ksf_name)?;
+        row += 2;
+
+        information.write_with_format(row, col, "Key", &centered_underlined)?;
+        information.write_with_format(row, col + 1, "Description", &centered_underlined)?;
+        row += 1;
         for (key, desc) in self.ksf.freq.iter() {
             information.write_with_format(row, col, key.symbol_or_name(), &centered_bold)?;
             information.write(row, col + 1, desc)?;
@@ -206,6 +224,8 @@ impl SessionResults {
             information.write(row, col + 1, desc)?;
             row += 1;
         }
+
+        information.merge_range(1, column_name_to_number("J"), 6, column_name_to_number("L"), "The .json file created along with this contains more detailed information including a timeline of keypresses. It can be read in Notepad.", &Format::new().set_text_wrap())?;
 
         ////////////////////////////
         // Data Summary Worksheet //
@@ -220,15 +240,16 @@ impl SessionResults {
         summary.write_with_format(frow, 1, "Frequency Data", &bold)?;
         summary.write_with_format(frow + 2, 1, "Count", &bold)?;
         summary.write_with_format(frow + 3, 1, "RPM", &bold)?;
-        summary.insert_note(frow + 3, 1, &Note::new("Rate Per Minute (Active Time)"))?;
         let mut col = 2;
+        let mins_active = self.active_time / 60.0;
         for (key, count) in self.frequency_data.iter() {
             summary.write_with_format(frow + 1, col, key.symbol_or_name(), &centered_bold)?;
             summary.write(frow + 2, col, *count)?;
-            summary.write(
+            summary.write_with_format(
                 frow + 3,
                 col,
-                rounded_f32((*count as f32) / (self.active_time / 60.0)),
+                (*count as f32) / mins_active,
+                &one_decimal,
             )?;
             col += 1;
         }
@@ -236,32 +257,27 @@ impl SessionResults {
         //////////////
         // Duration //
         //////////////
-        let drow = 6;
-        summary.write_with_format(drow, 1, "Duration Data", &bold)?;
-        summary.write_with_format(drow + 2, 1, "Duration", &bold)?;
-        summary.write_with_format(drow + 3, 1, "Bouts", &bold)?;
-        summary.write_with_format(drow + 5, 1, "% of AT", &bold)?;
-        // summary.write_with_format(drow + 4, 1, "% of TT", &bold)?;
-        let tt = self.total_time;
-        let at = self.active_time;
+        let d_row = 6;
+        summary.write_with_format(d_row, 1, "Duration Data", &bold)?;
+        summary.write_with_format(d_row + 2, 1, "Duration", &bold)?;
+        summary.write_with_format(d_row + 3, 1, "Bouts", &bold)?;
+        summary.write_with_format(d_row + 4, 1, "% of AT", &bold)?;
+
         let mut col = 2;
+        let at = self.active_time;
+
         for (key, (count, duration)) in self.duration_data.iter() {
-            summary.write_with_format(drow + 1, col, key.symbol_or_name(), &centered_bold)?;
-            summary.write(drow + 2, col, *duration)?;
-            summary.write(drow + 3, col, *count)?;
-            summary.write(drow + 4, col, rounded_f32(duration / tt * 100.0))?;
-            summary.write(drow + 5, col, rounded_f32(duration / at * 100.0))?;
+            summary.write_with_format(d_row + 1, col, key.symbol_or_name(), &centered_bold)?;
+            summary.write_with_format(d_row + 2, col, *duration, &one_decimal)?;
+            summary.write(d_row + 3, col, *count)?;
+            summary.write_with_format(d_row + 4, col, duration / at, &percentage)?;
             col += 1;
         }
 
-        summary.write_with_format(drow + 1, col, "AT", &centered_bold)?;
-        summary.insert_note(drow + 1, col, &Note::new("Active Time"))?;
-        summary.write(drow + 2, col, at)?;
-        // col += 1;
-
-        // summary.write_with_format(drow + 1, col, "TT", &centered_bold)?;
-        // summary.insert_note(drow + 1, col, &Note::new("Total Time"))?;
-        // summary.write(drow + 2, col, tt)?;
+        summary.write_with_format(d_row + 1, col, "AT", &centered_bold)?;
+        summary.write_with_format(d_row + 2, col, at, &one_decimal)?;
+        summary.write(d_row + 3, col, 1)?;
+        summary.write_with_format(d_row + 4, col, 1.0, &percentage)?;
 
         Ok(workbook)
     }
@@ -288,8 +304,13 @@ impl SessionResults {
         session_data.chosen_assessment = data.chosen_assessment_name().clone();
         session_data.chosen_condition = data.chosen_condition_name().clone();
         session_data.data_collection_type = crate::data::DataCollectionType::Primary;
+        session_data.chosen_ksf_name = data.chosen_ksf_name().clone();
+        session_data.therapist = String::from("THERAPIST");
+        session_data.data_collector = String::from("DATA COLLECTOR");
+        session_data.max_active_time = data.session.max_active_time;
+        session_data.max_total_time = data.session.max_total_time;
 
-        let ksf = Ksf::example();
+        let ksf = data.chosen_ksf().unwrap();
 
         // Fixed seed for consitency across trials
         let mut seeded_rng: StdRng = StdRng::seed_from_u64(seed);
@@ -364,7 +385,7 @@ impl SessionResults {
         timeline.push((Key::Escape, rounded_f32(session_time)));
 
         let prim = SessionResults {
-            datetime: String::from("TEST FILE"),
+            session_start_time: format!("SIMULATED ON {}", date_time_string(&Local::now())),
             session_data: session_data.clone(),
             total_time: rounded_f32(session_time),
             pause_time: 0.0,
@@ -434,7 +455,7 @@ impl SessionResults {
             }
 
             let reli = SessionResults {
-                datetime: String::from("TEST FILE"),
+                session_start_time: format!("SIMULATED ON {}", date_time_string(&Local::now())),
                 session_data: session_data.clone(),
                 total_time: session_time,
                 pause_time: 0.0,

@@ -18,7 +18,7 @@ impl Default for Assessment {
         Self {
             session: 1,
             preferred_ksf: String::new(),
-            conditions: Default::default(),
+            conditions: IndexSet::default(),
         }
     }
 }
@@ -34,17 +34,6 @@ impl Assessment {
             conditions: IndexSet::from_iter(conditions.into_iter()),
         }
     }
-
-    // pub fn new_with_session<I>(session: u32, conditions: I) -> Self
-    // where
-    //     I: IntoIterator<Item = String>,
-    // {
-    //     Self {
-    //         session,
-    //         preferred_ksf: String::new(),
-    //         conditions: IndexSet::from_iter(conditions.into_iter()),
-    //     }
-    // }
 
     pub fn first_condition(&self) -> Option<&String> {
         self.conditions.first()
@@ -105,9 +94,3 @@ impl AssessmentsData {
         Self(map)
     }
 }
-
-// #[test]
-// fn create_example_data() {
-//     println!("{}", Assessment::example().to_json().unwrap());
-//     println!("{}", AssessmentsData::example().to_json().unwrap());
-// }

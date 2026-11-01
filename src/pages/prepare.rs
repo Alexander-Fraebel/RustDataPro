@@ -19,6 +19,278 @@ fn edit_box(
     widget
 }
 
+pub fn client_prep_controls(app: &mut DataPro, ui: &mut egui::Ui) {
+    egui::Grid::new("client_and_session_info_grid")
+        .min_col_width(120.0)
+        .min_row_height(22.0)
+        .show(ui, |ui| {
+            let mut check_if_session_can_start = false;
+
+            // Saved to client file.
+            if edit_box(
+                ui,
+                "Location",
+                &mut app.data.client.location,
+                &mut check_if_session_can_start,
+                true,
+            )
+            .lost_focus()
+            {
+                check_if_session_can_start = true;
+                quick_error!(app.overwrite_client_data());
+            }
+            ui.end_row();
+
+            // Saved to client file.
+            ui.label("Date of Admission\n(MM-DD-YYYY)");
+            if app.prep_session.edit_doa {
+                let doa = ui.add(egui::TextEdit::singleline(
+                    &mut app.data.client.date_of_admission,
+                ));
+                if doa.lost_focus() {
+                    quick_error!(app.overwrite_client_data());
+                }
+                if doa.changed() {
+                    check_if_session_can_start = true;
+                }
+                // The rest of these are non-editable display versions of the DOA
+            } else {
+                match app.data.client.days_since_admission() {
+                    Ok(n) => {
+                        // emphasize negative DOA with red text
+                        if n.is_negative() {
+                            ui.add(
+                                egui::TextEdit::singleline(&mut format!("{n} days ago"))
+                                    .text_color(ui.visuals().error_fg_color)
+                                    .interactive(false),
+                            );
+                        } else {
+                            // normal DOA information
+                            ui.add(
+                                egui::TextEdit::singleline(&mut format!("{n} days ago"))
+                                    .interactive(false),
+                            );
+                        }
+                    }
+                    Err(_e) => {
+                        // indicate invalid date with ERROR, red text, and hover text explanation
+                        ui.add(
+                            egui::TextEdit::singleline(&mut format!("ERROR"))
+                                .text_color(ui.visuals().error_fg_color)
+                                .interactive(false),
+                        );
+                    }
+                }
+            }
+            if ui
+                .lock_unlock_button(&mut app.prep_session.edit_doa)
+                .clicked()
+            {
+                quick_error!(app.overwrite_client_data());
+                check_if_session_can_start = true;
+            }
+            ui.end_row();
+
+            // Saved to assessments file.
+            ui.label("Session Number");
+            let session_number =
+                ui.add(egui::DragValue::new(&mut app.data.current_session).range(1..=u32::MAX));
+            if session_number.lost_focus() {
+                quick_error!(app.overwrite_assessments());
+            }
+            if session_number.changed() {
+                let current_session = app.data.current_session;
+                if let Some(condtions) = app.data.chosen_assessment() {
+                    condtions.session = current_session;
+                }
+                check_if_session_can_start = true;
+            }
+            ui.end_row();
+
+            // Saved to client file.
+            edit_box(
+                ui,
+                "Case Manager",
+                &mut app.data.client.case_manager,
+                &mut check_if_session_can_start,
+                app.prep_session.edit_case_manager,
+            );
+            if ui
+                .lock_unlock_button(&mut app.prep_session.edit_case_manager)
+                .clicked()
+            {
+                check_if_session_can_start = true;
+                quick_error!(app.overwrite_client_data());
+            };
+            ui.end_row();
+
+            // Saved to client file.
+            edit_box(
+                ui,
+                "Primary Therapist",
+                &mut app.data.client.primary_therapist,
+                &mut check_if_session_can_start,
+                app.prep_session.edit_primary_therapist,
+            );
+            if ui
+                .lock_unlock_button(&mut app.prep_session.edit_primary_therapist)
+                .clicked()
+            {
+                check_if_session_can_start = true;
+                quick_error!(app.overwrite_client_data());
+            }
+            ui.end_row();
+
+            // Not saved to any file.
+            edit_box(
+                ui,
+                "Session Therapist",
+                &mut app.data.session.therapist,
+                &mut check_if_session_can_start,
+                true,
+            );
+            ui.end_row();
+
+            // Not saved to any file.
+            edit_box(
+                ui,
+                "Data Collector",
+                &mut app.data.session.data_collector,
+                &mut check_if_session_can_start,
+                true,
+            );
+            ui.end_row();
+
+            ui.label("Primary/Reliability");
+            egui::ComboBox::from_id_salt("datatype")
+                .selected_text(app.data.session.data_collection_type.to_string())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(
+                        &mut app.data.session.data_collection_type,
+                        DataCollectionType::Primary,
+                        "Primary",
+                    );
+                    ui.selectable_value(
+                        &mut app.data.session.data_collection_type,
+                        DataCollectionType::Reliability,
+                        "Reliability",
+                    );
+                });
+            ui.end_row();
+
+            ui.label("Assessment");
+            let assessment_text = match app.data.assessment_chosen() {
+                true => egui::RichText::new(&app.data.session.chosen_assessment),
+                false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
+            };
+            egui::ComboBox::from_id_salt("assessment")
+                .selected_text(assessment_text)
+                .show_ui(ui, |ui| {
+                    for (name, assessment) in app.data.assessments.iter() {
+                        if ui
+                            .selectable_value(
+                                &mut app.data.session.chosen_assessment,
+                                name.clone(),
+                                name.clone(),
+                            )
+                            .clicked()
+                        {
+                            app.data.session.chosen_condition = assessment
+                                .first_condition()
+                                .unwrap_or(&String::new())
+                                .clone();
+                            app.data.current_session = assessment.session;
+                            if app.data.ksfs.contains_key(&assessment.preferred_ksf) {
+                                app.data.session.chosen_ksf_name = assessment.preferred_ksf.clone();
+                            }
+                            check_if_session_can_start = true;
+                        }
+                    }
+                });
+            ui.end_row();
+
+            ui.label("Condition");
+            let condition_text = match app.data.condition_chosen() {
+                true => egui::RichText::new(&app.data.session.chosen_condition),
+                false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
+            };
+            egui::ComboBox::from_id_salt("condition")
+                .selected_text(condition_text)
+                .show_ui(ui, |ui| {
+                    if let Some(conds) = app.data.assessments.get(app.data.chosen_assessment_name())
+                    {
+                        for cond in conds.conditions.iter() {
+                            if ui
+                                .selectable_value(
+                                    &mut app.data.session.chosen_condition,
+                                    cond.to_string(),
+                                    cond,
+                                )
+                                .clicked()
+                            {
+                                check_if_session_can_start = true;
+                            }
+                        }
+                    }
+                });
+            ui.end_row();
+
+            if ui
+                .checkbox(
+                    &mut app.data.session.limit_active_time,
+                    "Set Max Active Time",
+                )
+                .clicked()
+            {
+                if !app.data.session.limit_active_time {
+                    app.data.session.max_active_time = 0.0
+                }
+                check_if_session_can_start = true;
+            };
+            if app.data.session.limit_active_time {
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut app.data.session.max_active_time)
+                            .speed(1.0)
+                            .suffix("  secs")
+                            .range(0.0..=999_999.0), // maximum is about 11.5 days, well beyond realistic maximum usage and well within precision limits of f32
+                    )
+                    .changed()
+                {
+                    check_if_session_can_start = true;
+                };
+            };
+            ui.end_row();
+
+            if ui
+                .checkbox(&mut app.data.session.limit_total_time, "Set Max Total Time")
+                .clicked()
+            {
+                if !app.data.session.limit_total_time {
+                    app.data.session.max_total_time = 0.0
+                }
+                check_if_session_can_start = true;
+            };
+            if app.data.session.limit_total_time {
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut app.data.session.max_total_time)
+                            .speed(1.0)
+                            .suffix("  secs")
+                            .range(0.0..=999_999.0), // maximum is about 11.5 days, well beyond realistic maximum usage and well within precision limits of f32
+                    )
+                    .changed()
+                {
+                    check_if_session_can_start = true;
+                };
+            };
+
+            if check_if_session_can_start {
+                app.data.update_misconfigurations();
+            }
+        });
+}
+
 pub struct PrepareSession {
     pub edit_primary_therapist: bool,
     pub edit_case_manager: bool,
@@ -40,267 +312,7 @@ impl Default for PrepareSession {
 impl PrepareSession {
     fn client_and_session_information(app: &mut DataPro, ui: &mut egui::Ui) {
         ui.add_enabled_ui(app.data.client_loaded(), |ui| {
-            egui::Grid::new("client_and_session_info_grid")
-                .min_col_width(120.0)
-                .min_row_height(22.0)
-                .show(ui, |ui| {
-                    let mut check_if_session_can_start = false;
-
-                    // Saved to client file.
-                    if edit_box(
-                        ui,
-                        "Location",
-                        &mut app.data.client.location,
-                        &mut check_if_session_can_start,
-                        true,
-                    )
-                    .lost_focus()
-                    {
-                        check_if_session_can_start = true;
-                        quick_error!(app.overwrite_client_data());
-                    }
-                    ui.end_row();
-
-                    // Saved to client file.
-                    ui.label("Date of Admission\n(MM-DD-YYYY)");
-                    if app.prep_session.edit_doa {
-                        let doa = ui.add(egui::TextEdit::singleline(
-                            &mut app.data.client.date_of_admission,
-                        ));
-                        if doa.lost_focus() {
-                            quick_error!(app.overwrite_client_data());
-                        }
-                        if doa.changed() {
-                            check_if_session_can_start = true;
-                        }
-                        // The rest of these are non-editable display versions of the DOA
-                    } else {
-                        match app.data.client.days_since_admission() {
-                            Ok(n) => {
-                                // emphasize negative DOA with red text
-                                if n.is_negative() {
-                                    ui.add(
-                                        egui::TextEdit::singleline(&mut format!("{n} days ago"))
-                                            .text_color(ui.visuals().error_fg_color)
-                                            .interactive(false),
-                                    );
-                                } else {
-                                    // normal DOA information
-                                    ui.add(
-                                        egui::TextEdit::singleline(&mut format!("{n} days ago"))
-                                            .interactive(false),
-                                    );
-                                }
-                            }
-                            Err(_e) => {
-                                // indicate invalid date with ERROR, red text, and hover text explanation
-                                ui.add(
-                                    egui::TextEdit::singleline(&mut format!("ERROR"))
-                                        .text_color(ui.visuals().error_fg_color)
-                                        .interactive(false),
-                                );
-                            }
-                        }
-                    }
-                    if ui
-                        .lock_unlock_button(&mut app.prep_session.edit_doa)
-                        .clicked()
-                    {
-                        quick_error!(app.overwrite_client_data());
-                        check_if_session_can_start = true;
-                    }
-                    ui.end_row();
-
-                    // Saved to assessments file.
-                    ui.label("Session Number");
-                    let session_number = ui.add(
-                        egui::DragValue::new(&mut app.data.current_session).range(1..=u32::MAX),
-                    );
-                    if session_number.lost_focus() {
-                        quick_error!(app.overwrite_assessments());
-                    }
-                    if session_number.changed() {
-                        let current_session = app.data.current_session;
-                        if let Some(condtions) = app.data.chosen_assessment() {
-                            condtions.session = current_session;
-                        }
-                        check_if_session_can_start = true;
-                    }
-                    ui.end_row();
-
-                    // Saved to client file.
-                    edit_box(
-                        ui,
-                        "Case Manager",
-                        &mut app.data.client.case_manager,
-                        &mut check_if_session_can_start,
-                        app.prep_session.edit_case_manager,
-                    );
-                    if ui
-                        .lock_unlock_button(&mut app.prep_session.edit_case_manager)
-                        .clicked()
-                    {
-                        check_if_session_can_start = true;
-                        quick_error!(app.overwrite_client_data());
-                    };
-                    ui.end_row();
-
-                    // Saved to client file.
-                    edit_box(
-                        ui,
-                        "Primary Therapist",
-                        &mut app.data.client.primary_therapist,
-                        &mut check_if_session_can_start,
-                        app.prep_session.edit_primary_therapist,
-                    );
-                    if ui
-                        .lock_unlock_button(&mut app.prep_session.edit_primary_therapist)
-                        .clicked()
-                    {
-                        check_if_session_can_start = true;
-                        quick_error!(app.overwrite_client_data());
-                    }
-                    ui.end_row();
-
-                    // Not saved to any file.
-                    edit_box(
-                        ui,
-                        "Session Therapist",
-                        &mut app.data.session.therapist,
-                        &mut check_if_session_can_start,
-                        true,
-                    );
-                    ui.end_row();
-
-                    // Not saved to any file.
-                    edit_box(
-                        ui,
-                        "Data Collector",
-                        &mut app.data.session.data_collector,
-                        &mut check_if_session_can_start,
-                        true,
-                    );
-                    ui.end_row();
-
-                    ui.label("Primary/Reliability");
-                    egui::ComboBox::from_id_salt("datatype")
-                        .selected_text(app.data.session.data_collection_type.to_string())
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(
-                                &mut app.data.session.data_collection_type,
-                                DataCollectionType::Primary,
-                                "Primary",
-                            );
-                            ui.selectable_value(
-                                &mut app.data.session.data_collection_type,
-                                DataCollectionType::Reliability,
-                                "Reliability",
-                            );
-                        });
-                    ui.end_row();
-
-                    ui.label("Assessment");
-                    let assessment_text = match app.data.assessment_chosen() {
-                        true => egui::RichText::new(&app.data.session.chosen_assessment),
-                        false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
-                    };
-                    egui::ComboBox::from_id_salt("assessment")
-                        .selected_text(assessment_text)
-                        .show_ui(ui, |ui| {
-                            for (name, assessment) in app.data.assessments.iter() {
-                                if ui
-                                    .selectable_value(
-                                        &mut app.data.session.chosen_assessment,
-                                        name.clone(),
-                                        name.clone(),
-                                    )
-                                    .clicked()
-                                {
-                                    app.data.session.chosen_condition = assessment
-                                        .first_condition()
-                                        .unwrap_or(&String::new())
-                                        .clone();
-                                    app.data.current_session = assessment.session;
-                                    if app.data.ksfs.contains_key(&assessment.preferred_ksf) {
-                                        app.data.session.chosen_ksf_name =
-                                            assessment.preferred_ksf.clone();
-                                    }
-                                    check_if_session_can_start = true;
-                                }
-                            }
-                        });
-                    ui.end_row();
-
-                    ui.label("Condition");
-                    let condition_text = match app.data.condition_chosen() {
-                        true => egui::RichText::new(&app.data.session.chosen_condition),
-                        false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
-                    };
-                    egui::ComboBox::from_id_salt("condition")
-                        .selected_text(condition_text)
-                        .show_ui(ui, |ui| {
-                            if let Some(conds) =
-                                app.data.assessments.get(app.data.chosen_assessment_name())
-                            {
-                                for cond in conds.conditions.iter() {
-                                    if ui
-                                        .selectable_value(
-                                            &mut app.data.session.chosen_condition,
-                                            cond.to_string(),
-                                            cond,
-                                        )
-                                        .clicked()
-                                    {
-                                        check_if_session_can_start = true;
-                                    }
-                                }
-                            }
-                        });
-                    ui.end_row();
-
-                    if ui
-                        .checkbox(&mut app.data.session.limit_active_time, "Max Active Time")
-                        .clicked()
-                    {
-                        check_if_session_can_start = true;
-                    };
-                    if ui
-                        .add_enabled(
-                            app.data.session.limit_active_time,
-                            egui::DragValue::new(&mut app.data.session.max_active_time)
-                                .speed(1.0)
-                                .suffix("  secs")
-                                .range(0.0..=999_999.0), // maximum is about 11.5 days, well within precision limits of f32
-                        )
-                        .changed()
-                    {
-                        check_if_session_can_start = true;
-                    };
-                    ui.end_row();
-
-                    if ui
-                        .checkbox(&mut app.data.session.limit_total_time, "Max Total Time")
-                        .clicked()
-                    {
-                        check_if_session_can_start = true;
-                    };
-                    if ui
-                        .add_enabled(
-                            app.data.session.limit_total_time,
-                            egui::DragValue::new(&mut app.data.session.max_total_time)
-                                .speed(1.0)
-                                .suffix("  secs")
-                                .range(0.0..=999_999.0), // maximum is about 11.5 days, well within precision limits of f32
-                        )
-                        .changed()
-                    {
-                        check_if_session_can_start = true;
-                    };
-
-                    if check_if_session_can_start {
-                        app.data.update_misconfigurations();
-                    }
-                });
+            client_prep_controls(app, ui);
             ui.add_space(10.0);
         });
     }
@@ -405,7 +417,52 @@ impl DataPro {
                                 ))),
                             }
                         }
-                    })
+                    });
+                    if cfg!(debug_assertions) {
+                        ui.add_space(5.0);
+                        ui.add_enabled_ui(self.data.client_loaded(), |ui| {
+                            if ui
+                                .button(
+                                    RichText::from("simulate 10 sessions (with reli)")
+                                        .color(ui.visuals().warn_fg_color),
+                                )
+                                .clicked()
+                            {
+                                for i in
+                                    self.data.current_session..=(self.data.current_session + 10)
+                                {
+                                    crate::data::SessionResults::simulate_session_results(
+                                        self.path_assessment_condition_dir(),
+                                        &self.data,
+                                        i,
+                                        true,
+                                        1234567890,
+                                    );
+                                }
+                                self.data.current_session += 10;
+                            }
+                            if ui
+                                .button(
+                                    RichText::from("simulate 10 primary sessions")
+                                        .color(ui.visuals().warn_fg_color),
+                                )
+                                .clicked()
+                            {
+                                for i in
+                                    self.data.current_session..=(self.data.current_session + 10)
+                                {
+                                    crate::data::SessionResults::simulate_session_results(
+                                        self.path_assessment_condition_dir(),
+                                        &self.data,
+                                        i,
+                                        false,
+                                        1234567890,
+                                    );
+                                }
+                                self.data.current_session += 10;
+                            }
+                        });
+                    };
                 });
                 ui.add_space(50.0);
                 ui.vertical(|ui| {

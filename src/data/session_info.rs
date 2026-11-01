@@ -28,7 +28,7 @@ impl DataCollectionType {
 }
 
 /// Data needed for running a session
-#[derive(Clone, Serialize, Deserialize, Default, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct SessionInfo {
     pub chosen_assessment: String,
     pub chosen_condition: String,
@@ -36,8 +36,12 @@ pub struct SessionInfo {
     pub therapist: String,
     pub data_collector: String,
     pub data_collection_type: DataCollectionType,
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub limit_active_time: bool,
     pub max_active_time: f32,
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub limit_total_time: bool,
     pub max_total_time: f32,
 }

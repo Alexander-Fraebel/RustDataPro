@@ -14,8 +14,8 @@ pub const NO_LOCATION: &'static str = "no Location provided";
 pub const NO_DATA_COLLECTOR: &'static str = "no Data Collector provided";
 pub const INVALID_DATE: &'static str = "Date of Admission is not valid";
 pub const INVALID_SESSION: &'static str = "Session Number cannot be 0";
-pub const INVALID_MAX_SESSION: &'static str = "Max Session Length cannot be 0.0 seconds";
-pub const INVALID_MAX_TOTAL: &'static str = "Max Total Length cannot be 0.0 seconds";
+pub const INVALID_MAX_SESSION: &'static str = "Maximum Active Time cannot be 0.0 seconds";
+pub const INVALID_MAX_TOTAL: &'static str = "Maximum Total Time cannot be 0.0 seconds";
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ClientAndSessionInfo {
