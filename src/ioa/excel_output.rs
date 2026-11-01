@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     data::{IoaData, SessionResults},
     ioa::quick_file_name,
@@ -5,7 +7,6 @@ use crate::{
 use anyhow::Result;
 use egui::Key;
 use rust_xlsxwriter::*;
-use std::path::PathBuf;
 
 fn write_excel_line<'a>(
     worksheet: &'a mut Worksheet,
@@ -27,8 +28,7 @@ fn write_excel_line<'a>(
 pub fn save_excel_workbook(
     ioa_data: &IoaData,
     file_stem: &str,
-    prim_data: &Vec<(SessionResults, PathBuf)>,
-    reli_data: &Vec<(SessionResults, PathBuf)>,
+    simplified: &Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>,
 ) -> Result<()> {
     let mut workbook = Workbook::new();
     let data_summary = workbook.add_worksheet();
@@ -38,7 +38,7 @@ pub fn save_excel_workbook(
 
     let num_format = Format::new().set_num_format("0%");
 
-    let map = prim_data[0].0.ksf.create_map();
+    let map = simplified[0].0.0.ksf.create_map();
     let mut col = 1;
     for (k, _) in ioa_data.sixty_sec_interval.iter() {
         data_summary.write(0, col, map.get(k).unwrap_or(&String::from("UNKNOWN KEY")))?;
@@ -80,7 +80,7 @@ pub fn save_excel_workbook(
     data_sources.set_column_width(3, 22)?;
     data_sources.write(0, 0, "Data Taken from")?;
     let mut ctr = 0;
-    for (p, r) in prim_data.iter().zip(reli_data.iter()) {
+    for (p, r) in simplified {
         data_sources.write(ctr, 2, quick_file_name(&p.1))?;
         data_sources.write(ctr, 3, quick_file_name(&r.1))?;
         ctr += 1;

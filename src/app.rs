@@ -5,7 +5,7 @@ use crate::{
     },
     data::{AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT},
     display_control::{DisplayControl, Page},
-    ioa::{IoaPage, validate_files::validate_files},
+    ioa::IoaPage,
     pages::{
         CollatePage, CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage,
         Shuffler, Timers,
@@ -282,7 +282,6 @@ impl DataPro {
         let path = self.path_to_ioa_data_dir();
         let ioa_page = &mut self.ioa_page;
         if !ioa_page.ioa_finished {
-            validate_files(&ioa_page.prim_data, &ioa_page.reli_data)?;
             ioa_page.calculate_ioa(&path)?;
             ioa_page.ioa_finished = true;
             Ok(())

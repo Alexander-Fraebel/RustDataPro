@@ -1,6 +1,7 @@
+use super::IoaDataMap;
 use crate::{
     app::DataPro,
-    data::{DataCollectionType, IoaData, SessionResults},
+    data::{IoaData, SessionResults},
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
         excel_output::save_excel_workbook,
@@ -12,15 +13,12 @@ use anyhow::{Context, Result};
 use egui::{Color32, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use std::{
-    collections::BTreeMap,
     fs::File,
     io::{BufWriter, Write},
     path::{Path, PathBuf},
 };
 
 pub struct IoaPage {
-    pub prim_data: Vec<(SessionResults, PathBuf)>,
-    pub reli_data: Vec<(SessionResults, PathBuf)>,
     pub ioa_finished: bool,
     pub strict: bool, // if true ignore intervals with no data from either recorder when calculating reliability, defaults to true
     pub none_val: f32,
@@ -28,20 +26,12 @@ pub struct IoaPage {
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
     pub save_path: PathBuf,
-    pub data: BTreeMap<
-        u32,
-        (
-            Option<(SessionResults, PathBuf)>,
-            Option<(SessionResults, PathBuf)>,
-        ),
-    >,
+    pub data: IoaDataMap,
 }
 
 impl Default for IoaPage {
     fn default() -> Self {
         Self {
-            prim_data: Vec::new(),
-            reli_data: Vec::new(),
             ioa_finished: false,
             strict: true,
             none_val: f32::NAN,
@@ -49,7 +39,7 @@ impl Default for IoaPage {
             select_path: PathBuf::default(),
             save_file_dialog: FileDialog::new(),
             save_path: PathBuf::default(),
-            data: Default::default(),
+            data: IoaDataMap::default(),
         }
     }
 }
@@ -66,8 +56,12 @@ impl IoaPage {
         self.save_file_dialog = FileDialog::new().initial_directory(save_new_path.clone());
     }
 
-    fn interval_ioa(&self, ioa_data: &mut IoaData) {
-        for ((p, _), (r, _)) in self.prim_data.iter().zip(self.reli_data.iter()) {
+    fn interval_ioa(
+        &self,
+        ioa_data: &mut IoaData,
+        simplified: &Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>,
+    ) -> Result<()> {
+        for ((p, _), (r, _)) in simplified {
             let max_time = if p.total_time >= r.total_time {
                 p.total_time
             } else {
@@ -100,10 +94,15 @@ impl IoaPage {
                 ioa_data.sixty_sec_interval[key] += r60;
             }
         }
+        Ok(())
     }
 
-    fn frequency_ioa(&self, ioa_data: &mut IoaData) -> Result<()> {
-        for ((p, _), (r, _)) in self.prim_data.iter().zip(self.reli_data.iter()) {
+    fn frequency_ioa(
+        &self,
+        ioa_data: &mut IoaData,
+        simplified: &Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>,
+    ) -> Result<()> {
+        for ((p, _), (r, _)) in simplified {
             for (key, _desc) in p.ksf.freq.iter() {
                 // Total Count IOA
                 let primary_count =
@@ -119,8 +118,12 @@ impl IoaPage {
         Ok(())
     }
 
-    fn duration_ioa(&self, ioa_data: &mut IoaData) -> Result<()> {
-        for ((p, _), (r, _)) in self.prim_data.iter().zip(self.reli_data.iter()) {
+    fn duration_ioa(
+        &self,
+        ioa_data: &mut IoaData,
+        simplified: &Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>,
+    ) -> Result<()> {
+        for ((p, _), (r, _)) in simplified {
             for (key, _desc) in p.ksf.dura.iter() {
                 // Total Duration IOA
                 let primary_dur = p
@@ -148,19 +151,22 @@ impl IoaPage {
     }
 
     pub fn calculate_ioa(&mut self, ioa_directory: &PathBuf) -> Result<()> {
-        let mut ioa_data = IoaData::from_ksf(&self.prim_data[0].0.ksf);
+        let simplified = self.data.validated()?;
 
-        self.interval_ioa(&mut ioa_data);
-        self.frequency_ioa(&mut ioa_data)?;
-        self.duration_ioa(&mut ioa_data)?;
+        let ksf = &simplified[0].0.0.ksf;
+        let mut ioa_data = IoaData::from_ksf(ksf);
 
-        ioa_data.normalize(self.prim_data.len() as f32)?;
+        self.interval_ioa(&mut ioa_data, &simplified);
+        self.frequency_ioa(&mut ioa_data, &simplified)?;
+        self.duration_ioa(&mut ioa_data, &simplified)?;
+
+        ioa_data.normalize(simplified.len() as f32)?;
         let path = Path::new(ioa_directory)
             .join(format!("reliability_{}", time_stamp()))
             .to_string_lossy()
             .to_string();
 
-        save_excel_workbook(&ioa_data, &path, &self.prim_data, &self.reli_data)?;
+        save_excel_workbook(&ioa_data, &path, &simplified)?;
 
         let mut writer = BufWriter::new(File::create(&format!("{}.txt", path))?);
         writer.write_all(ioa_data.to_json()?.as_bytes())?;
@@ -191,24 +197,9 @@ impl DataPro {
             // Simultaneously parse and filter the input files.
             for buf in bufs {
                 match SessionResults::from_file_path(buf.as_path()) {
-                    Ok(results) => match results.session_data.data_collection_type {
-                        DataCollectionType::Primary => {
-                            self.ioa_page
-                                .data
-                                .entry(results.session_number)
-                                .and_modify(|e| e.0 = Some((results.clone(), buf.clone())))
-                                .or_insert((Some((results.clone(), buf.clone())), None));
-                            self.ioa_page.prim_data.push((results, buf));
-                        }
-                        DataCollectionType::Reliability => {
-                            self.ioa_page
-                                .data
-                                .entry(results.session_number)
-                                .and_modify(|e| e.1 = Some((results.clone(), buf.clone())))
-                                .or_insert((None, Some((results.clone(), buf.clone()))));
-                            self.ioa_page.reli_data.push((results, buf))
-                        }
-                    },
+                    Ok(results) => {
+                        crate::quick_error!(self.ioa_page.data.insert(results, buf))
+                    }
                     Err(e) => windows_error_dialog(e),
                 }
             }
@@ -247,7 +238,7 @@ impl DataPro {
                                     RichText::new("Reliability Data").monospace().underline(),
                                 );
                                 ui.end_row();
-                                for (_, (p, r)) in self.ioa_page.data.iter() {
+                                for (_, (p, r)) in self.ioa_page.data.0.iter() {
                                     if let Some((_, path)) = p {
                                         let name =
                                             RichText::new(format!("{}", quick_file_name(&path)))

@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 /// Output of a single session. Includes the Client and Session data along with the recorded keypresses and times, and the KSF to translate those.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SessionResults {
     pub datetime: String,
     pub client_name: String,

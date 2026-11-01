@@ -7,7 +7,7 @@ use std::{
 };
 
 /// Sequence of keypresses and their relative to the start of session
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct Timeline(Vec<(Key, f32)>);
 
 impl Deref for Timeline {
