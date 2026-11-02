@@ -6,7 +6,6 @@ use anyhow::Result;
 use chrono::Local;
 use egui::Key;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use rand::SeedableRng;
 use rand_distr::Distribution;
 use rust_xlsxwriter::*;
@@ -82,50 +81,6 @@ impl SessionResults {
         let mut stem = self.file_name_stem();
         stem.push_str(".json");
         stem
-    }
-
-    pub fn timeline_to_xlsx(&self) -> Result<Workbook> {
-        let mut workbook = Workbook::new();
-        let timeline = &self.timeline;
-
-        let graph = workbook.add_worksheet();
-        let mut height_map = std::collections::HashMap::new();
-        height_map.insert(&Key::Tab, (0, 1));
-        graph.write(0, 0, "Start/Stop")?;
-        let mut ctr = 2;
-        for k in timeline.iter().map(|(k, _)| k).unique() {
-            if ![Key::Escape, Key::Space, Key::Tab].contains(k) {
-                height_map.insert(k, (ctr, 1));
-                graph.write(ctr, 0, k.symbol_or_name())?;
-                ctr += 2;
-            }
-        }
-
-        for (key, time) in timeline.iter() {
-            let val = if [Key::Escape, Key::Space, Key::Tab].contains(key) {
-                height_map.get_mut(&Key::Tab).unwrap()
-            } else {
-                height_map.get_mut(key).unwrap()
-            };
-            graph.write(val.0, val.1, (val.0 / 2) as f64)?;
-            graph.write(val.0 + 1, val.1, *time)?;
-            val.1 += 1;
-        }
-
-        let mut chart = Chart::new_scatter();
-        chart.y_axis().set_hidden(true); // carries no information
-        for row in 0..height_map.len() {
-            let row = (row as u32) * 2;
-            let next_row = row + 1;
-            chart
-                .add_series()
-                .set_name(("Sheet1", row * 2, 0))
-                .set_values(("Sheet1", row, 1, row, 10000))
-                .set_categories(("Sheet1", next_row, 1, next_row, 10000));
-        }
-        graph.insert_chart(1 + height_map.len() as u32, 0, &chart)?;
-
-        Ok(workbook)
     }
 
     pub fn to_xlsx(&self) -> Result<Workbook> {
@@ -225,7 +180,7 @@ impl SessionResults {
             row += 1;
         }
 
-        information.merge_range(1, column_name_to_number("J"), 6, column_name_to_number("L"), "The .json file created along with this contains more detailed information including a timeline of keypresses. It can be read in Notepad.", &Format::new().set_text_wrap())?;
+        information.merge_range(1, column_name_to_number("J"), 6, column_name_to_number("L"), "The matching .json file contains more detailed information including a timeline of keypresses. It can be read in Notepad.", &Format::new().set_text_wrap())?;
 
         ////////////////////////////
         // Data Summary Worksheet //
