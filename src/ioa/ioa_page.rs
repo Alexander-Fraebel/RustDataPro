@@ -239,36 +239,64 @@ impl DataPro {
                                 );
                                 ui.end_row();
                                 for (_, (p, r)) in self.ioa_page.data.0.iter() {
-                                    if let Some((_, path)) = p {
-                                        let name =
-                                            RichText::new(format!("{}", quick_file_name(&path)))
-                                                .monospace();
-                                        if r.is_none() {
+                                    match (p, r) {
+                                        (None, None) => todo!(),
+                                        (None, Some((_, path))) => {
+                                            let name = RichText::new(format!(
+                                                "{}",
+                                                quick_file_name(&path)
+                                            ))
+                                            .monospace();
+                                            ui.monospace(
+                                                RichText::new("Missing!").color(Color32::RED),
+                                            );
+                                            ui.monospace("");
                                             ui.label(name.color(Color32::RED));
-                                        } else {
-                                            ui.label(name.strong());
                                         }
-                                    } else {
-                                        ui.monospace("missing");
-                                    }
-                                    ui.monospace("");
-                                    if let Some((_, path)) = r {
-                                        let name =
-                                            RichText::new(format!("{}", quick_file_name(&path)))
-                                                .monospace();
-                                        if p.is_none() {
+                                        (Some((_, path)), None) => {
+                                            let name = RichText::new(format!(
+                                                "{}",
+                                                quick_file_name(&path)
+                                            ))
+                                            .monospace();
                                             ui.label(name.color(Color32::RED));
-                                        } else {
-                                            ui.label(name.strong());
+                                            ui.monospace("");
+                                            ui.monospace(
+                                                RichText::new("Missing!").color(Color32::RED),
+                                            );
                                         }
-                                    } else {
-                                        ui.monospace("missing");
+                                        (Some((p_res, p_path)), Some((r_res, r_path))) => {
+                                            let p_name = RichText::new(format!(
+                                                "{}",
+                                                quick_file_name(&p_path)
+                                            ))
+                                            .monospace();
+                                            let r_name = RichText::new(format!(
+                                                "{}",
+                                                quick_file_name(&r_path)
+                                            ))
+                                            .monospace();
+
+                                            if p_res.complement_of(&r_res) {
+                                                ui.label(p_name);
+                                                ui.monospace("");
+                                                ui.label(r_name);
+                                            } else {
+                                                ui.label(p_name.color(Color32::RED));
+                                                ui.monospace("");
+                                                ui.label(r_name.color(Color32::RED));
+                                            }
+                                        }
                                     }
+
                                     ui.end_row();
                                 }
                             });
                     });
             });
+            ui.add_space(20.0);
+
+            ui.label("Files are highlighed in red if they cannot be compared for some reason. If both files are present and the file names match open the file in Notepad to check that the KSF, Client ID, Assessment, and Condition are all the same.");
             ui.add_space(20.0);
 
             if self.ioa_page.ioa_finished {

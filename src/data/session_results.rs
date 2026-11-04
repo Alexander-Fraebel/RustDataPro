@@ -71,12 +71,6 @@ impl SessionResults {
         stem
     }
 
-    pub fn xlsx_timeline_name(&self) -> String {
-        let mut stem = self.file_name_stem();
-        stem.push_str("_timeline.xlsx");
-        stem
-    }
-
     pub fn json_file_name(&self) -> String {
         let mut stem = self.file_name_stem();
         stem.push_str(".json");
