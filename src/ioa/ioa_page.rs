@@ -20,7 +20,7 @@ use std::{
 
 pub struct IoaPage {
     pub ioa_finished: bool,
-    pub strict: bool, // if true ignore intervals with no data from either recorder when calculating reliability, defaults to true
+    pub strict: bool, // if true, ignore intervals with no data from either recorder when calculating reliability, defaults to true
     pub none_val: f32,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
@@ -233,8 +233,8 @@ impl DataPro {
                             .min_col_width(40.0)
                             .show(ui, |ui| {
                                 ui.label(RichText::new("Primary Data").monospace().underline());
-                                ui.monospace("");
-                                ui.monospace(
+                                ui.label("");
+                                ui.label(
                                     RichText::new("Reliability Data").monospace().underline(),
                                 );
                                 ui.end_row();
@@ -242,49 +242,41 @@ impl DataPro {
                                     match (p, r) {
                                         (None, None) => todo!(),
                                         (None, Some((_, path))) => {
-                                            let name = RichText::new(format!(
-                                                "{}",
+                                            let name = RichText::new(
                                                 quick_file_name(&path)
-                                            ))
-                                            .monospace();
+                                            );
                                             ui.monospace(
                                                 RichText::new("Missing!").color(Color32::RED),
                                             );
                                             ui.monospace("");
-                                            ui.label(name.color(Color32::RED));
+                                            ui.monospace(name.color(Color32::RED));
                                         }
                                         (Some((_, path)), None) => {
-                                            let name = RichText::new(format!(
-                                                "{}",
+                                            let name = RichText::new(
                                                 quick_file_name(&path)
-                                            ))
-                                            .monospace();
-                                            ui.label(name.color(Color32::RED));
+                                            );
+                                            ui.monospace(name.color(Color32::RED));
                                             ui.monospace("");
                                             ui.monospace(
                                                 RichText::new("Missing!").color(Color32::RED),
                                             );
                                         }
                                         (Some((p_res, p_path)), Some((r_res, r_path))) => {
-                                            let p_name = RichText::new(format!(
-                                                "{}",
+                                            let p_name = RichText::new(
                                                 quick_file_name(&p_path)
-                                            ))
-                                            .monospace();
-                                            let r_name = RichText::new(format!(
-                                                "{}",
+                                            );
+                                            let r_name = RichText::new(
                                                 quick_file_name(&r_path)
-                                            ))
-                                            .monospace();
+                                            );
 
                                             if p_res.complement_of(&r_res) {
-                                                ui.label(p_name);
+                                                ui.monospace(p_name);
                                                 ui.monospace("");
-                                                ui.label(r_name);
+                                                ui.monospace(r_name);
                                             } else {
-                                                ui.label(p_name.color(Color32::RED));
+                                                ui.monospace(p_name.color(Color32::RED));
                                                 ui.monospace("");
-                                                ui.label(r_name.color(Color32::RED));
+                                                ui.monospace(r_name.color(Color32::RED));
                                             }
                                         }
                                     }
