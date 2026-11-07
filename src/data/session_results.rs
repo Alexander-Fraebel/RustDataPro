@@ -36,12 +36,29 @@ pub struct SessionResults {
 
 impl SessionResults {
     /// Is this file the complement of another file? Do they have the same Ksf, Client ID, Session Number, Assessment, and Condition?
-    pub fn complement_of(&self, other: &Self) -> bool {
-        self.ksf == other.ksf
-            && self.client_id == other.client_id
-            && self.session_number == other.session_number
-            && self.session_data.chosen_assessment == other.session_data.chosen_assessment
-            && self.session_data.chosen_condition == other.session_data.chosen_condition
+    pub fn complement_of(&self, other: &Self) -> Result<()> {
+        let mut err = Vec::new();
+        if self.ksf != other.ksf {
+            err.push("KSFs do not match");
+        }
+        if self.client_id != other.client_id {
+            err.push("Client IDs do not match");
+        }
+        if self.session_number != other.session_number {
+            err.push("Session Numbers do not match");
+        }
+        if self.session_data.chosen_assessment != other.session_data.chosen_assessment {
+            err.push("Assessments do not match");
+        }
+        if self.session_data.chosen_condition != other.session_data.chosen_condition {
+            err.push("Conditions do not match");
+        }
+
+        if err.is_empty() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(err.join("\n")))
+        }
     }
 
     pub fn file_name_stem(&self) -> String {

@@ -82,11 +82,11 @@ impl IoaDataMap {
                 .as_ref()
                 .context(format!("no reliability data for S{n:>03}"))?;
 
-            if !p.0.complement_of(&r.0) {
-                return Err(anyhow::anyhow!(
-                    "the primary and reliability files for S{n:>03} cannot be compared\ncheck that the Assessment, Condition, Client ID, KSF, and Session Number all match"
-                ));
-            }
+            // if !p.0.complement_of(&r.0) {
+            //     return Err(anyhow::anyhow!(
+            //         "the primary and reliability files for S{n:>03} cannot be compared\ncheck that the Assessment, Condition, Client ID, KSF, and Session Number all match"
+            //     ));
+            // }
 
             out.push((p, r));
         }

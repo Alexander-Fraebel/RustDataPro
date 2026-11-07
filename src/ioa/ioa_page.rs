@@ -234,17 +234,13 @@ impl DataPro {
                             .show(ui, |ui| {
                                 ui.label(RichText::new("Primary Data").monospace().underline());
                                 ui.label("");
-                                ui.label(
-                                    RichText::new("Reliability Data").monospace().underline(),
-                                );
+                                ui.label(RichText::new("Reliability Data").monospace().underline());
                                 ui.end_row();
                                 for (_, (p, r)) in self.ioa_page.data.0.iter() {
                                     match (p, r) {
                                         (None, None) => todo!(),
                                         (None, Some((_, path))) => {
-                                            let name = RichText::new(
-                                                quick_file_name(&path)
-                                            );
+                                            let name = RichText::new(quick_file_name(&path));
                                             ui.monospace(
                                                 RichText::new("Missing!").color(Color32::RED),
                                             );
@@ -252,9 +248,7 @@ impl DataPro {
                                             ui.monospace(name.color(Color32::RED));
                                         }
                                         (Some((_, path)), None) => {
-                                            let name = RichText::new(
-                                                quick_file_name(&path)
-                                            );
+                                            let name = RichText::new(quick_file_name(&path));
                                             ui.monospace(name.color(Color32::RED));
                                             ui.monospace("");
                                             ui.monospace(
@@ -262,21 +256,21 @@ impl DataPro {
                                             );
                                         }
                                         (Some((p_res, p_path)), Some((r_res, r_path))) => {
-                                            let p_name = RichText::new(
-                                                quick_file_name(&p_path)
-                                            );
-                                            let r_name = RichText::new(
-                                                quick_file_name(&r_path)
-                                            );
+                                            let p_name = RichText::new(quick_file_name(&p_path));
+                                            let r_name = RichText::new(quick_file_name(&r_path));
 
-                                            if p_res.complement_of(&r_res) {
-                                                ui.monospace(p_name);
-                                                ui.monospace("");
-                                                ui.monospace(r_name);
-                                            } else {
-                                                ui.monospace(p_name.color(Color32::RED));
-                                                ui.monospace("");
-                                                ui.monospace(r_name.color(Color32::RED));
+                                            match p_res.complement_of(&r_res) {
+                                                Ok(_) => {
+                                                    ui.monospace(p_name);
+                                                    ui.monospace("");
+                                                    ui.monospace(r_name);
+                                                }
+                                                Err(e) => {
+                                                    ui.monospace(p_name.color(Color32::RED));
+                                                    ui.monospace("");
+                                                    ui.monospace(r_name.color(Color32::RED));
+                                                    ui.monospace(e.to_string());
+                                                }
                                             }
                                         }
                                     }
@@ -286,9 +280,6 @@ impl DataPro {
                             });
                     });
             });
-            ui.add_space(20.0);
-
-            ui.label("Files are highlighed in red if they cannot be compared for some reason. If both files are present and the file names match open the file in Notepad to check that the KSF, Client ID, Assessment, and Condition are all the same.");
             ui.add_space(20.0);
 
             if self.ioa_page.ioa_finished {
