@@ -7,7 +7,9 @@ use crate::{
         excel_output::save_excel_workbook,
         quick_file_name,
     },
-    utils::{time_stamp, ui_elements::DataProUiElements, windows_error_dialog},
+    utils::{
+        are_you_sure_dialog, time_stamp, ui_elements::DataProUiElements, windows_error_dialog,
+    },
 };
 use anyhow::{Context, Result};
 use egui::{Color32, RichText, Ui};
@@ -27,6 +29,7 @@ pub struct IoaPage {
     pub save_file_dialog: FileDialog,
     pub save_path: PathBuf,
     pub data: IoaDataMap,
+    pub deleted_row: Option<u32>,
 }
 
 impl Default for IoaPage {
@@ -40,6 +43,7 @@ impl Default for IoaPage {
             save_file_dialog: FileDialog::new(),
             save_path: PathBuf::default(),
             data: IoaDataMap::default(),
+            deleted_row: None,
         }
     }
 }
@@ -205,6 +209,11 @@ impl DataPro {
             }
         }
 
+        if let Some(idx) = self.ioa_page.deleted_row {
+            self.ioa_page.data.remove(&idx);
+            self.ioa_page.deleted_row = None;
+        }
+
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Calculate IOA for");
             self.client_picker(ui);
@@ -232,11 +241,14 @@ impl DataPro {
                         egui::Grid::new("compare_prim_and_reli_grid")
                             .min_col_width(40.0)
                             .show(ui, |ui| {
-                                ui.label(RichText::new("Primary Data").monospace().underline());
+                                ui.label(RichText::new("Primary Files").monospace().underline());
                                 ui.label("");
-                                ui.label(RichText::new("Reliability Data").monospace().underline());
+                                ui.label(
+                                    RichText::new("Reliability Files").monospace().underline(),
+                                );
+                                ui.monospace("");
                                 ui.end_row();
-                                for (_, (p, r)) in self.ioa_page.data.0.iter() {
+                                for (idx, (p, r)) in self.ioa_page.data.0.iter() {
                                     match (p, r) {
                                         (None, None) => todo!(),
                                         (None, Some((_, path))) => {
@@ -246,6 +258,7 @@ impl DataPro {
                                             );
                                             ui.monospace("");
                                             ui.monospace(name.color(Color32::RED));
+                                            ui.monospace("");
                                         }
                                         (Some((_, path)), None) => {
                                             let name = RichText::new(quick_file_name(&path));
@@ -254,6 +267,7 @@ impl DataPro {
                                             ui.monospace(
                                                 RichText::new("Missing!").color(Color32::RED),
                                             );
+                                            ui.monospace("");
                                         }
                                         (Some((p_res, p_path)), Some((r_res, r_path))) => {
                                             let p_name = RichText::new(quick_file_name(&p_path));
@@ -264,6 +278,7 @@ impl DataPro {
                                                     ui.monospace(p_name);
                                                     ui.monospace("");
                                                     ui.monospace(r_name);
+                                                    ui.monospace("");
                                                 }
                                                 Err(e) => {
                                                     ui.monospace(p_name.color(Color32::RED));
@@ -274,7 +289,11 @@ impl DataPro {
                                             }
                                         }
                                     }
-
+                                    if ui.small_button("ignore").clicked() {
+                                        if are_you_sure_dialog("ignore both of these files?") {
+                                            self.ioa_page.deleted_row = Some(*idx)
+                                        }
+                                    };
                                     ui.end_row();
                                 }
                             });
