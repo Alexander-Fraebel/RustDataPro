@@ -1,8 +1,10 @@
+use std::fs::File;
+
 use crate::{
     app::DataPro,
     data::DataCollectionType,
     quick_error,
-    utils::{overwrite_file, ui_elements::DataProUiElements, windows_error_dialog},
+    utils::{ui_elements::DataProUiElements, windows_error_dialog},
 };
 use anyhow::Result;
 use egui::RichText;
@@ -375,18 +377,6 @@ impl DataPro {
         // Blank file with relevant session information
         let blank = self.blank_session_results();
 
-        // Create the file and append _ex as needed to avoid conflict
-        let stem = &blank.file_name_stem();
-        let mut json_file_name = self
-            .path_assessment_condition_dir()
-            .join(&format!("{stem}.json"));
-        let mut ex = String::new();
-        while json_file_name.exists() {
-            ex.push_str("_ex");
-            json_file_name.pop();
-            json_file_name = json_file_name.join(&format!("{stem}{ex}.json"));
-        }
-
         let stem = &blank.file_name_stem();
         let mut temp_file_name = self
             .path_assessment_condition_dir()
@@ -398,12 +388,11 @@ impl DataPro {
             temp_file_name = temp_file_name.join(&format!("{stem}{ex}_TEMP.txt"));
         }
 
-        // Write it to disk
-        overwrite_file(Ok(json_file_name.clone()), &serde_json::to_string(&blank)?)?;
-        overwrite_file(Ok(temp_file_name.clone()), "")?;
-
-        self.session.path_to_results = json_file_name;
-        self.session.path_to_temp = temp_file_name;
+        let file = File::options()
+            .append(true)
+            .create(true) // Creates the file if it doesn't exist
+            .open(&temp_file_name)?;
+        self.session.path_to_temp = Some(Box::new((file, temp_file_name)));
 
         Ok(())
     }

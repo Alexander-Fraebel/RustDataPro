@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{ClientAndSessionInfo, session_results::SessionResults, timeline::Timeline},
+    data::{ClientAndSessionInfo, timeline::Timeline},
     quick_error,
     utils::{
         ClickedKeys, overwrite_file, rounded_f32,
@@ -10,13 +10,16 @@ use crate::{
         ui_elements::DataProUiElements,
     },
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 use egui::{Color32, Key, Label, Layout, RichText, Ui};
 use egui_extras::Column;
 use indexmap::IndexMap;
-use std::path::PathBuf;
-use std::{fs, io::Write};
+use std::{
+    fs::{self, File},
+    io::Write,
+    path::PathBuf,
+};
 
 const DESCRIPTION_WIDTH: f32 = 100.0;
 const KEY_WIDTH: f32 = 30.0;
@@ -36,17 +39,15 @@ const PAUSE_SYMBOL: &'static str = "PT";
 const END_SYMBOL: &'static str = "ESC";
 
 macro_rules! record_keypress {
-    ($self:expr, $key:expr, $time:expr) => {
+    ($self:expr, $key:expr, $symbol:expr, $time:expr) => {
         $self.timeline.push(($key, rounded_f32($time)));
-        $self.keypresses_display.push($key.name());
+        $self.keypresses_display.push($symbol);
         $self.unpress_available = true;
 
-        let mut file = std::fs::File::options()
-            .append(true)
-            .open(&$self.path_to_temp)
-            .expect("missing file");
-        writeln!(file, "[{:?}, {}],", $key, rounded_f32($time))
-            .expect("unable to write to temp file");
+        if let Some(ref mut file) = $self.path_to_temp {
+            writeln!(file.0, "[{:?}, {}],", $key, rounded_f32($time))
+                .expect("unable to write to temp file");
+        }
     };
 }
 
@@ -139,7 +140,7 @@ pub struct SessionPage {
     pub confirm_end_open: bool,
     pub unpress_available: bool,
     pub path_to_results: PathBuf,
-    pub path_to_temp: PathBuf,
+    pub path_to_temp: Option<Box<(File, PathBuf)>>,
 }
 
 impl Default for SessionPage {
@@ -156,7 +157,7 @@ impl Default for SessionPage {
             confirm_end_open: false,
             unpress_available: false,
             path_to_results: PathBuf::new(),
-            path_to_temp: PathBuf::new(),
+            path_to_temp: None,
         }
     }
 }
@@ -189,12 +190,10 @@ impl SessionPage {
             }
         }
         self.main_timer.toggle_pause();
-        self.timeline
-            .push(((Key::Space), rounded_f32(self.main_timer.total_time())));
         if self.main_timer.is_paused() {
-            self.keypresses_display.push(PAUSE_SYMBOL);
+            self.record_keypress(egui::Key::Space, PAUSE_SYMBOL);
         } else {
-            self.keypresses_display.push(START_SYMBOL);
+            self.record_keypress(egui::Key::Space, START_SYMBOL);
         }
 
         self.unpress_available = false;
@@ -263,20 +262,31 @@ impl SessionPage {
     fn start_session(&mut self) {
         self.main_timer.start();
         self.start_time = Local::now();
-        self.timeline.push((Key::Tab, 0.0));
-        self.keypresses_display.push(START_SYMBOL);
+        record_keypress!(self, egui::Key::Tab, START_SYMBOL, 0.0);
     }
 
     /// Record a key press and its time. Also write to the temporary file.
-    fn record_keypress(&mut self, key: Key) {
-        record_keypress!(self, key, self.main_timer.total_time());
+    fn record_keypress(&mut self, key: Key, symbol: &'static str) {
+        record_keypress!(self, key, symbol, self.main_timer.total_time());
     }
 }
 
 impl DataPro {
     pub fn save_new_output_data(&mut self) -> Result<()> {
         // Load the temporary results file
-        let mut output_data = SessionResults::from_file_path(&self.session.path_to_results)?;
+        let mut output_data = self.blank_session_results();
+
+        // Create the file and append _ex as needed to avoid conflict
+        let stem = &output_data.file_name_stem();
+        let mut json_file_name = self
+            .path_assessment_condition_dir()
+            .join(&format!("{stem}.json"));
+        let mut ex = String::new();
+        while json_file_name.exists() {
+            ex.push_str("_ex");
+            json_file_name.pop();
+            json_file_name = json_file_name.join(&format!("{stem}{ex}.json"));
+        }
 
         let mut fre_data: IndexMap<Key, u32> = IndexMap::new();
         for (t, k, _desc) in self.session.freq_keys.iter() {
@@ -323,9 +333,12 @@ impl DataPro {
         self.overwrite_assessments()?;
 
         // At this point the necessary files have all been successfully written so we can delete the temp file.
-        fs::remove_file(&self.session.path_to_temp)?;
+        if let Some(file) = &self.session.path_to_temp {
+            fs::remove_file(&file.1)?;
+            self.session.path_to_temp = None;
+        }
+
         // Then clear the paths that are saved
-        self.session.path_to_temp.clear();
         self.session.path_to_results.clear();
 
         Ok(())
@@ -366,14 +379,13 @@ impl DataPro {
         // Open the window to ask to confirm ending session
         if self.session.clicked_keys.contains_key(&egui::Key::Escape) {
             self.session.confirm_end_open = true;
-            self.session.record_keypress(egui::Key::Escape);
+            self.session.record_keypress(egui::Key::Escape, "ESC");
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
         if self.session.clicked_keys.contains_key(&egui::Key::Space) {
             if self.session.main_timer.was_started() {
                 self.session.pause_unpause_all_timers();
             }
-            self.session.record_keypress(egui::Key::Space);
         }
         if self
             .session
@@ -395,13 +407,23 @@ impl DataPro {
                     if timer.is_active() {
                         *bouts += 1;
                     }
-                    record_keypress!(self.session, *key, self.session.main_timer.total_time());
+                    record_keypress!(
+                        self.session,
+                        *key,
+                        key.symbol_or_name(),
+                        self.session.main_timer.total_time()
+                    );
                 }
             }
             for (counter, key, _) in self.session.freq_keys.iter_mut() {
                 if self.session.clicked_keys.contains_key(key) {
                     *counter += 1;
-                    record_keypress!(self.session, *key, self.session.main_timer.total_time());
+                    record_keypress!(
+                        self.session,
+                        *key,
+                        key.symbol_or_name(),
+                        self.session.main_timer.total_time()
+                    );
                 }
             }
         }
@@ -448,6 +470,13 @@ impl DataPro {
                     if columns[1].large_red_button("DISCARD").clicked() {
                         self.session.reset();
                         self.go_to_prep_session();
+
+                        if let Some(file) = &self.session.path_to_temp {
+                            quick_error!(
+                                fs::remove_file(&file.1).context("error deleting temp file")
+                            );
+                            self.session.path_to_temp = None;
+                        }
                     }
                 });
             });
