@@ -139,7 +139,6 @@ pub struct SessionPage {
     pub save_discard_open: bool,
     pub confirm_end_open: bool,
     pub unpress_available: bool,
-    pub path_to_results: PathBuf,
     pub path_to_temp: Option<Box<(File, PathBuf)>>,
 }
 
@@ -156,7 +155,6 @@ impl Default for SessionPage {
             save_discard_open: false,
             confirm_end_open: false,
             unpress_available: false,
-            path_to_results: PathBuf::new(),
             path_to_temp: None,
         }
     }
@@ -209,6 +207,15 @@ impl SessionPage {
                 return;
             }
             self.keypresses_display.pop();
+            if let Some(ref mut file) = self.path_to_temp {
+                writeln!(
+                    file.0,
+                    "[{:?}, {}],",
+                    egui::Key::Backspace,
+                    rounded_f32(self.main_timer.total_time())
+                )
+                .expect("unable to write to temp file");
+            }
             if let Some((removed_key, _time)) = self.timeline.pop() {
                 for (timer, bouts, key, _) in self.dura_keys.iter_mut() {
                     if key == &removed_key {
@@ -305,10 +312,7 @@ impl DataPro {
         output_data.timeline = self.session.timeline.clone();
         output_data.session_data = self.data.session.clone();
 
-        overwrite_file(
-            Ok(self.session.path_to_results.clone()),
-            &output_data.to_json()?,
-        )?;
+        overwrite_file(Ok(json_file_name), &output_data.to_json()?)?;
 
         // After saving the results file make the Excel file
         let mut workbook = output_data.to_xlsx()?;
@@ -316,7 +320,7 @@ impl DataPro {
         let stem = output_data.file_name_stem();
         let mut xlsx_file_name = self
             .path_assessment_condition_dir()
-            .join(&format!("{stem}.xlsx"));
+            .join(&format!("{stem}{ex}.xlsx"));
 
         // Append _ex (extended) to each file if it already exists
         // A session might have needed to be extended multiple times so we loop until we reach a new name
@@ -337,9 +341,6 @@ impl DataPro {
             fs::remove_file(&file.1)?;
             self.session.path_to_temp = None;
         }
-
-        // Then clear the paths that are saved
-        self.session.path_to_results.clear();
 
         Ok(())
     }
@@ -379,7 +380,6 @@ impl DataPro {
         // Open the window to ask to confirm ending session
         if self.session.clicked_keys.contains_key(&egui::Key::Escape) {
             self.session.confirm_end_open = true;
-            self.session.record_keypress(egui::Key::Escape, "ESC");
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
         if self.session.clicked_keys.contains_key(&egui::Key::Space) {
@@ -437,6 +437,7 @@ impl DataPro {
                 ui.columns(2, |columns| {
                     columns[0].set_height(50.0);
                     if columns[0].large_green_button("YES").clicked() {
+                        self.session.record_keypress(egui::Key::Escape, "ESC");
                         self.session.confirm_end_open = false;
                         self.session.stop_all_timers();
                         if session_was_started {
@@ -468,15 +469,15 @@ impl DataPro {
                     }
                     columns[1].set_height(50.0);
                     if columns[1].large_red_button("DISCARD").clicked() {
-                        self.session.reset();
-                        self.go_to_prep_session();
-
+                        // Get rid of the temp file
                         if let Some(file) = &self.session.path_to_temp {
                             quick_error!(
                                 fs::remove_file(&file.1).context("error deleting temp file")
                             );
                             self.session.path_to_temp = None;
                         }
+                        self.session.reset();
+                        self.go_to_prep_session();
                     }
                 });
             });
