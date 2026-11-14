@@ -3,7 +3,9 @@ use crate::{
         ASSESSMENTS_FILE_NAME, CLIENT_DATA_FILE_NAME, Config, IOA_DATA_FOLDER_NAME, KSF_FILE_NAME,
         SESSION_DATA_FOLDER_NAME, path_to_config_file,
     },
-    data::{AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT},
+    data::{
+        AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT, SessionResults,
+    },
     display_control::{DisplayControl, Page},
     ioa::IoaPage,
     pages::{
@@ -193,6 +195,32 @@ impl DataPro {
                 }
             })
             .response
+    }
+
+    pub fn blank_session_results(&self) -> SessionResults {
+        SessionResults {
+            session_start_time: date_time_string(&self.session.start_time),
+            total_time: 0.0,
+            pause_time: 0.0,
+            active_time: 0.0,
+            session_data: self.data.session.clone(),
+            duration_data: Default::default(),
+            frequency_data: Default::default(),
+            timeline: self.session.timeline.clone(),
+            ksf: self
+                .data
+                .ksfs
+                .get(self.data.chosen_ksf_name())
+                .unwrap_or(&crate::data::Ksf::default())
+                .clone(),
+            client_name: self.data.client.name.clone(),
+            client_id: self.data.client.id.clone(),
+            case_manager: self.data.client.case_manager.clone(),
+            primary_therapist: self.data.client.primary_therapist.clone(),
+            session_number: self.data.current_session,
+            days_since_admission: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this error value should always be invalid but will avoid crashing by giving default
+            location: self.data.client.location.clone(),
+        }
     }
 
     pub fn root_dir(&self) -> PathBuf {

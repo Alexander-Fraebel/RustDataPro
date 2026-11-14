@@ -5,6 +5,7 @@ use std::{
     path::PathBuf,
 };
 
+/// Overwrite the specified file to create it and write to it if it doesn't exist.
 pub fn overwrite_file(pathbuf: Result<PathBuf>, data: &str) -> Result<()> {
     match pathbuf {
         Ok(pb) => {

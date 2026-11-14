@@ -1,7 +1,10 @@
 use crate::{
-    app::DataPro, data::DataCollectionType, quick_error, utils::ui_elements::DataProUiElements,
-    utils::windows_error_dialog,
+    app::DataPro,
+    data::DataCollectionType,
+    quick_error,
+    utils::{overwrite_file, ui_elements::DataProUiElements, windows_error_dialog},
 };
+use anyhow::Result;
 use egui::RichText;
 
 fn edit_box(
@@ -368,6 +371,43 @@ impl PrepareSession {
 }
 
 impl DataPro {
+    pub fn create_results_file(&mut self) -> Result<()> {
+        // Blank file with relevant session information
+        let blank = self.blank_session_results();
+
+        // Create the file and append _ex as needed to avoid conflict
+        let stem = &blank.file_name_stem();
+        let mut json_file_name = self
+            .path_assessment_condition_dir()
+            .join(&format!("{stem}.json"));
+        let mut ex = String::new();
+        while json_file_name.exists() {
+            ex.push_str("_ex");
+            json_file_name.pop();
+            json_file_name = json_file_name.join(&format!("{stem}{ex}.json"));
+        }
+
+        let stem = &blank.file_name_stem();
+        let mut temp_file_name = self
+            .path_assessment_condition_dir()
+            .join(&format!("{stem}_TEMP.txt"));
+        let mut ex = String::new();
+        while temp_file_name.exists() {
+            ex.push_str("_ex");
+            temp_file_name.pop();
+            temp_file_name = temp_file_name.join(&format!("{stem}{ex}_TEMP.txt"));
+        }
+
+        // Write it to disk
+        overwrite_file(Ok(json_file_name.clone()), &serde_json::to_string(&blank)?)?;
+        overwrite_file(Ok(temp_file_name.clone()), "")?;
+
+        self.session.path_to_results = json_file_name;
+        self.session.path_to_temp = temp_file_name;
+
+        Ok(())
+    }
+
     pub fn view_prep(&mut self, ui: &mut egui::Ui) {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.horizontal(|ui| {
@@ -408,7 +448,13 @@ impl DataPro {
                                         }
                                         self.session.load_ksf(&self.data);
                                         self.timers.stop_all_timers();
-                                        self.go_to_run_session();
+
+                                        // Create a results file
+                                        if let Err(e) = self.create_results_file() {
+                                            windows_error_dialog(e)
+                                        } else {
+                                            self.go_to_run_session();
+                                        }
                                     }
                                 }
                                 false => windows_error_dialog(anyhow::anyhow!(format!(

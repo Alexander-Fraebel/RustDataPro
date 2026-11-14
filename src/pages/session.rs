@@ -1,9 +1,9 @@
 use crate::{
     app::DataPro,
-    data::{ClientAndSessionInfo, Ksf, session_results::SessionResults, timeline::Timeline},
+    data::{ClientAndSessionInfo, session_results::SessionResults, timeline::Timeline},
     quick_error,
     utils::{
-        ClickedKeys, date_time_string, overwrite_file, rounded_f32,
+        ClickedKeys, overwrite_file, rounded_f32,
         timer::{
             Timer, TimerStatus, view_paused_timer_hms, view_stopwatch_hms, view_total_time_hms,
         },
@@ -15,6 +15,8 @@ use chrono::{DateTime, Local};
 use egui::{Color32, Key, Label, Layout, RichText, Ui};
 use egui_extras::Column;
 use indexmap::IndexMap;
+use std::path::PathBuf;
+use std::{fs, io::Write};
 
 const DESCRIPTION_WIDTH: f32 = 100.0;
 const KEY_WIDTH: f32 = 30.0;
@@ -38,6 +40,13 @@ macro_rules! record_keypress {
         $self.timeline.push(($key, rounded_f32($time)));
         $self.keypresses_display.push($key.name());
         $self.unpress_available = true;
+
+        let mut file = std::fs::File::options()
+            .append(true)
+            .open(&$self.path_to_temp)
+            .expect("missing file");
+        writeln!(file, "[{:?}, {}],", $key, rounded_f32($time))
+            .expect("unable to write to temp file");
     };
 }
 
@@ -129,6 +138,8 @@ pub struct SessionPage {
     pub save_discard_open: bool,
     pub confirm_end_open: bool,
     pub unpress_available: bool,
+    pub path_to_results: PathBuf,
+    pub path_to_temp: PathBuf,
 }
 
 impl Default for SessionPage {
@@ -144,6 +155,8 @@ impl Default for SessionPage {
             save_discard_open: false,
             confirm_end_open: false,
             unpress_available: false,
+            path_to_results: PathBuf::new(),
+            path_to_temp: PathBuf::new(),
         }
     }
 }
@@ -253,17 +266,44 @@ impl SessionPage {
         self.timeline.push((Key::Tab, 0.0));
         self.keypresses_display.push(START_SYMBOL);
     }
+
+    /// Record a key press and its time. Also write to the temporary file.
+    fn record_keypress(&mut self, key: Key) {
+        record_keypress!(self, key, self.main_timer.total_time());
+    }
 }
 
 impl DataPro {
     pub fn save_new_output_data(&mut self) -> Result<()> {
-        let output_data = self.create_output_data();
+        // Load the temporary results file
+        let mut output_data = SessionResults::from_file_path(&self.session.path_to_results)?;
+
+        let mut fre_data: IndexMap<Key, u32> = IndexMap::new();
+        for (t, k, _desc) in self.session.freq_keys.iter() {
+            fre_data.insert(*k, *t);
+        }
+        let mut dur_data: IndexMap<Key, (u32, f32)> = IndexMap::new();
+        for (t, bouts, k, _desc) in self.session.dura_keys.iter() {
+            dur_data.insert(*k, (*bouts, rounded_f32(t.active_time())));
+        }
+
+        output_data.frequency_data = fre_data;
+        output_data.duration_data = dur_data;
+        output_data.total_time = rounded_f32(self.session.main_timer.total_time());
+        output_data.pause_time = rounded_f32(self.session.main_timer.paused_time());
+        output_data.active_time = rounded_f32(self.session.main_timer.active_time());
+        output_data.timeline = self.session.timeline.clone();
+        output_data.session_data = self.data.session.clone();
+
+        overwrite_file(
+            Ok(self.session.path_to_results.clone()),
+            &output_data.to_json()?,
+        )?;
+
+        // After saving the results file make the Excel file
         let mut workbook = output_data.to_xlsx()?;
 
         let stem = output_data.file_name_stem();
-        let mut txt_file_name = self
-            .path_assessment_condition_dir()
-            .join(&format!("{stem}.json"));
         let mut xlsx_file_name = self
             .path_assessment_condition_dir()
             .join(&format!("{stem}.xlsx"));
@@ -271,60 +311,24 @@ impl DataPro {
         // Append _ex (extended) to each file if it already exists
         // A session might have needed to be extended multiple times so we loop until we reach a new name
         let mut ex = String::new();
-        while txt_file_name.exists() {
-            ex.push_str("_ex");
-            txt_file_name.pop();
-            txt_file_name = txt_file_name.join(&format!("{stem}{ex}.json"));
-        }
-
-        ex.clear();
         while xlsx_file_name.exists() {
             ex.push_str("_ex");
             xlsx_file_name.pop();
             xlsx_file_name = xlsx_file_name.join(&format!("{stem}{ex}.xlsx"));
         }
 
-        overwrite_file(Ok(txt_file_name), &serde_json::to_string(&output_data)?)?;
         workbook.save(xlsx_file_name)?;
 
         self.data.increment_current_session();
         self.overwrite_assessments()?;
+
+        // At this point the necessary files have all been successfully written so we can delete the temp file.
+        fs::remove_file(&self.session.path_to_temp)?;
+        // Then clear the paths that are saved
+        self.session.path_to_temp.clear();
+        self.session.path_to_results.clear();
+
         Ok(())
-    }
-
-    pub fn create_output_data(&self) -> SessionResults {
-        let mut fre_map: IndexMap<Key, u32> = IndexMap::new();
-        for (t, k, _desc) in self.session.freq_keys.iter() {
-            fre_map.insert(*k, *t);
-        }
-        let mut dur_map: IndexMap<Key, (u32, f32)> = IndexMap::new();
-        for (t, bouts, k, _desc) in self.session.dura_keys.iter() {
-            dur_map.insert(*k, (*bouts, rounded_f32(t.active_time())));
-        }
-
-        SessionResults {
-            session_start_time: date_time_string(&self.session.start_time),
-            total_time: rounded_f32(self.session.main_timer.total_time()),
-            pause_time: rounded_f32(self.session.main_timer.paused_time()),
-            active_time: rounded_f32(self.session.main_timer.active_time()),
-            session_data: self.data.session.clone(),
-            duration_data: dur_map,
-            frequency_data: fre_map,
-            timeline: self.session.timeline.clone(),
-            ksf: self
-                .data
-                .ksfs
-                .get(self.data.chosen_ksf_name())
-                .unwrap_or(&Ksf::default())
-                .clone(),
-            client_name: self.data.client.name.clone(),
-            client_id: self.data.client.id.clone(),
-            case_manager: self.data.client.case_manager.clone(),
-            primary_therapist: self.data.client.primary_therapist.clone(),
-            session_number: self.data.current_session,
-            days_since_admission: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this should always be invalid but will avoid crashing by giving default
-            location: self.data.client.location.clone(),
-        }
     }
 
     pub fn view_session(&mut self, ui: &mut Ui) {
@@ -362,12 +366,14 @@ impl DataPro {
         // Open the window to ask to confirm ending session
         if self.session.clicked_keys.contains_key(&egui::Key::Escape) {
             self.session.confirm_end_open = true;
+            self.session.record_keypress(egui::Key::Escape);
         }
         // Pausing can be toggled. Definition of pause prevents this from being used when Stopped.
         if self.session.clicked_keys.contains_key(&egui::Key::Space) {
             if self.session.main_timer.was_started() {
                 self.session.pause_unpause_all_timers();
             }
+            self.session.record_keypress(egui::Key::Space);
         }
         if self
             .session
