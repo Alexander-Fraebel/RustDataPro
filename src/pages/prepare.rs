@@ -392,7 +392,7 @@ impl DataPro {
             .append(true)
             .create(true) // Creates the file if it doesn't exist
             .open(&temp_file_name)?;
-        self.session.path_to_temp = Some(Box::new((file, temp_file_name)));
+        self.session.temp_file = Some(Box::new((file, temp_file_name)));
 
         Ok(())
     }

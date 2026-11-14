@@ -44,7 +44,7 @@ macro_rules! record_keypress {
         $self.keypresses_display.push($symbol);
         $self.unpress_available = true;
 
-        if let Some(ref mut file) = $self.path_to_temp {
+        if let Some(ref mut file) = $self.temp_file {
             writeln!(file.0, "[{:?}, {}],", $key, rounded_f32($time))
                 .expect("unable to write to temp file");
         }
@@ -139,7 +139,7 @@ pub struct SessionPage {
     pub save_discard_open: bool,
     pub confirm_end_open: bool,
     pub unpress_available: bool,
-    pub path_to_temp: Option<Box<(File, PathBuf)>>,
+    pub temp_file: Option<Box<(File, PathBuf)>>,
 }
 
 impl Default for SessionPage {
@@ -155,7 +155,7 @@ impl Default for SessionPage {
             save_discard_open: false,
             confirm_end_open: false,
             unpress_available: false,
-            path_to_temp: None,
+            temp_file: None,
         }
     }
 }
@@ -163,6 +163,12 @@ impl Default for SessionPage {
 impl SessionPage {
     fn reset(&mut self) {
         *self = Self::default()
+    }
+
+    pub fn delete_temp_file(&mut self) {
+        if let Some(file) = &self.temp_file {
+            quick_error!(fs::remove_file(&file.1).context("error deleting temp file"));
+        }
     }
 
     /// Stops all timers, simulates the final keypress, disallows unpressing keys, then opens the Save/Discard dialog.
@@ -173,9 +179,7 @@ impl SessionPage {
                 timer.stop();
             }
             self.main_timer.stop();
-            self.timeline
-                .push((Key::Escape, rounded_f32(self.main_timer.total_time())));
-            self.keypresses_display.push(END_SYMBOL);
+            self.record_keypress(egui::Key::Escape, END_SYMBOL);
         }
         self.unpress_available = false;
     }
@@ -193,7 +197,6 @@ impl SessionPage {
         } else {
             self.record_keypress(egui::Key::Space, START_SYMBOL);
         }
-
         self.unpress_available = false;
     }
 
@@ -207,7 +210,7 @@ impl SessionPage {
                 return;
             }
             self.keypresses_display.pop();
-            if let Some(ref mut file) = self.path_to_temp {
+            if let Some(ref mut file) = self.temp_file {
                 writeln!(
                     file.0,
                     "[{:?}, {}],",
@@ -283,7 +286,7 @@ impl DataPro {
         // Load the temporary results file
         let mut output_data = self.blank_session_results();
 
-        // Create the file and append _ex as needed to avoid conflict
+        // Create the filename stem and append _ex as needed to avoid conflict
         let stem = &output_data.file_name_stem();
         let mut json_file_name = self
             .path_assessment_condition_dir()
@@ -317,19 +320,9 @@ impl DataPro {
         // After saving the results file make the Excel file
         let mut workbook = output_data.to_xlsx()?;
 
-        let stem = output_data.file_name_stem();
-        let mut xlsx_file_name = self
+        let xlsx_file_name = self
             .path_assessment_condition_dir()
             .join(&format!("{stem}{ex}.xlsx"));
-
-        // Append _ex (extended) to each file if it already exists
-        // A session might have needed to be extended multiple times so we loop until we reach a new name
-        let mut ex = String::new();
-        while xlsx_file_name.exists() {
-            ex.push_str("_ex");
-            xlsx_file_name.pop();
-            xlsx_file_name = xlsx_file_name.join(&format!("{stem}{ex}.xlsx"));
-        }
 
         workbook.save(xlsx_file_name)?;
 
@@ -337,10 +330,7 @@ impl DataPro {
         self.overwrite_assessments()?;
 
         // At this point the necessary files have all been successfully written so we can delete the temp file.
-        if let Some(file) = &self.session.path_to_temp {
-            fs::remove_file(&file.1)?;
-            self.session.path_to_temp = None;
-        }
+        self.session.delete_temp_file();
 
         Ok(())
     }
@@ -437,12 +427,12 @@ impl DataPro {
                 ui.columns(2, |columns| {
                     columns[0].set_height(50.0);
                     if columns[0].large_green_button("YES").clicked() {
-                        self.session.record_keypress(egui::Key::Escape, "ESC");
                         self.session.confirm_end_open = false;
                         self.session.stop_all_timers();
                         if session_was_started {
                             self.session.save_discard_open = true;
                         } else {
+                            self.session.delete_temp_file();
                             self.session.reset();
                             self.go_to_prep_session();
                         }
@@ -469,13 +459,7 @@ impl DataPro {
                     }
                     columns[1].set_height(50.0);
                     if columns[1].large_red_button("DISCARD").clicked() {
-                        // Get rid of the temp file
-                        if let Some(file) = &self.session.path_to_temp {
-                            quick_error!(
-                                fs::remove_file(&file.1).context("error deleting temp file")
-                            );
-                            self.session.path_to_temp = None;
-                        }
+                        self.session.delete_temp_file();
                         self.session.reset();
                         self.go_to_prep_session();
                     }
