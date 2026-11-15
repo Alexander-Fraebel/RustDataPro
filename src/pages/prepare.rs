@@ -1,5 +1,3 @@
-use std::fs::File;
-
 use crate::{
     app::DataPro,
     data::DataCollectionType,
@@ -8,6 +6,8 @@ use crate::{
 };
 use anyhow::Result;
 use egui::RichText;
+use std::fs::File;
+use std::io::Write;
 
 fn edit_box(
     ui: &mut egui::Ui,
@@ -373,7 +373,9 @@ impl PrepareSession {
 }
 
 impl DataPro {
-    pub fn create_results_file(&mut self) -> Result<()> {
+    /// Create a temporary file that can be updated in real time during session. This avoids losing the session data if the file cannot be made
+    /// at the end of the session such as if memory runs out. Yes, this has happened to me with BDataPro.
+    pub fn create_temp_file(&mut self) -> Result<()> {
         // Blank file with relevant session information
         let blank = self.blank_session_results();
 
@@ -388,10 +390,23 @@ impl DataPro {
             temp_file_name = temp_file_name.join(&format!("{stem}{ex}_TEMP.txt"));
         }
 
-        let file = File::options()
+        let mut file = File::options()
             .append(true)
             .create(true) // Creates the file if it doesn't exist
             .open(&temp_file_name)?;
+        writeln!(
+            file,
+            "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{:?}\n",
+            blank.session_start_time,
+            blank.client_name,
+            blank.client_id,
+            blank.case_manager,
+            blank.primary_therapist,
+            blank.session_number,
+            blank.days_since_admission,
+            blank.location,
+            blank.ksf
+        )?;
         self.session.temp_file = Some(Box::new((file, temp_file_name)));
 
         Ok(())
@@ -439,7 +454,7 @@ impl DataPro {
                                         self.timers.stop_all_timers();
 
                                         // Create a results file
-                                        if let Err(e) = self.create_results_file() {
+                                        if let Err(e) = self.create_temp_file() {
                                             windows_error_dialog(e)
                                         } else {
                                             self.go_to_run_session();

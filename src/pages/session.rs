@@ -36,7 +36,7 @@ const TTIME: &'static str = " Total Time: ";
 
 const START_SYMBOL: &'static str = "ST";
 const PAUSE_SYMBOL: &'static str = "PT";
-const END_SYMBOL: &'static str = "ESC";
+const END_SYMBOL: &'static str = "END";
 
 macro_rules! record_keypress {
     ($self:expr, $key:expr, $symbol:expr, $time:expr) => {
@@ -45,8 +45,13 @@ macro_rules! record_keypress {
         $self.unpress_available = true;
 
         if let Some(ref mut file) = $self.temp_file {
-            writeln!(file.0, "[{:?}, {}],", $key, rounded_f32($time))
-                .expect("unable to write to temp file");
+            writeln!(
+                file.0,
+                "[{}, {}],",
+                $key.symbol_or_name(),
+                rounded_f32($time)
+            )
+            .expect("unable to write to temp file");
         }
     };
 }
