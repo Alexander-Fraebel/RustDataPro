@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 /// Output of a single session. Includes the Client and Session data along with the recorded keypresses and times, and the KSF to translate those.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SessionResults {
     pub session_start_time: String,
     pub client_name: String,
@@ -35,6 +35,52 @@ pub struct SessionResults {
 }
 
 impl SessionResults {
+    /// Merge any number of SessionResults files. Total time, active time, pause time, frequency data, duration data, and timeline are merged.
+    /// Everything else is copied from the first file.
+    pub fn merge(results: &[SessionResults]) -> SessionResults {
+        let mut out = Self::default();
+        if results.is_empty() {
+            return out;
+        }
+        // Clone from the first result
+        out.session_start_time = results[0].session_start_time.clone();
+        out.client_name = results[0].client_name.clone();
+        out.client_id = results[0].client_id.clone();
+        out.case_manager = results[0].case_manager.clone();
+        out.primary_therapist = results[0].primary_therapist.clone();
+        out.session_number = results[0].session_number;
+        out.days_since_admission = results[0].days_since_admission;
+        out.location = results[0].location.clone();
+        out.session_data = results[0].session_data.clone();
+        out.ksf = results[0].ksf.clone();
+
+        // Combine from all of them
+        for result in results.iter() {
+            out.timeline.append(&result.timeline);
+
+            out.total_time += result.total_time;
+            out.active_time += result.active_time;
+            out.pause_time += result.pause_time;
+
+            for (key, count) in result.frequency_data.iter() {
+                out.frequency_data
+                    .entry(*key)
+                    .and_modify(|n| *n += count)
+                    .or_insert(*count);
+            }
+            for (key, (count, time)) in result.duration_data.iter() {
+                out.duration_data
+                    .entry(*key)
+                    .and_modify(|(c, t)| {
+                        *c += count;
+                        *t += time;
+                    })
+                    .or_insert((*count, *time));
+            }
+        }
+        out
+    }
+
     /// Is this file the complement of another file? Do they have the same Ksf, Client ID, Session Number, Assessment, and Condition?
     pub fn complement_of(&self, other: &Self) -> Result<()> {
         let mut err = Vec::new();

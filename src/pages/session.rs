@@ -30,9 +30,9 @@ const ACTIVE_COLOR: Color32 = Color32::YELLOW;
 const LEFT_MARGIN: f32 = 5.0;
 const TOP_MARGIN: f32 = 5.0;
 
-const STIME: &'static str = "Active Time: ";
-const PTIME: &'static str = "Paused Time: ";
-const TTIME: &'static str = " Total Time: ";
+const ATIME_LABEL: &'static str = "Active Time: ";
+const PTIME_LABEL: &'static str = "Paused Time: ";
+const TTIME_LABEL: &'static str = " Total Time: ";
 
 const START_SYMBOL: &'static str = "ST";
 const PAUSE_SYMBOL: &'static str = "PT";
@@ -664,25 +664,25 @@ impl DataPro {
                     });
                     ui.horizontal(|ui| {
                         if self.session.main_timer.was_started() {
-                            ui.monospace(RichText::new(STIME).color(ACTIVE_COLOR));
+                            ui.monospace(RichText::new(ATIME_LABEL).color(ACTIVE_COLOR));
                         } else {
-                            ui.monospace(STIME);
+                            ui.monospace(ATIME_LABEL);
                         }
                         view_stopwatch_hms(ui, &mut self.session.main_timer);
                     });
                     ui.horizontal(|ui| {
                         if self.session.main_timer.was_started() {
-                            ui.monospace(RichText::new(PTIME).color(ACTIVE_COLOR));
+                            ui.monospace(RichText::new(PTIME_LABEL).color(ACTIVE_COLOR));
                         } else {
-                            ui.monospace(PTIME);
+                            ui.monospace(PTIME_LABEL);
                         };
                         view_paused_timer_hms(ui, &mut self.session.main_timer);
                     });
                     ui.horizontal(|ui| {
                         if self.session.main_timer.was_started() {
-                            ui.monospace(RichText::new(TTIME).color(ACTIVE_COLOR));
+                            ui.monospace(RichText::new(TTIME_LABEL).color(ACTIVE_COLOR));
                         } else {
-                            ui.monospace(TTIME);
+                            ui.monospace(TTIME_LABEL);
                         };
                         view_total_time_hms(ui, &mut self.session.main_timer);
                     });

@@ -10,6 +10,14 @@ use std::{
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct Timeline(Vec<(Key, f32)>);
 
+impl Timeline {
+    pub fn append(&mut self, other: &Timeline) {
+        for item in other.iter() {
+            self.push(item.clone());
+        }
+    }
+}
+
 impl Deref for Timeline {
     type Target = Vec<(Key, f32)>;
 
