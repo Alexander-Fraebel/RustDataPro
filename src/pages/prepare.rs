@@ -481,7 +481,7 @@ impl DataPro {
                                 for i in
                                     self.data.current_session..=(self.data.current_session + 10)
                                 {
-                                    crate::data::SessionResults::simulate_session_results(
+                                    crate::data::SessionSummary::simulate_session_results(
                                         self.path_assessment_condition_dir(),
                                         &self.data,
                                         i,
@@ -501,7 +501,7 @@ impl DataPro {
                                 for i in
                                     self.data.current_session..=(self.data.current_session + 10)
                                 {
-                                    crate::data::SessionResults::simulate_session_results(
+                                    crate::data::SessionSummary::simulate_session_results(
                                         self.path_assessment_condition_dir(),
                                         &self.data,
                                         i,

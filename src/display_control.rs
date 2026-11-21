@@ -19,7 +19,9 @@ impl Default for DisplayControl {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Page {
     About,
+    Collate,
     CreateClient,
+    Data,
     Debug,
     EditAssessments,
     EditKsfs,
@@ -30,7 +32,6 @@ pub enum Page {
     Settings,
     Shuffler,
     Timers,
-    TimeSeries,
 }
 
 impl DataPro {
@@ -115,13 +116,19 @@ impl DataPro {
 
     pub fn go_to_collate(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
-        self.display_info.active_page = Page::TimeSeries;
+        self.display_info.active_page = Page::Collate;
         self.display_info.sidebar_open = true;
     }
 
     pub fn go_to_debug(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
         self.display_info.active_page = Page::Debug;
+        self.display_info.sidebar_open = true;
+    }
+
+    pub fn go_to_data(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::Data;
         self.display_info.sidebar_open = true;
     }
 }

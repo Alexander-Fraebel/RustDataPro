@@ -3,7 +3,7 @@ pub mod excel_output;
 pub mod ioa_page;
 pub use ioa_page::IoaPage;
 
-use crate::data::{DataCollectionType, SessionResults};
+use crate::data::{DataCollectionType, SessionSummary};
 use anyhow::{Context, Result};
 use std::{
     ops::{Deref, DerefMut},
@@ -22,8 +22,8 @@ pub struct IoaDataMap(
     std::collections::BTreeMap<
         u32,
         (
-            Option<(SessionResults, PathBuf)>,
-            Option<(SessionResults, PathBuf)>,
+            Option<(SessionSummary, PathBuf)>,
+            Option<(SessionSummary, PathBuf)>,
         ),
     >,
 );
@@ -32,8 +32,8 @@ impl Deref for IoaDataMap {
     type Target = std::collections::BTreeMap<
         u32,
         (
-            Option<(SessionResults, PathBuf)>,
-            Option<(SessionResults, PathBuf)>,
+            Option<(SessionSummary, PathBuf)>,
+            Option<(SessionSummary, PathBuf)>,
         ),
     >;
 
@@ -49,7 +49,7 @@ impl DerefMut for IoaDataMap {
 }
 
 impl IoaDataMap {
-    fn insert(&mut self, results: SessionResults, buf: PathBuf) -> Result<()> {
+    fn insert(&mut self, results: SessionSummary, buf: PathBuf) -> Result<()> {
         match results.session_data.data_collection_type {
             DataCollectionType::Primary => {
                 self.entry(results.session_number)
@@ -67,7 +67,7 @@ impl IoaDataMap {
 
     pub fn validated(
         &self,
-    ) -> Result<Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>> {
+    ) -> Result<Vec<(&(SessionSummary, PathBuf), &(SessionSummary, PathBuf))>> {
         if self.is_empty() {
             return Err(anyhow::anyhow!("no files have been selected"));
         }

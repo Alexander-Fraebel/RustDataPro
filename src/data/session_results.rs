@@ -1,8 +1,8 @@
 use crate::data::ClientAndSessionInfo;
 use crate::data::{Ksf, SessionInfo, timeline::Timeline};
 use crate::utils::{date_time_string, rounded_f32};
-use anyhow::Context;
 use anyhow::Result;
+use anyhow::{Context, anyhow};
 use chrono::Local;
 use egui::Key;
 use indexmap::IndexMap;
@@ -15,7 +15,7 @@ use std::path::Path;
 
 /// Output of a single session. Includes the Client and Session data along with the recorded keypresses and times, and the KSF to translate those.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct SessionResults {
+pub struct SessionSummary {
     pub session_start_time: String,
     pub client_name: String,
     pub client_id: String,
@@ -32,15 +32,33 @@ pub struct SessionResults {
     pub duration_data: IndexMap<Key, (u32, f32)>,
     pub timeline: Timeline,
     pub ksf: Ksf,
+    pub notes: String,
 }
 
-impl SessionResults {
-    /// Merge any number of SessionResults files. Total time, active time, pause time, frequency data, duration data, and timeline are merged.
+impl SessionSummary {
+    /// Rebuild a SessionSummary from a temp file.
+    pub fn rebuild(text: &str) -> Result<SessionSummary> {
+        let mut out = Self::default();
+
+        let mut lines = text.lines();
+        out.session_start_time = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.client_name = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.client_id = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.case_manager = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.primary_therapist = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.session_number = lines.next().ok_or(anyhow!("missing line"))?.parse()?;
+        out.days_since_admission = lines.next().ok_or(anyhow!("missing line"))?.parse()?;
+        out.location = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+
+        Ok(out)
+    }
+
+    /// Merge any number of SessionSummary files. Total time, active time, pause time, frequency data, duration data, and timeline are merged.
     /// Everything else is copied from the first file.
-    pub fn merge(results: &[SessionResults]) -> SessionResults {
+    pub fn merge(results: &[SessionSummary]) -> Result<SessionSummary> {
         let mut out = Self::default();
         if results.is_empty() {
-            return out;
+            return Ok(out);
         }
         // Clone from the first result
         out.session_start_time = results[0].session_start_time.clone();
@@ -78,7 +96,7 @@ impl SessionResults {
                     .or_insert((*count, *time));
             }
         }
-        out
+        Ok(out)
     }
 
     /// Is this file the complement of another file? Do they have the same Ksf, Client ID, Session Number, Assessment, and Condition?
@@ -103,7 +121,7 @@ impl SessionResults {
         if err.is_empty() {
             Ok(())
         } else {
-            Err(anyhow::anyhow!(err.join("\n")))
+            Err(anyhow!(err.join("\n")))
         }
     }
 
@@ -296,8 +314,8 @@ impl SessionResults {
 
     crate::to_and_from_json!(
         self,
-        "unable to make SessionResults from file",
-        "unable to convert SessionResults to json"
+        "unable to make SessionSummary from file",
+        "unable to convert SessionSummary to json"
     );
 
     pub fn simulate_session_results(
@@ -396,8 +414,8 @@ impl SessionResults {
         }
         timeline.push((Key::Escape, rounded_f32(session_time)));
 
-        let prim = SessionResults {
-            session_start_time: format!("SIMULATED ON {}", date_time_string(&Local::now())),
+        let prim = SessionSummary {
+            session_start_time: format!("{}", date_time_string(&Local::now())),
             session_data: session_data.clone(),
             total_time: rounded_f32(session_time),
             pause_time: 0.0,
@@ -413,6 +431,7 @@ impl SessionResults {
             session_number: session_number,
             days_since_admission: client.days_since_admission().unwrap_or(-99999),
             location: client.location.clone(),
+            notes: String::from("SIMULATED"),
         };
 
         let pfile = File::create(path.join(prim.json_file_name())).unwrap();
@@ -466,8 +485,8 @@ impl SessionResults {
                 duration.get_mut(k).unwrap().1 += rounded_f32(session_time - last_time);
             }
 
-            let reli = SessionResults {
-                session_start_time: format!("SIMULATED ON {}", date_time_string(&Local::now())),
+            let reli = SessionSummary {
+                session_start_time: format!(" {}", date_time_string(&Local::now())),
                 session_data: session_data.clone(),
                 total_time: session_time,
                 pause_time: 0.0,
@@ -483,6 +502,7 @@ impl SessionResults {
                 session_number: session_number,
                 days_since_admission: client.days_since_admission().unwrap_or(i32::MIN),
                 location: client.location.clone(),
+                notes: String::from("SIMULATED"),
             };
 
             let rfile = File::create(path.join(reli.json_file_name())).unwrap();

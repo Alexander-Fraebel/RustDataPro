@@ -1,6 +1,6 @@
 use crate::{
     app::DataPro,
-    data::{Ksf, SessionResults},
+    data::{Ksf, SessionSummary},
     quick_error,
     utils::{ui_elements::DataProUiElements, windows_error_dialog},
 };
@@ -71,7 +71,7 @@ fn data_heading(
 
 #[derive(Default)]
 pub struct CollatePage {
-    pub data: Vec<(SessionResults, PathBuf)>,
+    pub data: Vec<(SessionSummary, PathBuf)>,
     pub ksf: Option<Ksf>,
     pub keys_selector: IndexMap<Key, bool>,
     pub select_file_dialog: FileDialog,
@@ -590,7 +590,7 @@ impl CollatePage {
 
             // Load the selected files if possible
             for buf in pathbufs {
-                match SessionResults::from_file_path(buf.as_path()) {
+                match SessionSummary::from_file_path(buf.as_path()) {
                     Ok(data) => self.data.push((data, buf)),
                     Err(e) => windows_error_dialog(e),
                 }
@@ -618,7 +618,7 @@ impl CollatePage {
 }
 
 impl DataPro {
-    pub fn view_time_series_page(&mut self, ui: &mut Ui) {
+    pub fn view_collate_page(&mut self, ui: &mut Ui) {
         self.collate.file_dialog_controls(ui);
 
         egui::CentralPanel::default().show(ui, |ui| {

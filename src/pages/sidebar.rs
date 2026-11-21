@@ -36,6 +36,11 @@ impl DataPro {
                         ui.separator();
                         ui.add_space(4.0);
 
+                        if ui.large_button("Create Client").clicked() {
+                            self.go_to_create_client();
+                        }
+                        ui.add_space(4.0);
+
                         if ui.large_button("Edit KSFs").clicked() {
                             self.go_to_edit_ksf();
                         }
@@ -49,18 +54,8 @@ impl DataPro {
                         ui.separator();
                         ui.add_space(4.0);
 
-                        if ui.large_button("Create Client").clicked() {
-                            self.go_to_create_client();
-                        }
-                        ui.add_space(4.0);
-
-                        if ui.large_button("Calculate IOA").clicked() {
-                            self.go_to_ioa();
-                        }
-                        ui.add_space(4.0);
-
-                        if ui.large_button("Collate Files").clicked() {
-                            self.go_to_collate();
+                        if ui.large_button("Data Options").clicked() {
+                            self.go_to_data();
                         }
 
                         ui.add_space(4.0);
@@ -78,11 +73,11 @@ impl DataPro {
 
                         ui.add_space(4.0);
                         ui.separator();
-                        ui.add_space(4.0);
+                        // ui.add_space(4.0);
 
-                        if ui.large_button("Preference Assessments").clicked() {
-                            self.go_to_preference_assessment();
-                        }
+                        // if ui.large_button("Preference Assessments").clicked() {
+                        //     self.go_to_preference_assessment();
+                        // }
                         ui.add_space(10.0);
 
                         if cfg!(debug_assertions) {

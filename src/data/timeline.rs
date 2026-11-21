@@ -11,9 +11,11 @@ use std::{
 pub struct Timeline(Vec<(Key, f32)>);
 
 impl Timeline {
+    /// Append another time to this one, assumign that it begins immediately after this one ends.
     pub fn append(&mut self, other: &Timeline) {
+        let offset = self.last().unwrap_or(&(Key::Space, 0.0)).1;
         for item in other.iter() {
-            self.push(item.clone());
+            self.push((item.0, item.1 + offset));
         }
     }
 }

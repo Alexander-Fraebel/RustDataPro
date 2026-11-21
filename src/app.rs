@@ -4,7 +4,7 @@ use crate::{
         SESSION_DATA_FOLDER_NAME, path_to_config_file,
     },
     data::{
-        AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT, SessionResults,
+        AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT, SessionSummary,
     },
     display_control::{DisplayControl, Page},
     ioa::IoaPage,
@@ -197,15 +197,10 @@ impl DataPro {
             .response
     }
 
-    pub fn blank_session_results(&self) -> SessionResults {
-        SessionResults {
+    pub fn blank_session_results(&self) -> SessionSummary {
+        SessionSummary {
             session_start_time: date_time_string(&self.session.start_time),
-            total_time: 0.0,
-            pause_time: 0.0,
-            active_time: 0.0,
             session_data: self.data.session.clone(),
-            duration_data: Default::default(),
-            frequency_data: Default::default(),
             timeline: self.session.timeline.clone(),
             ksf: self
                 .data
@@ -220,6 +215,7 @@ impl DataPro {
             session_number: self.data.current_session,
             days_since_admission: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this error value should always be invalid but will avoid crashing by giving default
             location: self.data.client.location.clone(),
+            ..Default::default()
         }
     }
 
@@ -610,7 +606,8 @@ impl eframe::App for DataPro {
             Page::PreferenceAssessment => self.view_preference_assessments_page(ui),
             Page::Shuffler => self.view_shuffler(ui),
             Page::Timers => self.view_timers(ui),
-            Page::TimeSeries => self.view_time_series_page(ui),
+            Page::Collate => self.view_collate_page(ui),
+            Page::Data => self.view_data_page(ui),
         }
     }
 }

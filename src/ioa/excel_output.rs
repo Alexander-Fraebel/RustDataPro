@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    data::{IoaData, SessionResults},
+    data::{IoaData, SessionSummary},
     ioa::quick_file_name,
 };
 use anyhow::Result;
@@ -28,7 +28,7 @@ fn write_excel_line<'a>(
 pub fn save_excel_workbook(
     ioa_data: &IoaData,
     file_stem: &str,
-    simplified: &Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>,
+    simplified: &Vec<(&(SessionSummary, PathBuf), &(SessionSummary, PathBuf))>,
 ) -> Result<()> {
     let mut workbook = Workbook::new();
     let data_summary = workbook.add_worksheet();

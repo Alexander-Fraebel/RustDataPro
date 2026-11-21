@@ -1,7 +1,7 @@
 use super::IoaDataMap;
 use crate::{
     app::DataPro,
-    data::{IoaData, SessionResults},
+    data::{IoaData, SessionSummary},
     ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
         excel_output::save_excel_workbook,
@@ -63,7 +63,7 @@ impl IoaPage {
     fn interval_ioa(
         &self,
         ioa_data: &mut IoaData,
-        simplified: &Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>,
+        simplified: &Vec<(&(SessionSummary, PathBuf), &(SessionSummary, PathBuf))>,
     ) -> Result<()> {
         for ((p, _), (r, _)) in simplified {
             let max_time = if p.total_time >= r.total_time {
@@ -104,7 +104,7 @@ impl IoaPage {
     fn frequency_ioa(
         &self,
         ioa_data: &mut IoaData,
-        simplified: &Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>,
+        simplified: &Vec<(&(SessionSummary, PathBuf), &(SessionSummary, PathBuf))>,
     ) -> Result<()> {
         for ((p, _), (r, _)) in simplified {
             for (key, _desc) in p.ksf.freq.iter() {
@@ -125,7 +125,7 @@ impl IoaPage {
     fn duration_ioa(
         &self,
         ioa_data: &mut IoaData,
-        simplified: &Vec<(&(SessionResults, PathBuf), &(SessionResults, PathBuf))>,
+        simplified: &Vec<(&(SessionSummary, PathBuf), &(SessionSummary, PathBuf))>,
     ) -> Result<()> {
         for ((p, _), (r, _)) in simplified {
             for (key, _desc) in p.ksf.dura.iter() {
@@ -200,7 +200,7 @@ impl DataPro {
             );
             // Simultaneously parse and filter the input files.
             for buf in bufs {
-                match SessionResults::from_file_path(buf.as_path()) {
+                match SessionSummary::from_file_path(buf.as_path()) {
                     Ok(results) => {
                         crate::quick_error!(self.ioa_page.data.insert(results, buf))
                     }
