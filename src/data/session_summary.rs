@@ -41,6 +41,8 @@ impl SessionSummary {
     pub fn rebuild(text: &str) -> Result<SessionSummary> {
         let mut out = Self::default();
 
+        out.notes = String::from("rebuilt from temp file");
+
         let mut lines = text.lines();
         out.session_start_time = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
         out.client_name = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
