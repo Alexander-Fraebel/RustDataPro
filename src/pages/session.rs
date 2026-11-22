@@ -45,13 +45,8 @@ macro_rules! record_keypress {
         $self.unpress_available = true;
 
         if let Some(ref mut file) = $self.temp_file {
-            writeln!(
-                file.0,
-                "[{}, {}],",
-                $key.symbol_or_name(),
-                rounded_f32($time)
-            )
-            .expect("unable to write to temp file");
+            writeln!(file.0, "{}, {}", $key.symbol_or_name(), rounded_f32($time))
+                .expect("unable to write to temp file");
         }
     };
 }
@@ -218,7 +213,7 @@ impl SessionPage {
             if let Some(ref mut file) = self.temp_file {
                 writeln!(
                     file.0,
-                    "[{:?}, {}],",
+                    "{:?}, {}",
                     egui::Key::Backspace,
                     rounded_f32(self.main_timer.total_time())
                 )
@@ -302,6 +297,7 @@ impl DataPro {
             json_file_name.pop();
             json_file_name = json_file_name.join(&format!("{stem}{ex}.json"));
         }
+        output_data.notes.push_str(&ex);
 
         let mut fre_data: IndexMap<Key, u32> = IndexMap::new();
         for (t, k, _desc) in self.session.freq_keys.iter() {

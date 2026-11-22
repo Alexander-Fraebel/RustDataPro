@@ -11,8 +11,37 @@ use std::{
 pub struct Timeline(Vec<(Key, f32)>);
 
 impl Timeline {
-    /// Append another Timeline to this one, assuming that it begins immediately after this one ends.
-    pub fn append(&mut self, other: &Timeline) {
+    /// Build a Timeline from a string slice formatted so that each line is formatted as: KEY,TIME
+    pub fn from_text(s: &str) -> Result<Timeline> {
+        let mut out = Self::default();
+        for line in s.lines() {
+            let (k, time) = line
+                .split_once(",")
+                .context("invalid line found when creating Timeline, missing comma")?;
+
+            let key = Key::from_name(k.trim()).context(format!(
+                "invalid key name {} found when creating Timeline",
+                k.trim(),
+            ))?;
+
+            // Remove the previous keypress when Backspace is detected
+            // Assume Backspace only appears when valid
+            if key == Key::Backspace && !out.is_empty() {
+                out.pop();
+            }
+
+            out.push((
+                key,
+                time.trim()
+                    .parse()
+                    .context("invalid time value found when creating timeline")?,
+            ));
+        }
+        Ok(out)
+    }
+
+    /// Marge another Timeline to this one, assuming that it begins immediately after this one ends.
+    pub fn merge(&mut self, other: &Timeline) {
         let offset = self.last().unwrap_or(&(Key::Space, 0.0)).1;
         for item in other.iter() {
             self.push((item.0, item.1 + offset));

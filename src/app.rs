@@ -7,7 +7,7 @@ use crate::{
         AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT, SessionSummary,
     },
     display_control::{DisplayControl, Page},
-    examine_files::{IoaPage, collated::CollatePage},
+    examine_files::{IoaPage, collated::CollatePage, merge_files::MergeFiles},
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
     },
@@ -46,6 +46,7 @@ pub struct DataPro {
     pub preference_assessment: PreferenceAssessments,
 
     pub collate: CollatePage,
+    pub merger: MergeFiles,
 }
 
 impl Default for DataPro {
@@ -82,13 +83,14 @@ impl Default for DataPro {
             prep_session: PrepareSession::default(),
             session: SessionPage::default(),
 
-            ioa_page: IoaPage::default(),
             new_client_page: CreateClient::default(),
             edit_ksfs: EditKsfData::default(),
             edit_assessments: EditAssessments::default(),
             preference_assessment: PreferenceAssessments::default(),
 
+            ioa_page: IoaPage::default(),
             collate: CollatePage::default(),
+            merger: MergeFiles::default(),
         };
 
         // Initialize everything by "unloading" a client
@@ -446,6 +448,8 @@ impl DataPro {
             .prepare(default_dir.clone(), default_dir.clone());
         self.collate
             .prepare(default_dir.clone(), default_dir.clone());
+        self.merger
+            .prepare(default_dir.clone(), default_dir.clone());
     }
 
     pub fn load_client(&mut self, path: &PathBuf) {
@@ -462,6 +466,10 @@ impl DataPro {
 
                 // Prepare the file collation page.
                 self.collate.prepare(
+                    self.path_to_session_records_dir(),
+                    self.path_to_client_dir(),
+                );
+                self.merger.prepare(
                     self.path_to_session_records_dir(),
                     self.path_to_client_dir(),
                 );
@@ -607,6 +615,7 @@ impl eframe::App for DataPro {
             Page::Timers => self.view_timers(ui),
             Page::Collate => self.view_collate_page(ui),
             Page::ExamineFiles => self.view_file_exam_options(ui),
+            Page::Merger => self.view_file_merger(ui),
         }
     }
 }

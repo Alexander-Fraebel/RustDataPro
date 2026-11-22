@@ -16,7 +16,9 @@ impl DataPro {
 
             ui.add_space(16.0);
 
-            if ui.large_button("Merge Files").clicked() {}
+            if ui.large_button("Merge Files").clicked() {
+                self.go_to_merger();
+            }
         });
     }
 }

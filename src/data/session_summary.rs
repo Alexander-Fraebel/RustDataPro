@@ -6,6 +6,7 @@ use anyhow::{Context, anyhow};
 use chrono::Local;
 use egui::Key;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use rand::SeedableRng;
 use rand_distr::Distribution;
 use rust_xlsxwriter::*;
@@ -74,7 +75,7 @@ impl SessionSummary {
 
         // Combine from all of them
         for result in results.iter() {
-            out.timeline.append(&result.timeline);
+            out.timeline.merge(&result.timeline);
 
             out.total_time += result.total_time;
             out.active_time += result.active_time;
@@ -96,6 +97,10 @@ impl SessionSummary {
                     .or_insert((*count, *time));
             }
         }
+        out.notes = format!(
+            "Merged from sessions: {}",
+            results.iter().map(|s| s.session_number).join(", ")
+        );
         Ok(out)
     }
 

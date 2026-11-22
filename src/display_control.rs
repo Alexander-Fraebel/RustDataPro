@@ -26,6 +26,7 @@ pub enum Page {
     EditKsfs,
     ExamineFiles,
     Ioa,
+    Merger,
     PreferenceAssessment,
     PrepareSession,
     RunSession,
@@ -55,12 +56,6 @@ impl DataPro {
     pub fn go_to_prep_session(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
         self.display_info.active_page = Page::PrepareSession;
-        self.display_info.sidebar_open = true;
-    }
-
-    pub fn go_to_ioa(&mut self) {
-        self.save_and_reload_ksfs_and_assessments();
-        self.display_info.active_page = Page::Ioa;
         self.display_info.sidebar_open = true;
     }
 
@@ -114,12 +109,6 @@ impl DataPro {
         self.display_info.sidebar_open = true;
     }
 
-    pub fn go_to_collate(&mut self) {
-        self.save_and_reload_ksfs_and_assessments();
-        self.display_info.active_page = Page::Collate;
-        self.display_info.sidebar_open = true;
-    }
-
     pub fn go_to_debug(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
         self.display_info.active_page = Page::Debug;
@@ -129,6 +118,24 @@ impl DataPro {
     pub fn go_to_examine_files(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
         self.display_info.active_page = Page::ExamineFiles;
+        self.display_info.sidebar_open = true;
+    }
+
+    pub fn go_to_collate(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::Collate;
+        self.display_info.sidebar_open = true;
+    }
+
+    pub fn go_to_merger(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::Merger;
+        self.display_info.sidebar_open = true;
+    }
+
+    pub fn go_to_ioa(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::Ioa;
         self.display_info.sidebar_open = true;
     }
 }

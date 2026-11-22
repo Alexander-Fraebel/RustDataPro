@@ -4,7 +4,7 @@ pub mod client_info;
 pub mod ioa_data;
 pub mod ksf_data;
 pub mod session_info;
-pub mod session_results;
+pub mod session_summary;
 pub mod timeline;
 
 pub use assessment_data::*;
@@ -13,7 +13,7 @@ pub use client_info::*;
 pub use ioa_data::*;
 pub use ksf_data::*;
 pub use session_info::*;
-pub use session_results::*;
+pub use session_summary::*;
 pub use timeline::*;
 
 use regex::Regex;
