@@ -396,7 +396,7 @@ impl DataPro {
             .open(&temp_file_name)?;
         writeln!(
             file,
-            "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{:?}\n",
+            "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
             blank.session_start_time,
             blank.client_name,
             blank.client_id,
@@ -405,7 +405,7 @@ impl DataPro {
             blank.session_number,
             blank.days_since_admission,
             blank.location,
-            blank.ksf
+            blank.ksf.to_json()?
         )?;
         self.session.temp_file = Some(Box::new((file, temp_file_name)));
 

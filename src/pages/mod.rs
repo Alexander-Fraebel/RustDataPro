@@ -1,6 +1,4 @@
 pub mod about_page;
-pub mod collated;
-pub mod data_page;
 pub mod debug_page;
 pub mod edit_assessments;
 pub mod edit_ksfs;
@@ -12,7 +10,6 @@ pub mod shuffler;
 pub mod sidebar;
 pub mod timers;
 
-pub use collated::*;
 pub use edit_assessments::*;
 pub use edit_ksfs::*;
 pub use new_client::*;

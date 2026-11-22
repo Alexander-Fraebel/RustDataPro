@@ -1,8 +1,7 @@
-use super::IoaDataMap;
 use crate::{
     app::DataPro,
-    data::{IoaData, SessionSummary},
-    ioa::{
+    data::{DataCollectionType, IoaData, SessionSummary},
+    examine_files::ioa::{
         calculations::{single_pair_interval_ioa, single_pair_total_ratio_ioa},
         excel_output::save_excel_workbook,
         quick_file_name,
@@ -15,10 +14,119 @@ use anyhow::{Context, Result};
 use egui::{Color32, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use std::{
+    collections::BTreeMap,
     fs::File,
     io::{BufWriter, Write},
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
 };
+
+#[derive(Default)]
+pub struct IoaDataMap(
+    BTreeMap<
+        u32,
+        (
+            Option<(SessionSummary, PathBuf)>,
+            Option<(SessionSummary, PathBuf)>,
+        ),
+    >,
+);
+
+impl Deref for IoaDataMap {
+    type Target = BTreeMap<
+        u32,
+        (
+            Option<(SessionSummary, PathBuf)>,
+            Option<(SessionSummary, PathBuf)>,
+        ),
+    >;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for IoaDataMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl IoaDataMap {
+    fn insert(&mut self, results: SessionSummary, buf: PathBuf) -> Result<()> {
+        match results.session_data.data_collection_type {
+            DataCollectionType::Primary => {
+                self.entry(results.session_number)
+                    .and_modify(|e| e.0 = Some((results.clone(), buf.clone())))
+                    .or_insert((Some((results.clone(), buf.clone())), None));
+            }
+            DataCollectionType::Reliability => {
+                self.entry(results.session_number)
+                    .and_modify(|e| e.1 = Some((results.clone(), buf.clone())))
+                    .or_insert((None, Some((results.clone(), buf.clone()))));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn validated(
+        &self,
+    ) -> Result<Vec<(&(SessionSummary, PathBuf), &(SessionSummary, PathBuf))>> {
+        if self.is_empty() {
+            return Err(anyhow::anyhow!("no files have been selected"));
+        }
+
+        let mut out = Vec::new();
+
+        for (n, (prim, reli)) in self.0.iter() {
+            let p = prim
+                .as_ref()
+                .context(format!("no primary data for S{n:>03}"))?;
+            let r = reli
+                .as_ref()
+                .context(format!("no reliability data for S{n:>03}"))?;
+
+            // if !p.0.complement_of(&r.0) {
+            //     return Err(anyhow::anyhow!(
+            //         "the primary and reliability files for S{n:>03} cannot be compared\ncheck that the Assessment, Condition, Client ID, KSF, and Session Number all match"
+            //     ));
+            // }
+
+            out.push((p, r));
+        }
+
+        let ksf = &out[0].0.0.ksf;
+        let client_id = &out[0].0.0.client_id;
+        for ((p, _), (r, _)) in out.iter() {
+            if &p.ksf != ksf {
+                return Err(anyhow::anyhow!(
+                    "the KSF for the primary file for S{:>03} does not match the KSF for the first file\nall files must have the same KSF",
+                    p.session_number
+                ));
+            }
+            if &r.ksf != ksf {
+                return Err(anyhow::anyhow!(
+                    "the KSF for the reliability file for S{:>03} does not match the KSF for the first file\nall files must have the same KSF",
+                    r.session_number
+                ));
+            }
+            if &p.client_id != client_id {
+                return Err(anyhow::anyhow!(
+                    "the Client ID for the primary file for S{:>03} does not match the Client ID for the first file\nall files must have the same Client ID",
+                    p.session_number
+                ));
+            }
+            if &r.client_id != client_id {
+                return Err(anyhow::anyhow!(
+                    "the Client ID for the reliability file for S{:>03} does not match the Client ID for the first file\nall files must have the same Client ID",
+                    r.session_number
+                ));
+            }
+        }
+
+        Ok(out)
+    }
+}
 
 pub struct IoaPage {
     pub ioa_finished: bool,

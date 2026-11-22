@@ -7,10 +7,9 @@ use crate::{
         AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT, SessionSummary,
     },
     display_control::{DisplayControl, Page},
-    ioa::IoaPage,
+    examine_files::{IoaPage, collated::CollatePage},
     pages::{
-        CollatePage, CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage,
-        Shuffler, Timers,
+        CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
     },
     preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
@@ -213,7 +212,7 @@ impl DataPro {
             case_manager: self.data.client.case_manager.clone(),
             primary_therapist: self.data.client.primary_therapist.clone(),
             session_number: self.data.current_session,
-            days_since_admission: self.data.client.days_since_admission().unwrap_or(i32::MIN), // this error value should always be invalid but will avoid crashing by giving default
+            days_since_admission: self.data.client.days_since_admission().unwrap_or(i32::MIN), // i32::MIN to signal an error
             location: self.data.client.location.clone(),
             ..Default::default()
         }
@@ -607,7 +606,7 @@ impl eframe::App for DataPro {
             Page::Shuffler => self.view_shuffler(ui),
             Page::Timers => self.view_timers(ui),
             Page::Collate => self.view_collate_page(ui),
-            Page::Data => self.view_data_page(ui),
+            Page::ExamineFiles => self.view_file_exam_options(ui),
         }
     }
 }

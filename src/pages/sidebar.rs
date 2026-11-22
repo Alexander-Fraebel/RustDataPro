@@ -55,7 +55,7 @@ impl DataPro {
                         ui.add_space(4.0);
 
                         if ui.large_button("Data Options").clicked() {
-                            self.go_to_data();
+                            self.go_to_examine_files();
                         }
 
                         ui.add_space(4.0);

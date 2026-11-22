@@ -21,10 +21,10 @@ pub enum Page {
     About,
     Collate,
     CreateClient,
-    Data,
     Debug,
     EditAssessments,
     EditKsfs,
+    ExamineFiles,
     Ioa,
     PreferenceAssessment,
     PrepareSession,
@@ -126,9 +126,9 @@ impl DataPro {
         self.display_info.sidebar_open = true;
     }
 
-    pub fn go_to_data(&mut self) {
+    pub fn go_to_examine_files(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
-        self.display_info.active_page = Page::Data;
+        self.display_info.active_page = Page::ExamineFiles;
         self.display_info.sidebar_open = true;
     }
 }

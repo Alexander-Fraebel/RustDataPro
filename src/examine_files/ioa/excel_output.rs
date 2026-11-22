@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     data::{IoaData, SessionSummary},
-    ioa::quick_file_name,
+    examine_files::ioa::quick_file_name,
 };
 use anyhow::Result;
 use egui::Key;
