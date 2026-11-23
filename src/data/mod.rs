@@ -19,6 +19,16 @@ pub use timeline::*;
 use regex::Regex;
 use std::cell::LazyCell;
 
+/// A regex that matches a KSF
+pub const KSF_REGEX: LazyCell<Regex> = LazyCell::new(|| {
+    Regex::new(r#"\{\n *"frequency": *\[\n( *.+\n)+ *\],\n *"duration": *\[\n( *.+\n)+ *\]\n}"#)
+        .unwrap()
+});
+
+/// A regex that matches a Timeline from a temp file
+pub const TEMP_TIMELINE: LazyCell<Regex> =
+    LazyCell::new(|| Regex::new(r#"([a-zA-Z0-9\.]+, *[a-zA-Z0-9\.]+\n)+"#).unwrap());
+
 const LEAF_PAIR_FIND: LazyCell<Regex> =
     LazyCell::new(|| Regex::new(r#"\[\n\s+(.+),\n\s+(.+)\n\s+\]"#).unwrap());
 const LEAF_PAIR_REPLACE: &'static str = r#"[$1, $2]"#;
@@ -50,6 +60,11 @@ macro_rules! to_and_from_json {
                 file_path,
             )?))
             .context($context1)
+        }
+
+        pub fn from_json(json: &str) -> Result<Self> {
+            serde_json::from_str(&crate::data::expand_num_names(json))
+                .context("unable to build from json")
         }
 
         pub fn to_json(&self) -> Result<String> {

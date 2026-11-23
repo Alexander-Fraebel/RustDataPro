@@ -29,6 +29,7 @@ pub enum Page {
     Merger,
     PreferenceAssessment,
     PrepareSession,
+    Rebuilder,
     RunSession,
     Settings,
     Shuffler,
@@ -136,6 +137,12 @@ impl DataPro {
     pub fn go_to_ioa(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
         self.display_info.active_page = Page::Ioa;
+        self.display_info.sidebar_open = true;
+    }
+
+    pub fn go_to_rebuilder(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::Rebuilder;
         self.display_info.sidebar_open = true;
     }
 }

@@ -1,10 +1,13 @@
 use anyhow::{Context, Result};
 use egui::Key;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::{
     ops::{Deref, DerefMut},
     path::Path,
 };
+
+use crate::data::Ksf;
 
 /// Sequence of keypresses and their relative to the start of session
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
@@ -46,6 +49,21 @@ impl Timeline {
         for item in other.iter() {
             self.push((item.0, item.1 + offset));
         }
+    }
+
+    /// Caculate summary of the frequency data.
+    pub fn calculate_frequency_data(&self, ksf: &Ksf) -> IndexMap<Key, u32> {
+        todo!()
+    }
+
+    /// Caculate summary of the duration data.
+    pub fn calculate_duration_data(&self, ksf: &Ksf) -> IndexMap<Key, u32> {
+        todo!()
+    }
+
+    /// Return (Total Time, Active Time, Pause Time) as implied by the Timeline.
+    pub fn calculate_times(&self) -> (f32, f32, f32) {
+        todo!()
     }
 }
 

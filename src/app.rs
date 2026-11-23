@@ -7,7 +7,9 @@ use crate::{
         AssessmentsData, ClientAndSessionInfo, ClientInfo, KsfsData, NO_CLIENT, SessionSummary,
     },
     display_control::{DisplayControl, Page},
-    examine_files::{IoaPage, collated::CollatePage, merge_files::MergeFiles},
+    examine_files::{
+        IoaPage, collated::CollatePage, merge_files::MergeFiles, rebuild_from_temp::RebuilderPage,
+    },
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
     },
@@ -47,6 +49,7 @@ pub struct DataPro {
 
     pub collate: CollatePage,
     pub merger: MergeFiles,
+    pub rebuilder: RebuilderPage,
 }
 
 impl Default for DataPro {
@@ -91,6 +94,7 @@ impl Default for DataPro {
             ioa_page: IoaPage::default(),
             collate: CollatePage::default(),
             merger: MergeFiles::default(),
+            rebuilder: RebuilderPage::default(),
         };
 
         // Initialize everything by "unloading" a client
@@ -450,6 +454,8 @@ impl DataPro {
             .prepare(default_dir.clone(), default_dir.clone());
         self.merger
             .prepare(default_dir.clone(), default_dir.clone());
+        self.rebuilder
+            .prepare(default_dir.clone(), default_dir.clone());
     }
 
     pub fn load_client(&mut self, path: &PathBuf) {
@@ -470,6 +476,10 @@ impl DataPro {
                     self.path_to_client_dir(),
                 );
                 self.merger.prepare(
+                    self.path_to_session_records_dir(),
+                    self.path_to_client_dir(),
+                );
+                self.rebuilder.prepare(
                     self.path_to_session_records_dir(),
                     self.path_to_client_dir(),
                 );
@@ -616,6 +626,7 @@ impl eframe::App for DataPro {
             Page::Collate => self.view_collate_page(ui),
             Page::ExamineFiles => self.view_file_exam_options(ui),
             Page::Merger => self.view_file_merger(ui),
+            Page::Rebuilder => self.view_file_rebuilder(ui),
         }
     }
 }

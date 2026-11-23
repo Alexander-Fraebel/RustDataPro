@@ -13,11 +13,15 @@ impl DataPro {
             if ui.large_button("Collate Files").clicked() {
                 self.go_to_collate();
             }
-
             ui.add_space(16.0);
 
             if ui.large_button("Merge Files").clicked() {
                 self.go_to_merger();
+            }
+            ui.add_space(16.0);
+
+            if ui.large_button("Rebuild from Temp File").clicked() {
+                self.go_to_rebuilder();
             }
         });
     }

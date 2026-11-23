@@ -4,7 +4,7 @@ use crate::{
     quick_error,
     utils::{overwrite_file, ui_elements::DataProUiElements, windows_error_dialog},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use egui::{RichText, Ui};
 use egui_file_dialog::FileDialog;
 use itertools::Itertools;
@@ -45,20 +45,24 @@ impl MergeFiles {
             self.prepare(pathbuf, self.save_path.clone());
         }
 
-        if let Some(pathbuf) = self.save_file_dialog.take_picked() {
+        if let Some(mut pathbuf) = self.save_file_dialog.take_picked() {
             match self.merge_files() {
                 Ok(merged) => {
                     quick_error!(overwrite_file(
                         Ok(pathbuf.clone()),
-                        &merged.to_json().expect("unable to convert to json file"),
+                        &merged
+                            .to_json()
+                            .expect("unable to convert merged file to json"),
                     ));
-                    // quick_error!(
-                    //     merged
-                    //         .to_xlsx()
-                    //         .expect("unable to convert to xlsx file")
-                    //         .save(pathbuf)
-                    //         .context("error saving merge xlsx file")
-                    // );
+                    pathbuf.pop();
+                    pathbuf.add_extension(".xlsx");
+                    quick_error!(
+                        merged
+                            .to_xlsx()
+                            .expect("unable to convert merged file to xlsx")
+                            .save(pathbuf)
+                            .context("")
+                    );
                 }
                 Err(e) => windows_error_dialog(e),
             }

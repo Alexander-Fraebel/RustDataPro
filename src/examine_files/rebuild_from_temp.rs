@@ -4,13 +4,14 @@ use crate::{
     quick_error,
     utils::{overwrite_file, ui_elements::DataProUiElements, windows_error_dialog},
 };
+use anyhow::{Context, Result};
 use egui::{RichText, Ui};
 use egui_file_dialog::FileDialog;
 use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct RebuilderPage {
-    pub data: Vec<(SessionSummary, PathBuf)>,
+    pub temp_file_path: Option<PathBuf>,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
@@ -18,13 +19,19 @@ pub struct RebuilderPage {
 }
 
 impl RebuilderPage {
+    pub fn rebuild_file(&self) -> Result<SessionSummary> {
+        Ok(SessionSummary::rebuild(&std::fs::read_to_string(
+            &self.select_path,
+        )?)?)
+    }
+
     pub fn prepare(&mut self, select_path: PathBuf, save_new_path: PathBuf) {
         *self = Self::default();
         self.select_path = select_path.clone();
         self.select_file_dialog = FileDialog::new()
             .initial_directory(select_path.clone())
-            .add_file_filter_extensions("json files", vec!["json"])
-            .default_file_filter("json files");
+            .add_file_filter_extensions("temp files", vec!["temp"])
+            .default_file_filter("temp files");
         self.save_path = save_new_path.clone();
         self.save_file_dialog = FileDialog::new()
             .initial_directory(save_new_path.clone())
@@ -36,40 +43,30 @@ impl RebuilderPage {
         self.save_file_dialog.update(ui.ctx());
 
         if let Some(pathbuf) = self.select_file_dialog.take_picked() {
+            self.temp_file_path = Some(pathbuf.clone());
             self.prepare(pathbuf, self.save_path.clone());
         }
 
-        if let Some(pathbuf) = self.save_file_dialog.take_picked() {
-            match self.rebuild_files() {
-                Ok(merged) => {
-                    quick_error!(overwrite_file(
-                        Ok(pathbuf.clone()),
-                        &merged.to_json().expect("unable to convert to json file"),
-                    ));
-                    // quick_error!(
-                    //     merged
-                    //         .to_xlsx()
-                    //         .expect("unable to convert to xlsx file")
-                    //         .save(pathbuf)
-                    //         .context("error saving merge xlsx file")
-                    // );
-                }
-                Err(e) => windows_error_dialog(e),
-            }
-        }
-
-        if let Some(pathbufs) = self.select_file_dialog.take_picked_multiple() {
-            // Clear everything
-            self.data.clear();
-
-            // Load the selected files if possible
-            for buf in pathbufs {
-                match SessionSummary::from_file_path(buf.as_path()) {
-                    Ok(data) => self.data.push((data, buf)),
-                    Err(e) => windows_error_dialog(e),
-                }
-            }
-        }
+        // if let Some(mut pathbuf) = self.save_file_dialog.take_picked() {
+        //     match self.rebuild_file() {
+        //         Ok(rebuilt) => {
+        //             quick_error!(overwrite_file(
+        //                 Ok(rebuilt.json_file_name().into()),
+        //                 &rebuilt
+        //                     .to_json()
+        //                     .expect("unable to convert rebuilt file to json"),
+        //             ));
+        //             quick_error!(
+        //                 rebuilt
+        //                     .to_xlsx()
+        //                     .expect("unable to convert rebuilt file to xlsx")
+        //                     .save(rebuilt.xlsx_file_name().into())
+        //                     .context("")
+        //             );
+        //         }
+        //         Err(e) => windows_error_dialog(e),
+        //     }
+        // }
     }
 }
 
@@ -82,47 +79,58 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("Take TEMP files and create a normal session summaries from them. If the program crashed during a session the resulting file will still be incomplete.");
+            ui.label("Take a temp file and create a normal session summary from it.");
             ui.add_space(5.0);
 
             ui.horizontal(|ui| {
                 if ui.large_button("Select Files").clicked() {
-                    self.rebuilder.select_file_dialog.pick_multiple();
+                    self.rebuilder.select_file_dialog.pick_file();
                 }
                 ui.add_space(5.0);
                 if ui.large_green_button("Rebuild Files").clicked() {
-                    self.rebuilder.save_file_dialog.save_file();
+                    match self.rebuilder.rebuild_file() {
+                        Ok(rebuilt) => {
+                            quick_error!(overwrite_file(
+                                Ok(rebuilt.json_file_name().into()),
+                                &rebuilt
+                                    .to_json()
+                                    .expect("unable to convert rebuilt file to json"),
+                            ));
+                            quick_error!(
+                                rebuilt
+                                    .to_xlsx()
+                                    .expect("unable to convert rebuilt file to xlsx")
+                                    .save(rebuilt.xlsx_file_name())
+                                    .context("error saving rebuilt file as xlsx")
+                            );
+                        }
+                        Err(e) => windows_error_dialog(e),
+                    }
                 }
             });
             ui.add_space(5.0);
 
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    ui.monospace("Files");
+                    ui.monospace("File");
                     ui.group(|ui| {
                         egui::ScrollArea::both()
                             .id_salt("time series scroller")
                             .max_width(300.0)
-                            .show(ui, |ui| {
-                                if self.rebuilder.data.is_empty() {
-                                    for _ in 0..4 {
-                                        ui.monospace("                              ");
-                                    }
-                                } else {
-                                    for (_, file_name) in self.rebuilder.data.iter() {
-                                        ui.add(
-                                            egui::Label::new(
-                                                RichText::new(
-                                                    file_name
-                                                        .file_name()
-                                                        .unwrap()
-                                                        .to_string_lossy(),
-                                                )
-                                                .monospace(),
+                            .show(ui, |ui| match self.rebuilder.temp_file_path {
+                                Some(ref file_name) => {
+                                    ui.add(
+                                        egui::Label::new(
+                                            RichText::new(
+                                                file_name.file_name().unwrap().to_string_lossy(),
                                             )
-                                            .extend(),
-                                        );
-                                    }
+                                            .monospace(),
+                                        )
+                                        .extend(),
+                                    );
+                                }
+                                None => {
+                                    ui.monospace("                              ");
                                 }
                             });
                     });

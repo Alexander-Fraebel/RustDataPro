@@ -382,12 +382,12 @@ impl DataPro {
         let stem = &blank.file_name_stem();
         let mut temp_file_name = self
             .path_assessment_condition_dir()
-            .join(&format!("{stem}_TEMP.txt"));
+            .join(&format!("{stem}.temp"));
         let mut ex = String::new();
         while temp_file_name.exists() {
             ex.push_str("_ex");
             temp_file_name.pop();
-            temp_file_name = temp_file_name.join(&format!("{stem}{ex}_TEMP.txt"));
+            temp_file_name = temp_file_name.join(&format!("{stem}{ex}.temp"));
         }
 
         let mut file = File::options()

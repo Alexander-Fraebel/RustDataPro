@@ -1,4 +1,4 @@
-use crate::data::ClientAndSessionInfo;
+use crate::data::{ClientAndSessionInfo, KSF_REGEX};
 use crate::data::{Ksf, SessionInfo, timeline::Timeline};
 use crate::utils::{date_time_string, rounded_f32};
 use anyhow::Result;
@@ -53,6 +53,13 @@ impl SessionSummary {
         out.days_since_admission = lines.next().ok_or(anyhow!("missing line"))?.parse()?;
         out.location = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
 
+        out.ksf = Ksf::from_json(
+            KSF_REGEX
+                .find(text)
+                .context("unable to find a valid KSF")?
+                .as_str(),
+        )?;
+
         Ok(out)
     }
 
@@ -77,6 +84,17 @@ impl SessionSummary {
 
         // Combine from all of them
         for result in results.iter() {
+            if result.client_id != out.client_id
+                || result.client_name != out.client_name
+                || result.ksf != out.ksf
+                || result.session_data.chosen_assessment != out.session_data.chosen_assessment
+                || result.session_data.chosen_condition != out.session_data.chosen_condition
+            {
+                return Err(anyhow::anyhow!(
+                    "when merging files that must all have the same client_id, client_name, chosen_assessment, chosen_condition, and ksf"
+                ));
+            }
+
             out.timeline.merge(&result.timeline);
 
             out.total_time += result.total_time;
