@@ -1,4 +1,4 @@
-use crate::data::{ClientAndSessionInfo, KSF_REGEX};
+use crate::data::{ClientAndSessionInfo, KSF_REGEX, TEMP_TIMELINE};
 use crate::data::{Ksf, SessionInfo, timeline::Timeline};
 use crate::utils::{date_time_string, rounded_f32};
 use anyhow::Result;
@@ -56,9 +56,21 @@ impl SessionSummary {
         out.ksf = Ksf::from_json(
             KSF_REGEX
                 .find(text)
-                .context("unable to find a valid KSF")?
+                .context("unable to find valid KSF data")?
                 .as_str(),
         )?;
+
+        out.timeline = Timeline::from_json(
+            TEMP_TIMELINE
+                .find(text)
+                .context("unable to find a valid Timeline data")?
+                .as_str(),
+        )?;
+
+        out.frequency_data = out.timeline.calculate_frequency_data(&out.ksf);
+        out.duration_data = out.timeline.calculate_duration_data(&out.ksf);
+
+        (out.total_time, out.active_time, out.pause_time) = out.timeline.calculate_times();
 
         Ok(out)
     }
