@@ -458,8 +458,7 @@ impl DataPro {
             .prepare(default_dir.clone(), default_dir.clone());
         self.merger
             .prepare(default_dir.clone(), default_dir.clone());
-        self.rebuilder
-            .prepare(default_dir.clone(), default_dir.clone());
+        self.rebuilder.prepare(default_dir.clone());
     }
 
     pub fn load_client(&mut self, path: &PathBuf) {
@@ -483,10 +482,7 @@ impl DataPro {
                     self.path_to_session_records_dir(),
                     self.path_to_client_dir(),
                 );
-                self.rebuilder.prepare(
-                    self.path_to_session_records_dir(),
-                    self.path_to_client_dir(),
-                );
+                self.rebuilder.prepare(self.path_to_session_records_dir());
 
                 // Load the KSF Data
                 let ksf_path = self.path_to_ksf_data();

@@ -14,8 +14,7 @@ pub struct RebuilderPage {
     pub temp_file_path: Option<PathBuf>,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
-    pub save_file_dialog: FileDialog,
-    pub save_path: PathBuf,
+    pub rebuild_succeeded: bool,
 }
 
 impl RebuilderPage {
@@ -25,48 +24,22 @@ impl RebuilderPage {
         )?)?)
     }
 
-    pub fn prepare(&mut self, select_path: PathBuf, save_new_path: PathBuf) {
+    pub fn prepare(&mut self, select_path: PathBuf) {
         *self = Self::default();
         self.select_path = select_path.clone();
         self.select_file_dialog = FileDialog::new()
             .initial_directory(select_path.clone())
             .add_file_filter_extensions("temp files", vec!["temp"])
             .default_file_filter("temp files");
-        self.save_path = save_new_path.clone();
-        self.save_file_dialog = FileDialog::new()
-            .initial_directory(save_new_path.clone())
-            .default_file_name("rebuilt.json");
     }
 
     pub fn file_dialog_controls(&mut self, ui: &mut Ui) {
         self.select_file_dialog.update(ui.ctx());
-        self.save_file_dialog.update(ui.ctx());
 
         if let Some(pathbuf) = self.select_file_dialog.take_picked() {
+            self.prepare(pathbuf.clone());
             self.temp_file_path = Some(pathbuf.clone());
-            self.prepare(pathbuf, self.save_path.clone());
         }
-
-        // if let Some(mut pathbuf) = self.save_file_dialog.take_picked() {
-        //     match self.rebuild_file() {
-        //         Ok(rebuilt) => {
-        //             quick_error!(overwrite_file(
-        //                 Ok(rebuilt.json_file_name().into()),
-        //                 &rebuilt
-        //                     .to_json()
-        //                     .expect("unable to convert rebuilt file to json"),
-        //             ));
-        //             quick_error!(
-        //                 rebuilt
-        //                     .to_xlsx()
-        //                     .expect("unable to convert rebuilt file to xlsx")
-        //                     .save(rebuilt.xlsx_file_name().into())
-        //                     .context("")
-        //             );
-        //         }
-        //         Err(e) => windows_error_dialog(e),
-        //     }
-        // }
     }
 }
 
@@ -79,7 +52,7 @@ impl DataPro {
             self.client_picker(ui);
             ui.add_space(15.0);
 
-            ui.label("Take a temp file and create a normal session summary from it.");
+            ui.label("Take a temp file and create the normal session summary files (json and xlsx) from it.");
             ui.add_space(5.0);
 
             ui.horizontal(|ui| {
@@ -90,6 +63,7 @@ impl DataPro {
                 if ui.large_green_button("Rebuild Files").clicked() {
                     match self.rebuilder.rebuild_file() {
                         Ok(rebuilt) => {
+                            self.rebuilder.rebuild_succeeded = false;
                             let mut path = self.rebuilder.select_path.clone();
 
                             path.pop();
@@ -110,8 +84,12 @@ impl DataPro {
                                     .save(path)
                                     .context("error saving rebuilt file as xlsx")
                             );
+                            self.rebuilder.rebuild_succeeded = true;
                         }
-                        Err(e) => windows_error_dialog(e),
+                        Err(e) => {
+                            windows_error_dialog(e);
+                            self.rebuilder.rebuild_succeeded = false;
+                        }
                     }
                 }
             });
@@ -143,6 +121,16 @@ impl DataPro {
                     });
                 })
             });
+
+            if self.rebuilder.rebuild_succeeded {
+                ui.monospace(
+                    RichText::new(
+                        "Rebuilt files were saved to the same folder as the original file!",
+                    )
+                    .heading()
+                    .color(egui::Color32::GREEN),
+                );
+            }
 
             ui.add_space(8.0);
         });

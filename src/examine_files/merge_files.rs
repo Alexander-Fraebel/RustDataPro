@@ -17,6 +17,7 @@ pub struct MergeFiles {
     pub select_path: PathBuf,
     pub save_file_dialog: FileDialog,
     pub save_path: PathBuf,
+    pub merge_succeeded: bool,
 }
 
 impl MergeFiles {
@@ -93,7 +94,7 @@ impl DataPro {
             ui.add_space(15.0);
 
             ui.label(
-                "Merge multiple session summary files into a single file as if they represented a single session.",
+                "Merge multiple session summary files as if they were a single session. Produces the two normal session files (json and xlsx).",
             );
             ui.add_space(5.0);
 
@@ -140,6 +141,16 @@ impl DataPro {
                     });
                 })
             });
+
+            if self.merger.merge_succeeded {
+                ui.monospace(
+                    RichText::new(
+                        "Merged files were saved to the same folder as the original files!",
+                    )
+                    .heading()
+                    .color(egui::Color32::GREEN),
+                );
+            }
 
             ui.add_space(8.0);
         });
