@@ -90,17 +90,24 @@ impl DataPro {
                 if ui.large_green_button("Rebuild Files").clicked() {
                     match self.rebuilder.rebuild_file() {
                         Ok(rebuilt) => {
+                            let mut path = self.rebuilder.select_path.clone();
+
+                            path.pop();
+                            path.push(rebuilt.json_file_name());
                             quick_error!(overwrite_file(
-                                Ok(rebuilt.json_file_name().into()),
+                                Ok(path.clone()),
                                 &rebuilt
                                     .to_json()
                                     .expect("unable to convert rebuilt file to json"),
                             ));
+
+                            path.pop();
+                            path.push(rebuilt.xlsx_file_name());
                             quick_error!(
                                 rebuilt
                                     .to_xlsx()
                                     .expect("unable to convert rebuilt file to xlsx")
-                                    .save(rebuilt.xlsx_file_name())
+                                    .save(path)
                                     .context("error saving rebuilt file as xlsx")
                             );
                         }
