@@ -1,4 +1,4 @@
-use crate::data::{ClientAndSessionInfo, KSF_REGEX, TEMP_TIMELINE};
+use crate::data::{ClientAndSessionInfo, DataCollectionType, KSF_REGEX, TEMP_TIMELINE};
 use crate::data::{Ksf, SessionInfo, timeline::Timeline};
 use crate::utils::{date_time_string, rounded_f32};
 use anyhow::Result;
@@ -17,7 +17,7 @@ use std::path::Path;
 /// Output of a single session. Includes the Client and Session data along with the recorded keypresses and times, and the KSF to translate those.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SessionSummary {
-    pub session_start_time: String,
+    // Client information
     pub client_name: String,
     pub client_id: String,
     pub case_manager: String,
@@ -25,15 +25,23 @@ pub struct SessionSummary {
     pub session_number: u32,
     pub days_since_admission: i32,
     pub location: String,
-    pub session_data: SessionInfo,
+    // Summary information
     pub total_time: f32,
     pub active_time: f32,
     pub pause_time: f32,
     pub frequency_data: IndexMap<Key, u32>,
     pub duration_data: IndexMap<Key, (u32, f32)>,
-    pub timeline: Timeline,
-    pub ksf: Ksf,
+    // Notes
     pub notes: String,
+    // Session information
+    pub session_start_time: String,
+    pub assessment: String,
+    pub condition: String,
+    pub therapist: String,
+    pub data_collector: String,
+    pub data_collection_type: DataCollectionType,
+    pub ksf: Ksf,
+    pub timeline: Timeline,
 }
 
 impl SessionSummary {
@@ -44,7 +52,6 @@ impl SessionSummary {
         out.notes = String::from("rebuilt from temp file");
 
         let mut lines = text.lines();
-        out.session_start_time = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
         out.client_name = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
         out.client_id = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
         out.case_manager = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
@@ -52,6 +59,12 @@ impl SessionSummary {
         out.session_number = lines.next().ok_or(anyhow!("missing line"))?.parse()?;
         out.days_since_admission = lines.next().ok_or(anyhow!("missing line"))?.parse()?;
         out.location = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.session_start_time = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.assessment = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.condition = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.therapist = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.data_collector = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
+        out.data_collection_type = lines.next().ok_or(anyhow!("missing line"))?.try_into()?;
 
         out.ksf = Ksf::from_json(
             KSF_REGEX
@@ -60,7 +73,7 @@ impl SessionSummary {
                 .as_str(),
         )?;
 
-        out.timeline = Timeline::from_json(
+        out.timeline = Timeline::from_text(
             TEMP_TIMELINE
                 .find(text)
                 .context("unable to find a valid Timeline data")?
@@ -91,7 +104,6 @@ impl SessionSummary {
         out.session_number = results[0].session_number;
         out.days_since_admission = results[0].days_since_admission;
         out.location = results[0].location.clone();
-        out.session_data = results[0].session_data.clone();
         out.ksf = results[0].ksf.clone();
 
         // Combine from all of them
@@ -99,11 +111,11 @@ impl SessionSummary {
             if result.client_id != out.client_id
                 || result.client_name != out.client_name
                 || result.ksf != out.ksf
-                || result.session_data.chosen_assessment != out.session_data.chosen_assessment
-                || result.session_data.chosen_condition != out.session_data.chosen_condition
+                || result.assessment != out.assessment
+                || result.condition != out.condition
             {
                 return Err(anyhow::anyhow!(
-                    "when merging files that must all have the same client_id, client_name, chosen_assessment, chosen_condition, and ksf"
+                    "when merging files that must all have the same client_id, client_name, assessment, condition, and ksf"
                 ));
             }
 
@@ -148,10 +160,10 @@ impl SessionSummary {
         if self.session_number != other.session_number {
             err.push("Session Numbers do not match");
         }
-        if self.session_data.chosen_assessment != other.session_data.chosen_assessment {
+        if self.assessment != other.assessment {
             err.push("Assessments do not match");
         }
-        if self.session_data.chosen_condition != other.session_data.chosen_condition {
+        if self.condition != other.condition {
             err.push("Conditions do not match");
         }
 
@@ -165,21 +177,19 @@ impl SessionSummary {
     pub fn file_name_stem(&self) -> String {
         format!(
             "{}-{}-{}_S{:>03}-{}", // three digit aligned session number is sufficient for six sessions every working day for about seven months
-            self.session_data
-                .chosen_assessment
+            self.assessment
                 .chars()
                 .filter(|c| !c.is_whitespace()) // remove whitespace from file name
                 .take(5) // maximum length for better alignment
                 .collect::<String>(),
-            self.session_data
-                .chosen_condition
+            self.condition
                 .chars()
                 .filter(|c| !c.is_whitespace()) // remove whitespace from file name
                 .take(5) // maximum length for better alignment
                 .collect::<String>(),
             self.client_id,
             self.session_number,
-            self.session_data.data_collection_type.abbrev(),
+            self.data_collection_type.abbrev(),
         )
     }
 
@@ -255,27 +265,23 @@ impl SessionSummary {
         row = 1;
         col += 3;
         information.write_with_format(row, col, "Assessment:", &bold)?;
-        information.write(row, col + 1, &self.session_data.chosen_assessment)?;
+        information.write(row, col + 1, &self.assessment)?;
         row += 1;
 
         information.write_with_format(row, col, "Condition:", &bold)?;
-        information.write(row, col + 1, &self.session_data.chosen_condition)?;
+        information.write(row, col + 1, &self.condition)?;
         row += 1;
 
         information.write_with_format(row, col, "Data Type:", &bold)?;
-        information.write(
-            row,
-            col + 1,
-            self.session_data.data_collection_type.to_string(),
-        )?;
+        information.write(row, col + 1, self.data_collection_type.to_string())?;
 
         ///////////////////////
         // Summarize the KSF //
         ///////////////////////
         row = 1;
         col += 3;
-        information.write_with_format(row, col, "KSF Name:", &bold)?;
-        information.write(row, col + 1, &self.session_data.chosen_ksf_name)?;
+        // information.write_with_format(row, col, "KSF Name:", &bold)?;
+        // information.write(row, col + 1, &self.session_data.chosen_ksf_name)?;
         row += 2;
 
         information.write_with_format(row, col, "Key", &centered_underlined)?;
@@ -349,11 +355,7 @@ impl SessionSummary {
         Ok(workbook)
     }
 
-    crate::to_and_from_json!(
-        self,
-        "unable to make SessionSummary from file",
-        "unable to convert SessionSummary to json"
-    );
+    crate::to_and_from_json!(self, "SessionSummary");
 
     pub fn simulate_session_results(
         path: std::path::PathBuf,
@@ -453,7 +455,6 @@ impl SessionSummary {
 
         let prim = SessionSummary {
             session_start_time: format!("{}", date_time_string(&Local::now())),
-            session_data: session_data.clone(),
             total_time: rounded_f32(session_time),
             pause_time: 0.0,
             active_time: rounded_f32(session_time),
@@ -469,6 +470,11 @@ impl SessionSummary {
             days_since_admission: client.days_since_admission().unwrap_or(-99999),
             location: client.location.clone(),
             notes: String::from("SIMULATED"),
+            assessment: session_data.chosen_assessment.clone(),
+            condition: session_data.chosen_condition.clone(),
+            therapist: session_data.therapist.clone(),
+            data_collector: session_data.data_collector.clone(),
+            data_collection_type: session_data.data_collection_type.clone(),
         };
 
         let pfile = File::create(path.join(prim.json_file_name())).unwrap();
@@ -524,7 +530,6 @@ impl SessionSummary {
 
             let reli = SessionSummary {
                 session_start_time: format!(" {}", date_time_string(&Local::now())),
-                session_data: session_data.clone(),
                 total_time: session_time,
                 pause_time: 0.0,
                 active_time: session_time,
@@ -539,6 +544,11 @@ impl SessionSummary {
                 session_number: session_number,
                 days_since_admission: client.days_since_admission().unwrap_or(i32::MIN),
                 location: client.location.clone(),
+                assessment: session_data.chosen_assessment.clone(),
+                condition: session_data.chosen_condition.clone(),
+                therapist: session_data.therapist.clone(),
+                data_collector: session_data.data_collector.clone(),
+                data_collection_type: session_data.data_collection_type.clone(),
                 notes: String::from("SIMULATED"),
             };
 

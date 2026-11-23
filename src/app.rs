@@ -205,7 +205,6 @@ impl DataPro {
     pub fn blank_session_results(&self) -> SessionSummary {
         SessionSummary {
             session_start_time: date_time_string(&self.session.start_time),
-            session_data: self.data.session.clone(),
             timeline: self.session.timeline.clone(),
             ksf: self
                 .data
@@ -220,6 +219,11 @@ impl DataPro {
             session_number: self.data.current_session,
             days_since_admission: self.data.client.days_since_admission().unwrap_or(i32::MIN), // i32::MIN to signal an error
             location: self.data.client.location.clone(),
+            assessment: self.data.session.chosen_assessment.clone(),
+            condition: self.data.session.chosen_condition.clone(),
+            therapist: self.data.session.therapist.clone(),
+            data_collector: self.data.session.data_collector.clone(),
+            data_collection_type: self.data.session.data_collection_type,
             ..Default::default()
         }
     }
@@ -339,7 +343,7 @@ impl DataPro {
     }
 
     pub fn load_ksf(&mut self, path: &PathBuf) {
-        match KsfsData::from_file_path(&path) {
+        match KsfsData::from_json_file(&path) {
             Ok(ksf) => {
                 self.data.ksfs = ksf;
                 let preferred_ksf = if let Some(chosen_assessment) = self.data.chosen_assessment() {
@@ -360,7 +364,7 @@ impl DataPro {
 
     pub fn load_ksfs_file(&mut self) -> Result<()> {
         let ksfs_path = self.path_to_ksf_data();
-        match KsfsData::from_file_path(&ksfs_path) {
+        match KsfsData::from_json_file(&ksfs_path) {
             Ok(ksfs_data) => {
                 self.data.ksfs = ksfs_data;
                 self.edit_ksfs.prepare(&self.data, ksfs_path.clone());
@@ -378,7 +382,7 @@ impl DataPro {
 
     pub fn load_assessments(&mut self) -> Result<()> {
         let assessments_path = self.path_to_assessments();
-        match AssessmentsData::from_file_path(&assessments_path) {
+        match AssessmentsData::from_json_file(&assessments_path) {
             Ok(assessments_data) => {
                 self.data.assessments = assessments_data;
                 self.edit_assessments
@@ -460,7 +464,7 @@ impl DataPro {
 
     pub fn load_client(&mut self, path: &PathBuf) {
         // Determine if the client file exists
-        match ClientInfo::from_file_path(&Path::new(path).join(CLIENT_DATA_FILE_NAME))
+        match ClientInfo::from_json_file(&Path::new(path).join(CLIENT_DATA_FILE_NAME))
             .context("error reading client_data.txt")
         {
             Ok(client) => {
@@ -486,7 +490,7 @@ impl DataPro {
 
                 // Load the KSF Data
                 let ksf_path = self.path_to_ksf_data();
-                match KsfsData::from_file_path(&ksf_path) {
+                match KsfsData::from_json_file(&ksf_path) {
                     Ok(ksf_data) => {
                         self.data.ksfs = ksf_data;
                         self.edit_ksfs.prepare(&self.data, ksf_path.clone());
@@ -504,7 +508,7 @@ impl DataPro {
                                 KSF_FILE_NAME
                             )));
                             match self.try_create_example_ksfs_file() {
-                                Ok(_) => match KsfsData::from_file_path(&ksf_path) {
+                                Ok(_) => match KsfsData::from_json_file(&ksf_path) {
                                     Ok(new_data) => {
                                         self.data.ksfs = new_data;
                                         self.edit_ksfs.prepare(&self.data, ksf_path.clone());
@@ -527,7 +531,7 @@ impl DataPro {
 
                 // Load the Assessments Data
                 let assessments_path = self.path_to_assessments();
-                match AssessmentsData::from_file_path(&assessments_path) {
+                match AssessmentsData::from_json_file(&assessments_path) {
                     Ok(assessments_data) => {
                         self.data.assessments = assessments_data;
                         self.edit_assessments
@@ -544,7 +548,7 @@ impl DataPro {
                                 ASSESSMENTS_FILE_NAME
                             )));
                             match self.try_create_example_assessments_file() {
-                                Ok(_) => match AssessmentsData::from_file_path(&assessments_path) {
+                                Ok(_) => match AssessmentsData::from_json_file(&assessments_path) {
                                     Ok(new_data) => {
                                         self.data.assessments = new_data;
                                         self.edit_assessments

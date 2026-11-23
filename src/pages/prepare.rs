@@ -394,10 +394,10 @@ impl DataPro {
             .append(true)
             .create(true) // Creates the file if it doesn't exist
             .open(&temp_file_name)?;
+
         writeln!(
             file,
-            "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
-            blank.session_start_time,
+            "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n\n{}\n\nBegin Timeline:",
             blank.client_name,
             blank.client_id,
             blank.case_manager,
@@ -405,6 +405,12 @@ impl DataPro {
             blank.session_number,
             blank.days_since_admission,
             blank.location,
+            blank.session_start_time,
+            blank.assessment,
+            blank.condition,
+            blank.therapist,
+            blank.data_collector,
+            blank.data_collection_type,
             blank.ksf.to_json()?
         )?;
         self.session.temp_file = Some(Box::new((file, temp_file_name)));

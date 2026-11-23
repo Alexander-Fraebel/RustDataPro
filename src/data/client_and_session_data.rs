@@ -28,11 +28,7 @@ pub struct ClientAndSessionInfo {
 }
 
 impl ClientAndSessionInfo {
-    crate::to_and_from_json!(
-        self,
-        "unable to make ClientAndSessionInfo from file",
-        "unable to convert ClientAndSessionInfo to json"
-    );
+    crate::to_and_from_json!(self, "ClientAndSessionInfo");
 
     pub fn clear(&mut self) {
         *self = Self::default()

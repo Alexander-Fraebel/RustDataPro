@@ -39,11 +39,7 @@ impl Assessment {
         self.conditions.first()
     }
 
-    crate::to_and_from_json!(
-        self,
-        "unable to make Assessment from file",
-        "unable to convert Assessment to json"
-    );
+    crate::to_and_from_json!(self, "Assessment");
 
     pub fn example() -> Self {
         serde_json::from_str(
@@ -82,11 +78,7 @@ impl DerefMut for AssessmentsData {
 }
 
 impl AssessmentsData {
-    crate::to_and_from_json!(
-        self,
-        "unable to make AssessmentsData from file",
-        "unable to convert AssessmentsData to json"
-    );
+    crate::to_and_from_json!(self, "AssessmentsData");
 
     pub fn example() -> Self {
         let mut map = IndexMap::new();

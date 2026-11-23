@@ -54,22 +54,20 @@ pub fn expand_num_names(text: &str) -> String {
 
 #[macro_export]
 macro_rules! to_and_from_json {
-    ($self:expr, $context1:literal, $context2:literal) => {
-        pub fn from_file_path(file_path: &Path) -> Result<Self> {
-            serde_json::from_str(&crate::data::expand_num_names(&std::fs::read_to_string(
-                file_path,
-            )?))
-            .context($context1)
+    ($self:expr, $context:literal) => {
+        pub fn from_json_file(file_path: &Path) -> Result<Self> {
+            Self::from_json(&std::fs::read_to_string(file_path)?)
         }
 
         pub fn from_json(json: &str) -> Result<Self> {
             serde_json::from_str(&crate::data::expand_num_names(json))
-                .context("unable to build from json")
+                .context(format!("unable to build {} from json", $context))
         }
 
         pub fn to_json(&self) -> Result<String> {
             Ok(crate::data::compact_json_leaves(
-                &serde_json::to_string_pretty(&self).context($context2)?,
+                &serde_json::to_string_pretty(&self)
+                    .context(format!("unable to convert {} to json", $context))?,
             ))
         }
     };

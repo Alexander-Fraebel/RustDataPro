@@ -74,7 +74,7 @@ impl MergeFiles {
 
             // Load the selected files if possible
             for buf in pathbufs {
-                match SessionSummary::from_file_path(buf.as_path()) {
+                match SessionSummary::from_json_file(buf.as_path()) {
                     Ok(data) => self.data.push((data, buf)),
                     Err(e) => windows_error_dialog(e),
                 }

@@ -283,7 +283,7 @@ impl SessionPage {
 
 impl DataPro {
     pub fn save_new_output_data(&mut self) -> Result<()> {
-        // Load the temporary results file
+        // Load the summary information that is known without calculations.
         let mut output_data = self.blank_session_results();
 
         // Create the filename stem and append _ex as needed to avoid conflict
@@ -314,7 +314,6 @@ impl DataPro {
         output_data.pause_time = rounded_f32(self.session.main_timer.paused_time());
         output_data.active_time = rounded_f32(self.session.main_timer.active_time());
         output_data.timeline = self.session.timeline.clone();
-        output_data.session_data = self.data.session.clone();
 
         overwrite_file(Ok(json_file_name), &output_data.to_json()?)?;
 

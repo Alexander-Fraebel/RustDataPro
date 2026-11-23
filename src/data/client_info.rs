@@ -33,9 +33,5 @@ impl ClientInfo {
         self.location = self.location.trim().to_owned();
     }
 
-    crate::to_and_from_json!(
-        self,
-        "unable to make ClientInfo from file",
-        "unable to convert ClientInfo to json"
-    );
+    crate::to_and_from_json!(self, "ClientInfo");
 }

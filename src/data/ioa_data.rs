@@ -61,9 +61,5 @@ impl IoaData {
         }
     }
 
-    crate::to_and_from_json!(
-        self,
-        "unable to make IoaData from file",
-        "unable to convert IoaData to json"
-    );
+    crate::to_and_from_json!(self, "IoaDat");
 }

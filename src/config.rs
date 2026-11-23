@@ -67,7 +67,7 @@ impl Config {
                 overwrite_file(Ok(path_to_config.clone()), &Self::default().to_json()?)?;
                 return Ok(Self::default());
             }
-            Config::from_file_path(&path_to_config)
+            Config::from_json_file(&path_to_config)
         } else {
             Err(anyhow::anyhow!(
                 "current directory could not be accessed while looking for {}",
@@ -76,9 +76,5 @@ impl Config {
         }
     }
 
-    crate::to_and_from_json!(
-        self,
-        "unable to make Config from file",
-        "unable to convert Config to json"
-    );
+    crate::to_and_from_json!(self, "Config");
 }

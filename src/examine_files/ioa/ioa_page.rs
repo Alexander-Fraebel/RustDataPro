@@ -54,7 +54,7 @@ impl DerefMut for IoaDataMap {
 
 impl IoaDataMap {
     fn insert(&mut self, results: SessionSummary, buf: PathBuf) -> Result<()> {
-        match results.session_data.data_collection_type {
+        match results.data_collection_type {
             DataCollectionType::Primary => {
                 self.entry(results.session_number)
                     .and_modify(|e| e.0 = Some((results.clone(), buf.clone())))
@@ -308,7 +308,7 @@ impl DataPro {
             );
             // Simultaneously parse and filter the input files.
             for buf in bufs {
-                match SessionSummary::from_file_path(buf.as_path()) {
+                match SessionSummary::from_json_file(buf.as_path()) {
                     Ok(results) => {
                         crate::quick_error!(self.ioa_page.data.insert(results, buf))
                     }

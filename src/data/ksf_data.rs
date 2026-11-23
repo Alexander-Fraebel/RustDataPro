@@ -151,11 +151,7 @@ impl Ksf {
         .unwrap()
     }
 
-    crate::to_and_from_json!(
-        self,
-        "unable to make Ksf from file",
-        "unable to convert Ksf to json"
-    );
+    crate::to_and_from_json!(self, "Ksf");
 }
 
 /// A map of KSFs indexed by name. The order of the map is stable.
@@ -189,11 +185,7 @@ impl KsfsData {
         Ok(())
     }
 
-    crate::to_and_from_json!(
-        self,
-        "unable to make KsfsData from file",
-        "unable to convert KsfsData to json"
-    );
+    crate::to_and_from_json!(self, "KsfsData");
 
     pub fn example() -> KsfsData {
         let mut data = KsfsData::default();

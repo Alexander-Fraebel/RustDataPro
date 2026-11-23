@@ -7,7 +7,7 @@ use std::{
     path::Path,
 };
 
-use crate::data::Ksf;
+use crate::{data::Ksf, utils::rounded_f32};
 
 /// Sequence of keypresses and their relative to the start of session
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
@@ -64,19 +64,20 @@ impl Timeline {
         for (k, time) in self.iter() {
             if *k == key {
                 count += 1;
+                if key_on {
+                    duration += time - last_click;
+                    key_on = false;
+                } else {
+                    key_on = true;
+                }
+                last_click = *time;
             }
-            if key_on {
-                duration += time - last_click;
-                key_on = false;
-            } else {
-                key_on = true;
-            }
-            last_click = *time;
         }
+        // Capture the time implied if the key was still on when session ended
         if key_on {
             duration += self.total_time() - last_click;
         }
-        (count, duration)
+        (count, rounded_f32(duration))
     }
 
     /// Summary of the frequency keys.
@@ -99,9 +100,9 @@ impl Timeline {
 
     /// Return (Total Time, Active Time, Pause Time) as implied by the Timeline.
     pub fn calculate_times(&self) -> (f32, f32, f32) {
-        let total_time = self.total_time();
-        let pause_time = self.key_statistics(Key::Space).1;
-        let active_time = total_time - pause_time;
+        let total_time = rounded_f32(self.total_time());
+        let pause_time = rounded_f32(self.key_statistics(Key::Space).1);
+        let active_time = rounded_f32(total_time - pause_time);
 
         (total_time, active_time, pause_time)
     }
@@ -122,9 +123,5 @@ impl DerefMut for Timeline {
 }
 
 impl Timeline {
-    crate::to_and_from_json!(
-        self,
-        "unable to make Timeline from file",
-        "unable to convert Timeline to json"
-    );
+    crate::to_and_from_json!(self, "Timeline");
 }

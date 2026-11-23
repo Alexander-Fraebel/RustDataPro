@@ -9,6 +9,22 @@ pub enum DataCollectionType {
     Reliability,
 }
 
+impl TryFrom<&str> for DataCollectionType {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> std::prelude::v1::Result<Self, Self::Error> {
+        if ["Primary", "Prim", "P", "primary", "prim", "p"].contains(&value) {
+            return Ok(Self::Primary);
+        }
+        if ["Reliability", "Reli", "R", "reliability", "reli", "r"].contains(&value) {
+            return Ok(Self::Reliability);
+        }
+        Err(anyhow::anyhow!(
+            "unable to identify DataCollectionType from string"
+        ))
+    }
+}
+
 impl Display for DataCollectionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -27,7 +43,7 @@ impl DataCollectionType {
     }
 }
 
-/// Data needed for running a session
+/// Data needed for running a session that is not in the client file.
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct SessionInfo {
     pub chosen_assessment: String,
@@ -47,9 +63,5 @@ pub struct SessionInfo {
 }
 
 impl SessionInfo {
-    crate::to_and_from_json!(
-        self,
-        "unable to make SessionInfo from file",
-        "unable to convert SessionInfo to json"
-    );
+    crate::to_and_from_json!(self, " SessionInfo");
 }

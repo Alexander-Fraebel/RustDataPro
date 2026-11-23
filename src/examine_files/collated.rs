@@ -103,12 +103,7 @@ impl CollatePage {
             return Err(anyhow!("no KSF determined"));
         }
 
-        if !self
-            .data
-            .iter()
-            .map(|(a, _)| &a.session_data.chosen_assessment)
-            .all_equal()
-        {
+        if !self.data.iter().map(|(a, _)| &a.assessment).all_equal() {
             return Err(anyhow!(
                 "all sessions must be for the same kind of assessment"
             ));
@@ -141,7 +136,7 @@ impl CollatePage {
             0,
             1,
             2,
-            &format!("Assessment: {}", first_item.session_data.chosen_assessment),
+            &format!("Assessment: {}", first_item.assessment),
             &fully_centered_bold,
         )?;
 
@@ -279,7 +274,7 @@ impl CollatePage {
             col += 1;
             data_page.write(row, col, result.session_number)?;
             col += 1;
-            data_page.write(row, col, &result.session_data.chosen_condition)?;
+            data_page.write(row, col, &result.condition)?;
             col += 1;
 
             let (freq, dura) = self.ksf.as_ref().unwrap().freq_and_dura_keys();
@@ -590,7 +585,7 @@ impl CollatePage {
 
             // Load the selected files if possible
             for buf in pathbufs {
-                match SessionSummary::from_file_path(buf.as_path()) {
+                match SessionSummary::from_json_file(buf.as_path()) {
                     Ok(data) => self.data.push((data, buf)),
                     Err(e) => windows_error_dialog(e),
                 }
@@ -608,7 +603,7 @@ impl CollatePage {
 
                 self.ksf = Some(first_item.0.ksf.clone());
 
-                let assessment = &first_item.0.session_data.chosen_assessment;
+                let assessment = &first_item.0.assessment;
                 self.save_file_dialog = FileDialog::new()
                     .initial_directory(self.save_path.clone())
                     .default_file_name(&format!("{}_collated.xlsx", assessment));
