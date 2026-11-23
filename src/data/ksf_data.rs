@@ -50,7 +50,7 @@ pub const ALLOWED_KSF_KEYS: [Key; 36] = [
 
 /// A single Keyboard Setup File.
 /// List of frequency keybinds and duration keybinds.
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
 pub struct Ksf {
     #[serde(rename(serialize = "frequency", deserialize = "frequency"))]
     pub freq: Vec<(Key, String)>,

@@ -1,8 +1,9 @@
-use crate::data::{ClientAndSessionInfo, DataCollectionType, KSF_REGEX, TEMP_TIMELINE};
-use crate::data::{Ksf, SessionInfo, timeline::Timeline};
+use crate::data::{
+    ClientAndSessionInfo, DataCollectionType, KSF_REGEX, Ksf, SessionInfo, TEMP_TIMELINE,
+    timeline::Timeline,
+};
 use crate::utils::{date_time_string, rounded_f32};
-use anyhow::Result;
-use anyhow::{Context, anyhow};
+use anyhow::{Context, Result, anyhow};
 use chrono::Local;
 use egui::Key;
 use indexmap::IndexMap;
@@ -93,29 +94,51 @@ impl SessionSummary {
     pub fn merge(results: &[SessionSummary]) -> Result<SessionSummary> {
         let mut out = Self::default();
         if results.is_empty() {
-            return Ok(out);
+            return Err(anyhow::anyhow!("no files to merge"));
         }
-        // Clone from the first result
-        out.session_start_time = results[0].session_start_time.clone();
+
+        // Cloned from the first result and all need to match for all files
         out.client_name = results[0].client_name.clone();
         out.client_id = results[0].client_id.clone();
-        out.case_manager = results[0].case_manager.clone();
-        out.primary_therapist = results[0].primary_therapist.clone();
+        out.data_collection_type = results[0].data_collection_type;
         out.session_number = results[0].session_number;
-        out.days_since_admission = results[0].days_since_admission;
-        out.location = results[0].location.clone();
         out.ksf = results[0].ksf.clone();
+        out.assessment = results[0].assessment.clone();
+        out.condition = results[0].condition.clone();
 
-        // Combine from all of them
+        // Cloned from first results but DONT need to match for all files
+        out.session_start_time = results[0].session_start_time.clone();
+        out.days_since_admission = results[0].days_since_admission;
+
+        // Merge from the files, inherently DONT need to match for all files
+        out.case_manager = results
+            .iter()
+            .map(|s| &s.case_manager)
+            .unique()
+            .join(" and ");
+        out.primary_therapist = results
+            .iter()
+            .map(|s| &s.primary_therapist)
+            .unique()
+            .join(" and ");
+        out.data_collector = results
+            .iter()
+            .map(|s| &s.data_collector)
+            .unique()
+            .join(" and ");
+        out.location = results.iter().map(|s| &s.location).unique().join(" and ");
+        out.therapist = results.iter().map(|s| &s.therapist).unique().join(" and ");
+
         for result in results.iter() {
             if result.client_id != out.client_id
                 || result.client_name != out.client_name
                 || result.ksf != out.ksf
                 || result.assessment != out.assessment
                 || result.condition != out.condition
+                || result.data_collection_type != out.data_collection_type
             {
                 return Err(anyhow::anyhow!(
-                    "when merging files that must all have the same client_id, client_name, assessment, condition, and ksf"
+                    "when merging files all of the following must be the same: client_name, client_id, assessment, condition, ksf, and data_collection_type"
                 ));
             }
 
@@ -194,15 +217,19 @@ impl SessionSummary {
     }
 
     pub fn xlsx_file_name(&self) -> String {
-        let mut stem = self.file_name_stem();
-        stem.push_str(".xlsx");
-        stem
+        format!("{}.xlsx", self.file_name_stem())
     }
 
     pub fn json_file_name(&self) -> String {
-        let mut stem = self.file_name_stem();
-        stem.push_str(".json");
-        stem
+        format!("{}.json", self.file_name_stem())
+    }
+
+    pub fn merged_xlsx_file_name(&self) -> String {
+        format!("{}_MERGED.xlsx", self.file_name_stem())
+    }
+
+    pub fn merged_json_file_name(&self) -> String {
+        format!("{}_MERGED.json", self.file_name_stem())
     }
 
     pub fn to_xlsx(&self) -> Result<Workbook> {

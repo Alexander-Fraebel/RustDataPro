@@ -15,8 +15,6 @@ pub struct MergeFiles {
     pub data: Vec<(SessionSummary, PathBuf)>,
     pub select_file_dialog: FileDialog,
     pub select_path: PathBuf,
-    pub save_file_dialog: FileDialog,
-    pub save_path: PathBuf,
     pub merge_succeeded: bool,
 }
 
@@ -25,48 +23,20 @@ impl MergeFiles {
         SessionSummary::merge(&self.data.iter().map(|d| d.0.clone()).collect_vec())
     }
 
-    pub fn prepare(&mut self, select_path: PathBuf, save_new_path: PathBuf) {
+    pub fn prepare(&mut self, select_path: PathBuf) {
         *self = Self::default();
         self.select_path = select_path.clone();
         self.select_file_dialog = FileDialog::new()
             .initial_directory(select_path.clone())
             .add_file_filter_extensions("json files", vec!["json"])
             .default_file_filter("json files");
-        self.save_path = save_new_path.clone();
-        self.save_file_dialog = FileDialog::new()
-            .initial_directory(save_new_path.clone())
-            .default_file_name("merged.json");
     }
 
     pub fn file_dialog_controls(&mut self, ui: &mut Ui) {
         self.select_file_dialog.update(ui.ctx());
-        self.save_file_dialog.update(ui.ctx());
 
         if let Some(pathbuf) = self.select_file_dialog.take_picked() {
-            self.prepare(pathbuf, self.save_path.clone());
-        }
-
-        if let Some(mut pathbuf) = self.save_file_dialog.take_picked() {
-            match self.merge_files() {
-                Ok(merged) => {
-                    quick_error!(overwrite_file(
-                        Ok(pathbuf.clone()),
-                        &merged
-                            .to_json()
-                            .expect("unable to convert merged file to json"),
-                    ));
-                    pathbuf.pop();
-                    pathbuf.add_extension(".xlsx");
-                    quick_error!(
-                        merged
-                            .to_xlsx()
-                            .expect("unable to convert merged file to xlsx")
-                            .save(pathbuf)
-                            .context("")
-                    );
-                }
-                Err(e) => windows_error_dialog(e),
-            }
+            self.prepare(pathbuf);
         }
 
         if let Some(pathbufs) = self.select_file_dialog.take_picked_multiple() {
@@ -94,7 +64,7 @@ impl DataPro {
             ui.add_space(15.0);
 
             ui.label(
-                "Merge multiple session summary files as if they were a single session. Produces the two normal session files (json and xlsx).",
+                "Merge multiple session summary files as if they were a single session. Produces the two normal session files (json and xlsx) that will use the same session number as the first file selected.",
             );
             ui.add_space(5.0);
 
@@ -104,7 +74,33 @@ impl DataPro {
                 }
                 ui.add_space(5.0);
                 if ui.large_green_button("Merge Files").clicked() {
-                    self.merger.save_file_dialog.save_file();
+                    match self.merger.merge_files() {
+                        Ok(merged) => {
+                            if let Some((_, path)) = self.merger.data.first() {
+                            let mut path = path.clone();
+
+                            path.pop();
+                            path.push(merged.merged_json_file_name());
+                            quick_error!(overwrite_file(
+                                Ok(path.clone()),
+                                &merged
+                                    .to_json()
+                                    .expect("unable to convert merged file to json"),
+                            ));
+
+                            path.pop();
+                            path.push(merged.merged_xlsx_file_name());
+                            quick_error!(
+                                merged
+                                    .to_xlsx()
+                                    .expect("unable to convert merged file to xlsx")
+                                    .save(path)
+                                    .context("unable to save merged xlsx file")
+                            );
+                            }
+                        }
+                        Err(e) => windows_error_dialog(e),
+                    }
                 }
             });
             ui.add_space(5.0);

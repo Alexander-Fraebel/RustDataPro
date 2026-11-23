@@ -456,8 +456,7 @@ impl DataPro {
             .prepare(default_dir.clone(), default_dir.clone());
         self.collate
             .prepare(default_dir.clone(), default_dir.clone());
-        self.merger
-            .prepare(default_dir.clone(), default_dir.clone());
+        self.merger.prepare(default_dir.clone());
         self.rebuilder.prepare(default_dir.clone());
     }
 
@@ -478,10 +477,7 @@ impl DataPro {
                     self.path_to_session_records_dir(),
                     self.path_to_client_dir(),
                 );
-                self.merger.prepare(
-                    self.path_to_session_records_dir(),
-                    self.path_to_client_dir(),
-                );
+                self.merger.prepare(self.path_to_session_records_dir());
                 self.rebuilder.prepare(self.path_to_session_records_dir());
 
                 // Load the KSF Data
