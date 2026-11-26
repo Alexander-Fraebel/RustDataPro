@@ -100,7 +100,7 @@ impl DataPro {
                     ui.monospace("File");
                     ui.group(|ui| {
                         egui::ScrollArea::both()
-                            .id_salt("time series scroller")
+                            .id_salt("scroller")
                             .max_width(300.0)
                             .show(ui, |ui| match self.rebuilder.temp_file_path {
                                 Some(ref file_name) => {

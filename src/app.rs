@@ -428,10 +428,7 @@ impl DataPro {
 
     pub fn try_create_example_ksfs_file(&self) -> Result<()> {
         let mut writer = std::fs::File::create_new(Path::new(&&self.path_to_ksf_data()))?;
-        std::io::Write::write_all(
-            &mut writer,
-            self.config.default_ksfs_data.to_json()?.as_bytes(),
-        )?;
+        std::io::Write::write_all(&mut writer, KsfsData::example().to_json()?.as_bytes())?;
         std::io::Write::flush(&mut writer)?;
         Ok(())
     }
@@ -440,7 +437,7 @@ impl DataPro {
         let mut writer = std::fs::File::create_new(Path::new(&self.path_to_assessments()))?;
         std::io::Write::write_all(
             &mut writer,
-            self.config.default_assessments_data.to_json()?.as_bytes(),
+            AssessmentsData::example().to_json()?.as_bytes(),
         )?;
         std::io::Write::flush(&mut writer)?;
         Ok(())

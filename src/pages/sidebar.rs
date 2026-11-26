@@ -41,12 +41,12 @@ impl DataPro {
                         }
                         ui.add_space(4.0);
 
-                        if ui.large_button("Edit KSFs").clicked() {
+                        if ui.large_button("KSFs").clicked() {
                             self.go_to_edit_ksf();
                         }
                         ui.add_space(4.0);
 
-                        if ui.large_button("Edit Assessments").clicked() {
+                        if ui.large_button("Assessments").clicked() {
                             self.go_to_edit_assessments();
                         }
 
@@ -54,7 +54,7 @@ impl DataPro {
                         ui.separator();
                         ui.add_space(4.0);
 
-                        if ui.large_button("Data Options").clicked() {
+                        if ui.large_button("Examine Files").clicked() {
                             self.go_to_examine_files();
                         }
 

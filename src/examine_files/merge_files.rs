@@ -110,7 +110,7 @@ impl DataPro {
                     ui.monospace("Files");
                     ui.group(|ui| {
                         egui::ScrollArea::both()
-                            .id_salt("time series scroller")
+                            .id_salt("scroller")
                             .max_width(300.0)
                             .show(ui, |ui| {
                                 if self.merger.data.is_empty() {
