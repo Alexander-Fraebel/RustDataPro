@@ -1,5 +1,8 @@
-use crate::{app::DataPro, utils::ui_elements::DataProUiElements};
-use egui::{RichText, Ui};
+use crate::{
+    app::DataPro,
+    utils::{text_colors::warning_text, ui_elements::DataProUiElements},
+};
+use egui::Ui;
 
 impl DataPro {
     pub fn view_sidebar(&mut self, ui: &mut Ui) {
@@ -81,12 +84,7 @@ impl DataPro {
                         ui.add_space(10.0);
 
                         if cfg!(debug_assertions) {
-                            if ui
-                                .small_button(
-                                    RichText::from("debug").color(ui.visuals().warn_fg_color),
-                                )
-                                .clicked()
-                            {
+                            if ui.small_button(warning_text("debug", ui)).clicked() {
                                 self.go_to_debug();
                             }
                         }

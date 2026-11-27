@@ -6,7 +6,7 @@ use crate::{
     },
     data::{AssessmentsData, ClientInfo, KsfsData},
     quick_error,
-    utils::ui_elements::DataProUiElements,
+    utils::{text_colors::warning_text, ui_elements::DataProUiElements},
 };
 use anyhow::Result;
 use chrono::Local;
@@ -88,10 +88,7 @@ impl DataPro {
                         self.new_client_page.created = false;
                     };
                     if cfg!(debug_assertions) {
-                        if ui
-                            .button(RichText::from("random").color(ui.visuals().warn_fg_color))
-                            .clicked()
-                        {
+                        if ui.button(warning_text("random", ui)).clicked() {
                             self.new_client_page.client.id = format!(
                                 "{:0<10}",
                                 self.rng.random_range(1000000000_i64..=9999999999)

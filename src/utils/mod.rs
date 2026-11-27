@@ -1,6 +1,7 @@
 pub mod clicked_keys;
 pub mod error_handling;
 pub mod math;
+pub mod text_colors;
 pub mod time_stamps;
 pub mod timer;
 pub mod ui_elements;

@@ -2,7 +2,7 @@ use crate::{
     app::DataPro,
     data::DataCollectionType,
     quick_error,
-    utils::{ui_elements::DataProUiElements, windows_error_dialog},
+    utils::{text_colors::warning_text, ui_elements::DataProUiElements, windows_error_dialog},
 };
 use anyhow::Result;
 use egui::RichText;
@@ -478,10 +478,7 @@ impl DataPro {
                         ui.add_space(5.0);
                         ui.add_enabled_ui(self.data.client_loaded(), |ui| {
                             if ui
-                                .button(
-                                    RichText::from("simulate 10 sessions (with reli)")
-                                        .color(ui.visuals().warn_fg_color),
-                                )
+                                .button(warning_text("simulate 10 sessions (with reli)", ui))
                                 .clicked()
                             {
                                 for i in
@@ -498,10 +495,7 @@ impl DataPro {
                                 self.data.current_session += 10;
                             }
                             if ui
-                                .button(
-                                    RichText::from("simulate 10 primary sessions")
-                                        .color(ui.visuals().warn_fg_color),
-                                )
+                                .button(warning_text("simulate 10 primary sessions", ui))
                                 .clicked()
                             {
                                 for i in

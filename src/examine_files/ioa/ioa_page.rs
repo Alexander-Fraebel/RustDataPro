@@ -7,7 +7,8 @@ use crate::{
         quick_file_name,
     },
     utils::{
-        are_you_sure_dialog, time_stamp, ui_elements::DataProUiElements, windows_error_dialog,
+        are_you_sure_dialog, text_colors::red_text, time_stamp, ui_elements::DataProUiElements,
+        windows_error_dialog,
     },
 };
 use anyhow::{Context, Result};
@@ -352,28 +353,27 @@ impl DataPro {
                                 ui.end_row();
                                 for (idx, (p, r)) in self.ioa_page.data.0.iter() {
                                     match (p, r) {
-                                        (None, None) => todo!(),
-                                        (None, Some((_, path))) => {
-                                            let name = RichText::new(quick_file_name(&path));
-                                            ui.monospace(
-                                                RichText::new("Missing!").color(Color32::RED),
-                                            );
+                                        (None, None) => {
+                                            ui.monospace(red_text("ERROR"));
                                             ui.monospace("");
-                                            ui.monospace(name.color(Color32::RED));
+                                            ui.monospace(red_text("ERROR"));
+                                            ui.monospace("");
+                                        }
+                                        (None, Some((_, path))) => {
+                                            ui.monospace(red_text("Missing!"));
+                                            ui.monospace("");
+                                            ui.monospace(quick_file_name(&path));
                                             ui.monospace("");
                                         }
                                         (Some((_, path)), None) => {
-                                            let name = RichText::new(quick_file_name(&path));
-                                            ui.monospace(name.color(Color32::RED));
+                                            ui.monospace(quick_file_name(&path));
                                             ui.monospace("");
-                                            ui.monospace(
-                                                RichText::new("Missing!").color(Color32::RED),
-                                            );
+                                            ui.monospace(red_text("Missing!"));
                                             ui.monospace("");
                                         }
                                         (Some((p_res, p_path)), Some((r_res, r_path))) => {
-                                            let p_name = RichText::new(quick_file_name(&p_path));
-                                            let r_name = RichText::new(quick_file_name(&r_path));
+                                            let p_name = quick_file_name(&p_path);
+                                            let r_name = quick_file_name(&r_path);
 
                                             match p_res.complement_of(&r_res) {
                                                 Ok(_) => {
@@ -383,16 +383,18 @@ impl DataPro {
                                                     ui.monospace("");
                                                 }
                                                 Err(e) => {
-                                                    ui.monospace(p_name.color(Color32::RED));
+                                                    ui.monospace(red_text(p_name));
                                                     ui.monospace("");
-                                                    ui.monospace(r_name.color(Color32::RED));
+                                                    ui.monospace(red_text(r_name));
                                                     ui.monospace(e.to_string());
                                                 }
                                             }
                                         }
                                     }
-                                    if ui.small_button("ignore").clicked() {
-                                        if are_you_sure_dialog("ignore both of these files?") {
+                                    if ui.small_button("remove").clicked() {
+                                        if are_you_sure_dialog(
+                                            "remove both of these files from consideration?",
+                                        ) {
                                             self.ioa_page.deleted_row = Some(*idx)
                                         }
                                     };

@@ -15,7 +15,7 @@ use crate::{
     },
     preference_assessment::preference_assessments::PreferenceAssessments,
     quick_error,
-    utils::{date_time_string, overwrite_file, windows_error_dialog},
+    utils::{date_time_string, overwrite_file, text_colors::warning_text, windows_error_dialog},
 };
 use anyhow::{Context, Result};
 use chrono::Local;
@@ -188,7 +188,7 @@ impl DataPro {
     pub fn ksf_picker(&mut self, ui: &mut egui::Ui) -> Response {
         let ksf_picker_text = match self.data.ksf_loaded() {
             true => egui::RichText::new(self.data.chosen_ksf_name().clone()).strong(),
-            false => egui::RichText::new("NONE").color(ui.visuals().error_fg_color),
+            false => warning_text("NONE", ui),
         };
 
         egui::ComboBox::from_id_salt("ksf picker")
@@ -588,8 +588,7 @@ impl eframe::App for DataPro {
                 ui.monospace(format!("{}", date_time_string(&Local::now())));
 
                 if cfg!(debug_assertions) {
-                    let warn_color = ui.visuals().warn_fg_color;
-                    ui.label(RichText::new("⚠ Debug build ⚠").small().color(warn_color))
+                    ui.label(warning_text("⚠ Debug build ⚠", ui).small())
                         .on_hover_text("egui was compiled with debug assertions enabled.");
                 }
             });
