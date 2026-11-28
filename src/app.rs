@@ -9,6 +9,7 @@ use crate::{
     display_control::{DisplayControl, Page},
     examine_files::{
         IoaPage, collated::CollatePage, merge_files::MergeFiles, rebuild_from_temp::RebuilderPage,
+        view_file::VisualizeFile,
     },
     pages::{
         CreateClient, EditAssessments, EditKsfData, PrepareSession, SessionPage, Shuffler, Timers,
@@ -41,15 +42,16 @@ pub struct DataPro {
     pub prep_session: PrepareSession,
     pub session: SessionPage,
 
-    pub ioa_page: IoaPage,
     pub new_client_page: CreateClient,
     pub edit_ksfs: EditKsfData,
     pub edit_assessments: EditAssessments,
     pub preference_assessment: PreferenceAssessments,
 
+    pub ioa_page: IoaPage,
     pub collate: CollatePage,
     pub merger: MergeFiles,
     pub rebuilder: RebuilderPage,
+    pub visualizer: VisualizeFile,
 }
 
 impl Default for DataPro {
@@ -95,6 +97,7 @@ impl Default for DataPro {
             collate: CollatePage::default(),
             merger: MergeFiles::default(),
             rebuilder: RebuilderPage::default(),
+            visualizer: VisualizeFile::default(),
         };
 
         // Initialize everything by "unloading" a client
@@ -455,6 +458,7 @@ impl DataPro {
             .prepare(default_dir.clone(), default_dir.clone());
         self.merger.prepare(default_dir.clone());
         self.rebuilder.prepare(default_dir.clone());
+        self.visualizer.prepare(default_dir.clone());
     }
 
     pub fn load_client(&mut self, path: &PathBuf) {
@@ -476,6 +480,7 @@ impl DataPro {
                 );
                 self.merger.prepare(self.path_to_session_records_dir());
                 self.rebuilder.prepare(self.path_to_session_records_dir());
+                self.visualizer.prepare(self.path_to_session_records_dir());
 
                 // Load the KSF Data
                 let ksf_path = self.path_to_ksf_data();
@@ -619,6 +624,7 @@ impl eframe::App for DataPro {
             Page::ExamineFiles => self.view_file_exam_options(ui),
             Page::Merger => self.view_file_merger(ui),
             Page::Rebuilder => self.view_file_rebuilder(ui),
+            Page::Visualizer => self.view_visualizer_page(ui),
         }
     }
 }

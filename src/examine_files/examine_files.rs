@@ -23,6 +23,11 @@ impl DataPro {
             if ui.large_button("Rebuild from Temp File").clicked() {
                 self.go_to_rebuilder();
             }
+            ui.add_space(16.0);
+
+            if ui.large_button("Visualize JSON File").clicked() {
+                self.go_to_visualizer();
+            }
         });
     }
 }

@@ -34,6 +34,7 @@ pub enum Page {
     Settings,
     Shuffler,
     Timers,
+    Visualizer,
 }
 
 impl DataPro {
@@ -143,6 +144,12 @@ impl DataPro {
     pub fn go_to_rebuilder(&mut self) {
         self.save_and_reload_ksfs_and_assessments();
         self.display_info.active_page = Page::Rebuilder;
+        self.display_info.sidebar_open = true;
+    }
+
+    pub fn go_to_visualizer(&mut self) {
+        self.save_and_reload_ksfs_and_assessments();
+        self.display_info.active_page = Page::Visualizer;
         self.display_info.sidebar_open = true;
     }
 }
